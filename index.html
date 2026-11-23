@@ -517,7 +517,7 @@ const guns=[0,1,2,3].map(gunModel);
  gunScene.environment=pm.fromScene(es,.04).texture}
 const GUN_FILES=['shipuchka','shaker','mentos','gazyava'],GUN_LEN=[.44,.6,.6,.52],GUN_OFF=[[0,0,-.06],[0,-.02,-.16],[.02,-.04,-.16],[0,-.02,-.12]];
 function loadGunModels(){if(!THREE.GLTFLoader)return;const L=new THREE.GLTFLoader();
- GUN_FILES.forEach((f,i)=>L.load('models/'+f+'.glb',gl=>{const m=gl.scene,drop=[];
+ GUN_FILES.forEach((f,i)=>L.load('models/'+f+'.json',gl=>{const m=gl.scene,drop=[];
   m.traverse(o=>{if(/Монетка[ _]в[ _]полёте/.test(o.name))drop.push(o);if(o.isMesh){const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(mt=>{const n=mt.name||'';
    if(/стекло/i.test(n)){mt.transparent=true;mt.opacity=.78}if(/ПЭТ/.test(n)){mt.transparent=true;mt.opacity=.38;mt.depthWrite=false}if(/Лёд/.test(n)){mt.transparent=true;mt.opacity=.6}
    if(/Свечение/.test(n)){mt.emissiveIntensity=2}mt.envMapIntensity=1.1})}});
