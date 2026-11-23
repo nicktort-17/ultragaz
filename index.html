@@ -128,11 +128,12 @@ kbd{font:600 13px Rubik,Arial,sans-serif;background:#3a1a1c;border-radius:5px;pa
 <div class="legend">
 <div class="card"><h3>Движение</h3><ul><li><kbd>WASD</kbd> бег, <kbd>Пробел</kbd> прыжок, у стены — отскок (до 3 раз)</li><li><kbd>Shift</kbd> рывок с неуязвимостью (3 заряда)</li><li><kbd>C</kbd> на земле — подкат, в воздухе — удар с неба</li></ul></div>
 <div class="card"><h3>Оружие</h3><ul><li><kbd>1</kbd> Шипучка: ЛКМ — выстрел, ПКМ — заряженный навылет</li><li><kbd>2</kbd> Шейкер: ЛКМ — дробь, ПКМ — бутылка-граната (стрельни в неё!)</li><li><kbd>3</kbd> Ментос-пушка: ЛКМ — ракета, ПКМ — подрыв в воздухе</li><li><kbd>4</kbd> Газява: ЛКМ — струя колы (залитые враги получают +35% урона, облей летящую ракету — будет «Ментос + кола»), ПКМ — реактивный рывок на газе. Рывок встряхивает бутылку и поднимает давление</li></ul></div>
-<div class="card"><h3>Режимы</h3><ul><li><b>Соло</b> — бесконечные волны</li><li><b>Кооп</b> — волны вместе, без огня по своим, возрождение через 5 с</li><li><b>PvP</b> — все против всех, фраги, возрождение через 3 с</li><li>Онлайн работает и на claude.ai, и на GitHub Pages (P2P)</li><li>Друзья вводят ту же комнату. <kbd>F</kbd> — удар и парирование</li></ul></div>
+<div class="card"><h3>Режимы</h3><ul><li><b>Соло</b> — бесконечные волны</li><li><b>Кооп</b> — волны вместе, без огня по своим, возрождение через 5 с</li><li><b>PvP</b> — все против всех, фраги, возрождение через 3 с</li><li>Онлайн работает и на claude.ai, и на GitHub Pages</li><li>Друзья вводят ту же комнату. <kbd>F</kbd> — удар и парирование</li></ul></div>
 </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
 {
@@ -325,9 +326,30 @@ function peerRoom(name){const hostId='ultragaz-v2-'+name.replace(/[^a-z0-9-]/g,'
  return{name,peers:()=>snap,connected:()=>ok,onPeers(){return()=>{}},onConnection(f){setTimeout(()=>f(ok));return()=>{}},on(){return()=>{}},emit:()=>Promise.resolve(),
   presence(p){for(const k in p){if(p[k]===null)delete mine[k];else mine[k]=p[k]}if(!amHost&&hostConn&&hostConn.open)try{hostConn.send({t:'p',p:mine})}catch(e){}rebuild();return Promise.resolve()},
   leave(){closed=true;reset();return Promise.resolve()}}}
+/* --- relay (MQTT over WebSocket): every player publishes its state to a public broker, works behind any router --- */
+const BROKERS=['wss://broker.emqx.io:8084/mqtt','wss://broker.hivemq.com:8884/mqtt','wss://test.mosquitto.org:8081/mqtt'];
+let brokerIdx=0;
+function mqttRoom(name){const base='ultragaz/v3/'+name.replace(/[^a-z0-9-]/g,'-')+'/',myId='p'+Math.random().toString(36).slice(2,12);
+ const mine={},others=new Map();let snap=Object.freeze([]),ok=false,client=null,closed=false,dirty=true,lastPub=0,gen=0;
+ const rebuild=()=>{const now=Date.now();for(const [id,o] of others)if(now-o.t>5000)others.delete(id);
+  const a=[{peer:myId,by:null,isMe:true,sameTab:true,kind:'viewer',guest:false,presence:Object.freeze(Object.assign({},mine))}];
+  for(const [id,o] of others)a.push({peer:id,by:null,isMe:false,sameTab:false,kind:'viewer',guest:false,presence:o.p});snap=Object.freeze(a)};
+ function connect(){if(closed)return;const my=++gen,url=BROKERS[brokerIdx%BROKERS.length];let dead=false;
+  const fail=()=>{if(dead||my!==gen||closed)return;dead=true;ok=false;try{client.end(true)}catch(e){}brokerIdx++;setTimeout(connect,800)};
+  try{client=mqtt.connect(url,{clientId:'ug_'+myId+'_'+my,clean:true,connectTimeout:7000,reconnectPeriod:0,keepalive:20,will:{topic:base+myId,payload:'',qos:0,retain:false}})}catch(e){fail();return}
+  const to=setTimeout(()=>{if(!ok)fail()},8000);
+  client.on('connect',()=>{clearTimeout(to);ok=true;client.subscribe(base+'+',{qos:0});dirty=true});
+  client.on('message',(t,buf)=>{const id=t.slice(base.length);if(id===myId||!/^p[a-z0-9]{4,16}$/.test(id))return;const txt=buf.toString();
+   if(!txt){others.delete(id);rebuild();return}if(txt.length>8000)return;try{const pr=JSON.parse(txt);if(pr&&typeof pr==='object'&&!Array.isArray(pr))others.set(id,{p:Object.freeze(pr),t:Date.now()})}catch(e){}rebuild()});
+  client.on('error',fail);client.on('close',fail);client.on('offline',fail)}
+ const tick=setInterval(()=>{if(closed)return;const now=Date.now();if(ok&&client&&(dirty&&now-lastPub>66||now-lastPub>1000)){dirty=false;lastPub=now;try{client.publish(base+myId,JSON.stringify(mine),{qos:0})}catch(e){}}rebuild()},33);
+ connect();rebuild();
+ return{name,peers:()=>snap,connected:()=>ok,onPeers(){return()=>{}},onConnection(f){setTimeout(()=>f(ok));return()=>{}},on(){return()=>{}},emit:()=>Promise.resolve(),
+  presence(p){for(const k in p){if(p[k]===null)delete mine[k];else mine[k]=p[k]}dirty=true;return Promise.resolve()},
+  leave(){closed=true;clearInterval(tick);try{if(client&&ok)client.publish(base+myId,'',{qos:0});setTimeout(()=>{try{client.end(true)}catch(e){}},150)}catch(e){}return Promise.resolve()}}}
 let p2p=false;
 function initNet(){const c=window.claude;
- if((!c||!c.use)&&typeof window.Peer==='function'){p2p=true;roomApi={connected:()=>true,presence:()=>Promise.resolve(),onPeers:()=>()=>{},onConnection:f=>{f(true);return()=>{}},join:n=>Promise.resolve(peerRoom(n))};netNote(roomApi);return}
+ if((!c||!c.use)&&(window.mqtt||typeof window.Peer==='function')){p2p=true;const useMq=!!(window.mqtt&&window.mqtt.connect);roomApi={connected:()=>true,presence:()=>Promise.resolve(),onPeers:()=>()=>{},onConnection:f=>{f(true);return()=>{}},join:n=>Promise.resolve(useMq?mqttRoom(n):peerRoom(n))};netNote(roomApi);return}
  if(!c||!c.use){netNote(null);return}
  c.use('room').then(r=>{roomApi=r;netNote(r);if(!r)return;
   r.onConnection(()=>{netNote(r);lobbyPresence()},()=>netNote(null));
@@ -336,7 +358,7 @@ function initNet(){const c=window.claude;
    $('online').textContent=others.length?'Сейчас на странице: '+others.join(', '):'';},()=>{});
  }).catch(()=>netNote(null))}
 function netNote(r){$('mCoop').disabled=$('mPvp').disabled=!r;
- $('netNote').textContent=r?(p2p?'Онлайн P2P: отправь друзьям ссылку на эту страницу — пусть введут ту же комнату и выберут тот же режим.':'Мультиплеер доступен: друзья открывают эту же страницу, вводят ту же комнату и выбирают тот же режим.'):'Мультиплеер работает, когда игру открывают по ссылке на claude.ai люди, с которыми вы ей поделились. Сейчас доступно соло.'}
+ $('netNote').textContent=r?(p2p?'Онлайн через сервер-ретранслятор: отправь друзьям ссылку на эту страницу — пусть введут ту же комнату и выберут тот же режим.':'Мультиплеер доступен: друзья открывают эту же страницу, вводят ту же комнату и выбирают тот же режим.'):'Мультиплеер работает, когда игру открывают по ссылке на claude.ai люди, с которыми вы ей поделились. Сейчас доступно соло.'}
 async function joinNet(){if(!roomApi)return false;try{net=await roomApi.join((mode+'-'+code).slice(0,48));
  net.onPeers(()=>{},()=>{});return true}catch(e){net=null;banner('Не удалось войти в комнату');return false}}
 function leaveNet(){if(net){try{net.leave()}catch(e){}}net=null;remotes.forEach(r=>scene.remove(r.g));remotes.clear();seen.clear();hostSnap=null;knownOp.clear()}
@@ -652,6 +674,7 @@ function hud(dt){$('hpf').style.width=Math.max(0,P.hp)+'%';$('hpt').textContent=
  if(!mp()){$('board').innerHTML='';return}
  const rows=[{n:nick,c:myColor,k:kills,d:deaths,hp:Math.ceil(P.hp),al:P.alive,me:true,sc:score}];for(const rr of remotes.values())rows.push({n:rr.name,c:rr.color,k:rr.k,d:rr.d,hp:rr.hp,al:rr.alive,sc:rr.score});
  if(mode==='pvp'){rows.sort((a,b)=>b.k-a.k||a.d-b.d);$('left').textContent='игроков: '+rows.length}
+ if(net&&net.connected&&!net.connected())$('left').textContent='подключение к серверу…'
  const list=(mode==='pvp'&&!showBoard)?rows.slice(0,5):rows;
  $('board').innerHTML=list.map(x=>'<div class="r'+(x.me?' me':'')+(x.al?'':' dead')+'"><span><i style="background:'+esc(x.c)+'"></i>'+esc(x.n)+'</span><span>'+(mode==='pvp'?x.k+' / '+x.d:(x.al?x.hp+' ♥':'ждёт')+(showBoard?' · '+x.sc:''))+'</span></div>').join('')}
 function resize(){const w=wrap.clientWidth,h=wrap.clientHeight;renderer.setSize(w,h,false);camera.aspect=gunCam.aspect=w/h;camera.updateProjectionMatrix();gunCam.updateProjectionMatrix()}
