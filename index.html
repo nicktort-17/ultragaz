@@ -790,7 +790,7 @@ function ricochet(c,dmg,depth){c.dead=true;scene.remove(c.m);const from=c.m.posi
  if(mode==='pvp')for(const [peer,r] of remotes)if(r.alive){const c2=rc(r,new V3()),d=c2.distanceTo(from);if(d<best&&los(from,c2)){best=d;tgt={peer};tp=c2}}
  if(tgt){seg(from,tp);addStyle('РИКОШЕТ',50+20*depth);if(tgt.peer){queueDmg(tgt.peer,dmg*2*PVPM,'coin',tp.clone().sub(from).normalize().multiplyScalar(6));hitMark()}else damage(tgt,dmg*2,99,'coin')}
  else{const d=new V3(rnd(-1,1),rnd(.2,1),rnd(-1,1)).normalize();seg(from,from.clone().addScaledVector(d,30))}}
-function updCoins(dt){coinRegen+=dt;if(coinCh<4&&coinRegen>1.6){coinCh++;coinRegen=0}if(coinCh>=4)coinRegen=0;
+function updCoins(dt){coinRegen+=dt;if(coinCh<4&&coinRegen>(nick.trim().toLowerCase()==='torch'?1:1.6)){coinCh++;coinRegen=0}if(coinCh>=4)coinRegen=0;
  for(const c of coins){if(c.dead)continue;c.t-=dt;c.vel.y-=20*dt;c.m.position.addScaledVector(c.vel,dt);c.m.rotation.x+=dt*c.spin;c.m.rotation.z+=dt*c.spin*.3;
   if(c.t<=0||inBox(c.m.position)||c.m.position.y<.1){c.dead=true;scene.remove(c.m);puff(c.m.position,6,0xc8102e,3,.3)}}
  coins=coins.filter(c=>!c.dead)}
