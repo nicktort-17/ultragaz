@@ -66,6 +66,7 @@ button:hover{background:#fff}button:focus-visible,input:focus-visible{outline:3p
 button:disabled{opacity:.4;cursor:not-allowed}
 button.alt{background:var(--red);color:var(--cream)}button.alt:hover{background:#e01836}
 button.ghost{background:transparent;color:var(--cream);border:1px solid rgba(246,238,226,.4)}
+.maps{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.mapb{min-height:40px;padding:0 18px;font-size:15px;background:transparent;color:var(--cream);border:1px solid rgba(246,238,226,.4)}.mapb.sel{background:var(--gold);color:#1a0507;border-color:var(--gold)}
 .modes{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
 .fields{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
 .fields label{display:flex;flex-direction:column;align-items:flex-start;gap:4px;font-size:13px;color:var(--soft)}
@@ -103,6 +104,7 @@ kbd{font:600 13px Rubik,Arial,sans-serif;background:#3a1a1c;border-radius:5px;pa
 <div class="ov" id="menu">
 <h2>УЛЬТРА<em>ГАЗ</em></h2>
 <div class="fields"><label for="nick">Ник<input id="nick" maxlength="14" autocomplete="off"></label><label for="code">Комната (для мультиплеера)<input id="code" maxlength="20" autocomplete="off"></label></div>
+<div class="maps" role="radiogroup" aria-label="Карта"><button id="mapZ" class="mapb" role="radio">Завод «Газ-Ад»</button><button id="mapP" class="mapb" role="radio">Площадь фонтана</button></div>
 <div class="modes"><button id="mSolo">Соло · PvE</button><button id="mCoop" class="alt">Кооп · PvE</button><button id="mPvp" class="alt">PvP · арена</button></div>
 <p class="note" id="netNote">Проверяю, доступен ли мультиплеер…</p>
 <p id="online"></p>
@@ -150,6 +152,7 @@ const setSens=v=>{sens=+v;$('sens').value=$('sens2').value=v;save('ug-sens',v)};
 $('sens').oninput=e=>setSens(e.target.value);$('sens2').oninput=e=>setSens(e.target.value);
 $('nick').onchange=()=>{nick=cleanNick($('nick').value);$('nick').value=nick;save('ug-nick',nick);lobbyPresence()};
 $('code').onchange=()=>{code=cleanCode($('code').value);$('code').value=code;save('ug-code',code);lobbyPresence()};
+function setMap(id){mapId=id;save('ug-map',id);$('mapZ').classList.toggle('sel',id==='zavod');$('mapP').classList.toggle('sel',id==='plaza');$('mapZ').setAttribute('aria-checked',id==='zavod');$('mapP').setAttribute('aria-checked',id==='plaza');if(state==='menu')loadMap(id);lobbyPresence()}
 const showBest=()=>{$('best').textContent=best?'Рекорд в соло: '+best:''};showBest();
 const COLORS=['#ff4d5e','#5fe0c8','#f2b84b','#8fd0f5','#c58cff','#7ee08a','#ff9a4d','#f6eee2'];
 const myColor=COLORS[Math.floor(Math.random()*COLORS.length)];
@@ -161,40 +164,110 @@ const scene=new THREE.Scene();scene.background=new THREE.Color(0x1b0608);scene.f
 const camera=new THREE.PerspectiveCamera(90,16/9,.05,300);camera.rotation.order='YXZ';scene.add(camera);
 const gunScene=new THREE.Scene(),gunCam=new THREE.PerspectiveCamera(68,16/9,.01,10);
 gunScene.add(new THREE.HemisphereLight(0xffeedd,0x441111,1.1));{const l=new THREE.DirectionalLight(0xffffff,.8);l.position.set(1,2,1);gunScene.add(l)}
-scene.add(new THREE.HemisphereLight(0xffd6c8,0x2a0608,.75));
-{const l=new THREE.DirectionalLight(0xfff0e0,.55);l.position.set(20,40,10);scene.add(l)}
-[[0,9,0,0xff3344],[-24,10,-24,0xffaa55],[24,10,24,0xffaa55]].forEach(([x,y,z,c])=>{const l=new THREE.PointLight(c,1.3,60);l.position.set(x,y,z);scene.add(l)});
 const flashLight=new THREE.PointLight(0xffaa44,0,26);scene.add(flashLight);
 
 function tex(w,h,draw,rx,ry){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(rx,ry);t.anisotropy=4;return t}
 const M=(c,o={})=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.6,metalness:.1},o));
-const floorTex=tex(256,256,(g,w,h)=>{g.fillStyle='#2a1a1c';g.fillRect(0,0,w,h);g.strokeStyle='#40272a';g.lineWidth=4;for(let i=0;i<=w;i+=64){g.beginPath();g.moveTo(i,0);g.lineTo(i,h);g.stroke();g.beginPath();g.moveTo(0,i);g.lineTo(w,i);g.stroke()}g.fillStyle='#6a1520';g.fillRect(28,28,8,8)},18,18);
-const wallTex=tex(256,256,(g,w,h)=>{g.fillStyle='#430e14';g.fillRect(0,0,w,h);g.fillStyle='#55121a';for(let y=0;y<h;y+=32)g.fillRect(0,y,w,14);g.fillStyle='#f2b84b';for(let x=0;x<w;x+=64)g.fillRect(x,h-22,32,22);g.fillStyle='#1a0507';for(let x=32;x<w;x+=64)g.fillRect(x,h-22,32,22)},10,1);
-const crateTex=tex(128,128,(g,w,h)=>{g.fillStyle='#a8743f';g.fillRect(0,0,w,h);g.strokeStyle='#6b4520';g.lineWidth=10;g.strokeRect(5,5,w-10,h-10);g.beginPath();g.moveTo(8,8);g.lineTo(w-8,h-8);g.moveTo(w-8,8);g.lineTo(8,h-8);g.stroke()},1,1);
-const mats={floor:M(0xffffff,{map:floorTex,roughness:.9}),wall:M(0xffffff,{map:wallTex}),metal:M(0x8d8f94,{metalness:.55,roughness:.35}),pillar:M(0x5a3a3d,{roughness:.7}),crate:M(0xffffff,{map:crateTex,roughness:.85}),tank:M(0xc9ced4,{metalness:.4,roughness:.3}),red:M(0xc8102e,{roughness:.4}),neon:new THREE.MeshBasicMaterial({color:0xff2a3a})};
+const crateTex=tex(128,128,(g,w,h)=>{g.fillStyle='#b8834a';g.fillRect(0,0,w,h);g.strokeStyle='#7a5226';g.lineWidth=10;g.strokeRect(5,5,w-10,h-10);g.beginPath();g.moveTo(8,8);g.lineTo(w-8,h-8);g.moveTo(w-8,8);g.lineTo(8,h-8);g.stroke()},1,1);
+const mats={crate:M(0xffffff,{map:crateTex,roughness:.85}),tank:M(0xd9dde2,{metalness:.45,roughness:.28}),red:M(0xc8102e,{roughness:.4}),neon:new THREE.MeshBasicMaterial({color:0xff2a3a}),metal:M(0xa9adb3,{metalness:.5,roughness:.35})};
 
-/* ================= level ================= */
-const level=[],boxes=[];
+/* ================= maps ================= */
+const level=[],boxes=[],mapAnims=[];let mapGroup=new THREE.Group(),curMap=null,spawns=[];scene.add(mapGroup);
 function solid(x,y,z,w,h,d){boxes.push({min:new V3(x-w/2,y,z-d/2),max:new V3(x+w/2,y+h,z+d/2)})}
-function addBox(x,y,z,w,h,d,mat){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y+h/2,z);scene.add(m);level.push(m);solid(x,y,z,w,h,d);return m}
-addBox(0,-1,0,74,1,74,mats.floor);
-for(const [x,z,w,d] of [[0,-36,74,1],[0,36,74,1],[-36,0,1,74],[36,0,1,74]])addBox(x,0,z,w,16,d,mats.wall);
-{const ceilTex=tex(256,256,(g,w,h)=>{g.fillStyle='#1f0a0c';g.fillRect(0,0,w,h);g.strokeStyle='#3a1418';g.lineWidth=10;for(let i=0;i<=w;i+=128){g.beginPath();g.moveTo(i,0);g.lineTo(i,h);g.stroke();g.beginPath();g.moveTo(0,i);g.lineTo(w,i);g.stroke()}},9,9);
- addBox(0,16,0,74,1,74,M(0xffffff,{map:ceilTex,roughness:.9,side:THREE.DoubleSide}));
- for(const z of[-24,-8,8,24]){const b=new THREE.Mesh(new THREE.BoxGeometry(70,.5,.6),mats.pillar);b.position.set(0,15.7,z);scene.add(b);
-  for(const x of[-24,0,24]){const l=new THREE.Mesh(new THREE.BoxGeometry(3,.15,.6),new THREE.MeshBasicMaterial({color:0xffd9a0}));l.position.set(x,15.4,z);scene.add(l)}}}
-addBox(0,0,0,12,1.2,12,mats.metal);
-for(const s of[-1,1])for(const t of[-1,1]){const n=new THREE.Mesh(new THREE.BoxGeometry(12.2,.12,.12),mats.neon);n.position.set(0,1.22,t*6);if(s>0)n.rotation.y=Math.PI/2,n.position.set(t*6,1.22,0);scene.add(n)}
-for(const [x,z] of [[-14,-14],[14,-14],[-14,14],[14,14]]){addBox(x,0,z,3,13,3,mats.pillar);const b=new THREE.Mesh(new THREE.BoxGeometry(3.1,.4,3.1),mats.neon);b.position.set(x,3,z);scene.add(b)}
-for(const [x,z,s] of [[8,-21,2],[-10,20,2],[22,-8,1.8],[-22,10,1.8],[10,23,1.6],[-6,-25,2],[-25,-22,2],[25,22,2]])addBox(x,0,z,s,s,s,mats.crate);
-for(const sz of[-1,1]){addBox(0,3.8,sz*32.5,16,.6,6,mats.metal);
- for(let i=0;i<3;i++)addBox(9.5+i*2,0,sz*32.5,2,3.6-i*1.2,3,mats.metal);
- const n=new THREE.Mesh(new THREE.BoxGeometry(16,.1,.1),mats.neon);n.position.set(0,4.42,sz*29.5);scene.add(n)}
-for(const x of[-26,26]){const g=new THREE.Group();const t=new THREE.Mesh(new THREE.CylinderGeometry(3,3,9,28),mats.tank);t.position.y=4.5;g.add(t);
- const top=new THREE.Mesh(new THREE.SphereGeometry(3,28,12,0,Math.PI*2,0,Math.PI/2),mats.tank);top.position.y=9;g.add(top);
- const band=new THREE.Mesh(new THREE.CylinderGeometry(3.05,3.05,1,28),mats.red);band.position.y=5.5;g.add(band);
- g.position.set(x,0,0);scene.add(g);g.traverse(o=>{if(o.isMesh)level.push(o)});solid(x,0,0,5.6,10.5,5.6)}
-const spawns=[[-30,-30],[30,-30],[-30,30],[30,30],[-30,0],[30,0],[0,-24],[0,24],[-18,0],[18,0]].map(([x,z])=>new V3(x,0,z));
+function addBox(x,y,z,w,h,d,mat){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y+h/2,z);mapGroup.add(m);level.push(m);solid(x,y,z,w,h,d);return m}
+function deco(geo,mat,x,y,z,ry=0){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.rotation.y=ry;mapGroup.add(m);return m}
+function addLights(list){for(const l of list)mapGroup.add(l)}
+const MAPS=[{id:'zavod',name:'Завод «Газ-Ад»'},{id:'plaza',name:'Площадь фонтана'}];
+
+function buildFactory(){
+ scene.background=new THREE.Color(0xb9b0a4);scene.fog=new THREE.Fog(0xb9b0a4,45,130);
+ const hemi=new THREE.HemisphereLight(0xfff6ec,0x6a5a52,.62),sun=new THREE.DirectionalLight(0xfff4e6,.45);sun.position.set(20,40,10);
+ const pts=[[0,12,0,0xfff0dc],[-22,12,-22,0xffe6c8],[22,12,22,0xffe6c8],[22,12,-22,0xfff0dc],[-22,12,22,0xfff0dc]].map(([x,y,z,c])=>{const l=new THREE.PointLight(c,.45,50);l.position.set(x,y,z);return l});
+ addLights([hemi,sun,...pts]);
+ const floorTex=tex(256,256,(g,w,h)=>{g.fillStyle='#8e8780';g.fillRect(0,0,w,h);for(let i=0;i<400;i++){g.fillStyle='rgba(80,70,65,'+(Math.random()*.08)+')';g.fillRect(Math.random()*w,Math.random()*h,3,3)}
+  g.strokeStyle='#746d66';g.lineWidth=3;for(let i=0;i<=w;i+=64){g.beginPath();g.moveTo(i,0);g.lineTo(i,h);g.stroke();g.beginPath();g.moveTo(0,i);g.lineTo(w,i);g.stroke()}g.fillStyle='#c8102e';g.fillRect(0,124,w,8)},18,18);
+ const wallTex=tex(256,256,(g,w,h)=>{g.fillStyle='#c9c0b3';g.fillRect(0,0,w,h);g.strokeStyle='#aca293';g.lineWidth=4;for(let x=0;x<=w;x+=64){g.beginPath();g.moveTo(x,0);g.lineTo(x,h-60);g.stroke()}
+  g.fillStyle='#c8102e';g.fillRect(0,h-60,w,22);g.fillStyle='#f6eee2';g.fillRect(0,h-38,w,6);for(let x=0;x<w;x+=64){g.fillStyle='#f2b84b';g.fillRect(x,h-32,32,32);g.fillStyle='#2b2b30';g.fillRect(x+32,h-32,32,32)}
+  g.fillStyle='#bfe3f5';for(let x=12;x<w;x+=64)g.fillRect(x,40,40,70);g.strokeStyle='#9aa0a6';g.lineWidth=4;for(let x=12;x<w;x+=64)g.strokeRect(x,40,40,70)},10,1);
+ const ceilTex=tex(256,256,(g,w,h)=>{g.fillStyle='#bdb6ad';g.fillRect(0,0,w,h);g.strokeStyle='#a29a90';g.lineWidth=8;for(let i=0;i<=w;i+=128){g.beginPath();g.moveTo(i,0);g.lineTo(i,h);g.stroke();g.beginPath();g.moveTo(0,i);g.lineTo(w,i);g.stroke()}},9,9);
+ const floor=M(0xffffff,{map:floorTex,roughness:.85}),wall=M(0xffffff,{map:wallTex,roughness:.7}),pillar=M(0xc9c1b6,{roughness:.6}),ceil=M(0xffffff,{map:ceilTex,roughness:.9,side:THREE.DoubleSide});
+ addBox(0,-1,0,74,1,74,floor);
+ for(const [x,z,w,d] of [[0,-36,74,1],[0,36,74,1],[-36,0,1,74],[36,0,1,74]])addBox(x,0,z,w,16,d,wall);
+ addBox(0,16,0,74,1,74,ceil);
+ const sky=new THREE.MeshBasicMaterial({color:0xfffbf0});
+ for(const z of[-24,-8,8,24]){deco(new THREE.BoxGeometry(70,.5,.6),pillar,0,15.7,z);for(const x of[-24,0,24])deco(new THREE.BoxGeometry(6,.12,3),sky,x,15.9,z)}
+ addBox(0,0,0,12,1.2,12,mats.metal);
+ for(const t of[-1,1]){deco(new THREE.BoxGeometry(12.2,.12,.12),mats.neon,0,1.22,t*6);deco(new THREE.BoxGeometry(.12,.12,12.2),mats.neon,t*6,1.22,0)}
+ for(const [x,z] of [[-14,-14],[14,-14],[-14,14],[14,14]]){addBox(x,0,z,3,13,3,pillar);deco(new THREE.BoxGeometry(3.1,.6,3.1),mats.red,x,3,z);deco(new THREE.BoxGeometry(3.12,.15,3.12),new THREE.MeshBasicMaterial({color:0xf6eee2}),x,3.38,z)}
+ for(const [x,z,s] of [[8,-21,2],[-10,20,2],[22,-8,1.8],[-22,10,1.8],[10,23,1.6],[-6,-25,2],[-25,-22,2],[25,22,2]])addBox(x,0,z,s,s,s,mats.crate);
+ for(const sz of[-1,1]){addBox(0,3.8,sz*32.5,16,.6,6,mats.metal);for(let i=0;i<3;i++)addBox(9.5+i*2,0,sz*32.5,2,3.6-i*1.2,3,mats.metal);deco(new THREE.BoxGeometry(16,.1,.1),mats.neon,0,4.42,sz*29.5)}
+ for(const x of[-26,26]){const g=new THREE.Group();const t=new THREE.Mesh(new THREE.CylinderGeometry(3,3,9,28),mats.tank);t.position.y=4.5;g.add(t);
+  const top=new THREE.Mesh(new THREE.SphereGeometry(3,28,12,0,Math.PI*2,0,Math.PI/2),mats.tank);top.position.y=9;g.add(top);
+  const band=new THREE.Mesh(new THREE.CylinderGeometry(3.05,3.05,1,28),mats.red);band.position.y=5.5;g.add(band);
+  g.position.set(x,0,0);mapGroup.add(g);g.traverse(o=>{if(o.isMesh)level.push(o)});solid(x,0,0,5.6,10.5,5.6)}
+ spawns=[[-30,-30],[30,-30],[-30,30],[30,30],[-30,0],[30,0],[0,-24],[0,24],[-18,0],[18,0]].map(([x,z])=>new V3(x,0,z))}
+
+/* --- Площадь фонтана: открытая терраса под чистым небом, в центре — фонтан-бутылка колы --- */
+const FN=1400,fg=new THREE.BufferGeometry(),fp=new Float32Array(FN*3),fv=new Float32Array(FN*3),fl=new Float32Array(FN),fc=new Float32Array(FN*3);let fi=0;
+for(let i=0;i<FN;i++)fp[i*3+1]=-999;fg.setAttribute('position',new THREE.BufferAttribute(fp,3));fg.setAttribute('color',new THREE.BufferAttribute(fc,3));
+const fountainPts=new THREE.Points(fg,new THREE.PointsMaterial({size:.17,vertexColors:true,transparent:true,opacity:.9,depthWrite:false}));fountainPts.frustumCulled=false;
+function jet(x,y,z,vx,vy,vz,foam){const i=fi=(fi+1)%FN;fp[i*3]=x;fp[i*3+1]=y;fp[i*3+2]=z;fv[i*3]=vx;fv[i*3+1]=vy;fv[i*3+2]=vz;fl[i]=2.2;
+ const c=foam?[.96,.92,.85]:[.42,.16,.08];fc[i*3]=c[0];fc[i*3+1]=c[1];fc[i*3+2]=c[2]}
+function buildPlaza(){
+ const skyTex=(()=>{const c=document.createElement('canvas');c.width=16;c.height=256;const g=c.getContext('2d'),gr=g.createLinearGradient(0,0,0,256);
+  gr.addColorStop(0,'#2f7fe0');gr.addColorStop(.45,'#7fbdf5');gr.addColorStop(.62,'#dff0ff');gr.addColorStop(1,'#f3e7d2');g.fillStyle=gr;g.fillRect(0,0,16,256);return new THREE.CanvasTexture(c)})();
+ scene.background=new THREE.Color(0xbfe0fb);scene.fog=new THREE.Fog(0xd6ecff,70,190);
+ const dome=new THREE.Mesh(new THREE.SphereGeometry(220,32,16),new THREE.MeshBasicMaterial({map:skyTex,side:THREE.BackSide,fog:false}));mapGroup.add(dome);
+ const sunDisc=new THREE.Mesh(new THREE.SphereGeometry(8,20,12),new THREE.MeshBasicMaterial({color:0xfff6d8,fog:false}));sunDisc.position.set(90,120,-110);mapGroup.add(sunDisc);
+ const hemi=new THREE.HemisphereLight(0xcfe8ff,0xb59f7c,.62),sun=new THREE.DirectionalLight(0xfff2da,.8);sun.position.set(40,70,-50);addLights([hemi,sun]);
+ const cloudM=new THREE.MeshLambertMaterial({color:0xffffff,emissive:0x8899aa,fog:false});
+ for(let i=0;i<14;i++){const a=i/14*Math.PI*2+Math.random()*.3,r=rnd(120,170),cy=rnd(25,60),g=new THREE.Group();
+  for(let k=0;k<5;k++){const s=new THREE.Mesh(new THREE.SphereGeometry(rnd(6,11),14,10),cloudM);s.position.set(rnd(-14,14),rnd(-2,3),rnd(-5,5));s.scale.y=.55;g.add(s)}
+  g.position.set(Math.cos(a)*r,cy,Math.sin(a)*r);g.lookAt(0,cy,0);mapGroup.add(g)}
+ const tileTex=tex(256,256,(g,w,h)=>{g.fillStyle='#d8cab0';g.fillRect(0,0,w,h);for(let y=0;y<4;y++)for(let x=0;x<4;x++){g.fillStyle=(x+y)%2?'#cdbb9c':'#ddd0b8';g.fillRect(x*64+2,y*64+2,60,60)}
+  g.strokeStyle='#cdbd9f';g.lineWidth=3;for(let i=0;i<=w;i+=64){g.beginPath();g.moveTo(i,0);g.lineTo(i,h);g.stroke();g.beginPath();g.moveTo(0,i);g.lineTo(w,i);g.stroke()}},22,22);
+ const marble=M(0xf4efe6,{roughness:.35}),stone=M(0xe2d6c1,{roughness:.7}),floor=M(0xffffff,{map:tileTex,roughness:.6}),gold=M(0xf2b84b,{metalness:.8,roughness:.25});
+ addBox(0,-1,0,80,1,80,floor);
+ // низкая балюстрада по краю, за ней — небо; невидимая стена не даёт упасть
+ for(const [x,z,w,d] of [[0,-39.5,80,1],[0,39.5,80,1],[-39.5,0,1,80],[39.5,0,1,80]]){addBox(x,0,z,w,1.1,d,stone);solid(x,1.1,z,w,40,d)}
+ for(let i=-38;i<=38;i+=4)for(const [x,z] of [[i,-39.5],[i,39.5],[-39.5,i],[39.5,i]])deco(new THREE.SphereGeometry(.35,10,8),marble,x,1.35,z);
+ const under=new THREE.Mesh(new THREE.CylinderGeometry(56,18,30,8,1),M(0xcbb894,{roughness:.9}));under.position.y=-16;under.rotation.y=Math.PI/8;mapGroup.add(under);
+ // колоннада по кругу
+ for(let i=0;i<16;i++){const a=i/16*Math.PI*2,x=Math.cos(a)*30,z=Math.sin(a)*30;
+  const colm=deco(new THREE.CylinderGeometry(.85,.95,9,16),marble,x,4.5,z);deco(new THREE.BoxGeometry(2.4,.6,2.4),stone,x,.3,z);deco(new THREE.BoxGeometry(2.4,.6,2.4),stone,x,9.2,z);solid(x,0,z,1.9,9.5,1.9);level.push(colm);
+  if(i%2===0){const b=deco(new THREE.PlaneGeometry(2.6,4.5),mats.red,x*.97,6.2,z*.97);b.lookAt(0,6.2,0);b.material.side=THREE.DoubleSide;
+   const wv=deco(new THREE.PlaneGeometry(2.62,.35),new THREE.MeshBasicMaterial({color:0xf6eee2,side:THREE.DoubleSide}),x*.968,5.6,z*.968);wv.lookAt(0,5.6,0)}}
+ const ring=new THREE.Mesh(new THREE.TorusGeometry(30,.5,8,64),stone);ring.rotation.x=Math.PI/2;ring.position.y=9.9;mapGroup.add(ring);
+ // угловые террасы с лестницами и зонтиками
+ for(const [sx,sz] of [[-1,-1],[1,-1],[-1,1],[1,1]]){const cx=sx*33,cz=sz*33;addBox(cx,0,cz,9,2.4,9,stone);
+  for(let k=0;k<2;k++)addBox(cx-sx*(5.5+k*1.6),0,cz,1.6,1.6-k*.8,4,stone);
+  deco(new THREE.CylinderGeometry(.08,.08,3,8),gold,cx,3.9,cz);const um=deco(new THREE.ConeGeometry(2.6,1,12,1,true),mats.red,cx,5.6,cz);um.material=M(0xc8102e,{side:THREE.DoubleSide,roughness:.5})}
+ // фонтан: квадратный бассейн, чаша, бутылка-статуя
+ const rimM=marble,colaM=new THREE.MeshStandardMaterial({color:0x4a1a0a,roughness:.08,metalness:.1,transparent:true,opacity:.85});
+ for(const [x,z,w,d] of [[0,-9,19,1],[0,9,19,1],[-9,0,1,17],[9,0,1,17]])addBox(x,0,z,w,1,d,rimM);
+ const pool=deco(new THREE.PlaneGeometry(17,17),colaM,0,.55,0);pool.rotation.x=-Math.PI/2;
+ const foamRing=deco(new THREE.RingGeometry(3.2,4.2,32),new THREE.MeshBasicMaterial({color:0xf6eee2,transparent:true,opacity:.7}),0,.58,0);foamRing.rotation.x=-Math.PI/2;
+ deco(new THREE.CylinderGeometry(2,2.6,3,20),marble,0,1.5,0);solid(0,0,0,4,3,4);
+ const bowl=deco(new THREE.CylinderGeometry(4.6,3.2,.8,32),marble,0,3.3,0);addBox(0,2.9,0,7,.8,7,rimM).visible=false;level.push(bowl);
+ const bowlCola=deco(new THREE.CylinderGeometry(4.3,4.3,.1,32),colaM,0,3.68,0);
+ const bottlePts=[[0,0],[1.3,0],[1.4,.2],[1.4,2.8],[1.2,3.5],[.6,4.4],[.45,5],[.5,5.3],[.5,5.5],[0,5.5]].map(([r,y])=>new THREE.Vector2(r,y));
+ const bottle=deco(new THREE.LatheGeometry(bottlePts,28),M(0x6b2a14,{roughness:.1,metalness:.1,transparent:true,opacity:.92}),0,3.7,0);
+ deco(new THREE.CylinderGeometry(1.42,1.42,1.1,28),mats.red,0,5.2,0);deco(new THREE.CylinderGeometry(1.43,1.43,.2,28),new THREE.MeshBasicMaterial({color:0xf6eee2}),0,5.3,0);
+ const capM=deco(new THREE.CylinderGeometry(.62,.62,.3,21),mats.red,0,9.35,0);solid(0,3.7,0,2.6,5.8,2.6);level.push(bottle);
+ mapGroup.add(fountainPts);
+ mapAnims.push(dt=>{const n=Math.min(50,Math.ceil(dt*900));for(let k=0;k<n;k++){const a=Math.random()*Math.PI*2,sp=rnd(3,5.5);jet(Math.cos(a)*.3,9.6,Math.sin(a)*.3,Math.cos(a)*sp,rnd(7,10),Math.sin(a)*sp,Math.random()<.35)}
+  for(let k=0;k<6;k++){const c=[[-8.5,-8.5],[8.5,-8.5],[-8.5,8.5],[8.5,8.5]][k%4];jet(c[0],1.1,c[1],-c[0]*.28+rnd(-.4,.4),rnd(5,6.5),-c[1]*.28+rnd(-.4,.4),Math.random()<.5)}
+  for(let i=0;i<FN;i++){if(fl[i]<=0)continue;fl[i]-=dt;fv[i*3+1]-=14*dt;fp[i*3]+=fv[i*3]*dt;fp[i*3+1]+=fv[i*3+1]*dt;fp[i*3+2]+=fv[i*3+2]*dt;
+   const r=Math.hypot(fp[i*3],fp[i*3+2]);if(fp[i*3+1]<(r<4.4?3.7:.55)){fl[i]=0;fp[i*3+1]=-999}}
+  fg.attributes.position.needsUpdate=true;fg.attributes.color.needsUpdate=true;foamRing.rotation.z+=dt*.3;
+  pool.material.color.setHSL(.04,.75,.16+Math.sin(performance.now()/700)*.015)});
+ spawns=[[-33,-33],[33,-33],[-33,33],[33,33],[-22,0],[22,0],[0,-22],[0,22],[-15,-15],[15,15]].map(([x,z])=>new V3(x,0,z));
+ spawns.forEach((s,i)=>{if(i<4)s.y=2.4})}
+function loadMap(id){if(curMap===id)return;scene.remove(mapGroup);mapGroup.traverse(o=>{if(o.geometry&&o!==fountainPts)o.geometry.dispose()});
+ mapGroup=new THREE.Group();scene.add(mapGroup);level.length=0;boxes.length=0;mapAnims.length=0;for(let i=0;i<FN;i++){fl[i]=0;fp[i*3+1]=-999}
+ if(id==='plaza')buildPlaza();else buildFactory();curMap=id}
+let mapId='zavod';try{mapId=localStorage.getItem('ug-map')==='plaza'?'plaza':'zavod'}catch(e){}
+loadMap(mapId);
 const inBox=p=>{for(const b of boxes)if(p.x>b.min.x&&p.x<b.max.x&&p.y>b.min.y&&p.y<b.max.y&&p.z>b.min.z&&p.z<b.max.z)return true;return false};
 function ov(p,r,h,b){return p.x+r>b.min.x&&p.x-r<b.max.x&&p.z+r>b.min.z&&p.z-r<b.max.z&&p.y+h>b.min.y&&p.y<b.max.y}
 function moveBody(p,v,r,h,dt,step){let ground=false,wall=null;
@@ -361,7 +434,7 @@ function initNet(){const c=window.claude;
  }).catch(()=>netNote(null))}
 function netNote(r){$('mCoop').disabled=$('mPvp').disabled=!r;
  $('netNote').textContent=r?(p2p?'Онлайн через сервер-ретранслятор: отправь друзьям ссылку на эту страницу — пусть введут ту же комнату и выберут тот же режим.':'Мультиплеер доступен: друзья открывают эту же страницу, вводят ту же комнату и выбирают тот же режим.'):'Мультиплеер работает, когда игру открывают по ссылке на claude.ai люди, с которыми вы ей поделились. Сейчас доступно соло.'}
-async function joinNet(){if(!roomApi)return false;try{net=await roomApi.join((mode+'-'+code).slice(0,48));
+async function joinNet(){if(!roomApi)return false;try{net=await roomApi.join((mode+'-'+mapId+'-'+code).slice(0,48));
  net.onPeers(()=>{},()=>{});return true}catch(e){net=null;banner('Не удалось войти в комнату');return false}}
 function leaveNet(){if(net){try{net.leave()}catch(e){}}net=null;remotes.forEach(r=>scene.remove(r.g));remotes.clear();seen.clear();hostSnap=null;knownOp.clear()}
 function makeLabel(text,color){const c=document.createElement('canvas');c.width=256;c.height=64;const g=c.getContext('2d');g.font='bold 34px Arial';g.textAlign='center';g.lineWidth=6;g.strokeStyle='rgba(0,0,0,.8)';g.strokeText(text,128,44);g.fillStyle=color;g.fillText(text,128,44);
@@ -617,7 +690,7 @@ function updPlayer(dt){const wish=wishDir();
  const r=moveBody(P.pos,P.vel,.4,P.slide?.9:1.75,dt,true);P.grounded=r.ground;
  if(r.wall&&!P.grounded){P.wallN.copy(r.wall);P.wallT=.18}
  if(P.grounded){P.lastG=T;P.wallJ=0;if(P.slam){P.slam=false;slamLand()}else if(wasAir&&vyBefore<-18)shake=Math.max(shake,.08)}
- if(P.pos.y<-15){P.pos.set(0,2,8);P.vel.set(0,0,0)}
+ if(P.pos.y<-15){P.pos.copy(spawns[0]);P.pos.y+=.5;P.vel.set(0,0,0)}
  P.eye+=((P.slide?.75:1.6)-P.eye)*Math.min(1,dt*14)}
 function slamLand(){ring(P.pos,6,0xf2b84b);sfx('slam');shake=Math.max(shake,.35);puff(new V3(P.pos.x,.2,P.pos.z),40,0xf2b84b,9,.5);
  if(mp())pushFx(['h',0,r1(P.pos.x),r1(P.pos.y),r1(P.pos.z)]);
@@ -648,14 +721,14 @@ function updWaves(dt){spawnT-=dt;
 
 /* ================= flow ================= */
 function clearWorld(){enemies.forEach(e=>scene.remove(e.g));proj.forEach(p=>scene.remove(p.m));orbs.forEach(o=>scene.remove(o.m));telegraphs.forEach(t=>scene.remove(t.m));coins.forEach(c=>scene.remove(c.m));coins=[];enemies=[];proj=[];orbs=[];telegraphs=[];toSpawn=[]}
-function placePlayer(){const s=mode==='solo'?new V3(0,1.3,10):farSpawn().clone();P.pos.copy(s);P.pos.y=Math.max(P.pos.y,.05);P.vel.set(0,0,0);P.yaw=Math.atan2(P.pos.x,P.pos.z);P.pitch=0}
+function placePlayer(){const s=mode==='solo'?(curMap==='plaza'?new V3(0,.1,20):new V3(0,1.3,10)):farSpawn().clone();P.pos.copy(s);P.pos.y=Math.max(P.pos.y,.05);P.vel.set(0,0,0);P.yaw=Math.atan2(P.pos.x,P.pos.z);P.pitch=0}
 function reset(){clearWorld();Object.assign(P,{hp:100,stam:3,slide:false,slam:false,dashT:0,iT:mode==='solo'?0:1.5,eye:1.6,alive:true,respT:0});placePlayer();
  score=0;kills=0;deaths=0;styleV=0;feed=[];waveT=0;T=0;kb=null;dl.length=0;fxOut.length=0;pending.clear();killedIds.clear();isHost=true;hostPeer=null;
  WP.forEach(w=>w.t=w.at=0);gas=100;coinCh=4;switchW(0,true);$('respawn').textContent='';$('scl').textContent=mode==='pvp'?'Фраги':'Счёт';
- if(mode==='pvp'){wave=0;$('wave').textContent='PvP · «'+code+'»';$('left').textContent=''}else startWave(1)}
+ if(mode==='pvp'){wave=0;$('wave').textContent='PvP · '+(mapId==='plaza'?'Площадь':'Завод')+' · «'+code+'»';$('left').textContent=''}else startWave(1)}
 function lock(){try{const r=wrap.requestPointerLock&&wrap.requestPointerLock();if(r&&r.catch)r.catch(()=>{noLock=true})}catch(e){noLock=true}}
 async function begin(m){initAudio();if(ac&&ac.state==='suspended')ac.resume();nick=cleanNick($('nick').value);code=cleanCode($('code').value);$('nick').value=nick;$('code').value=code;save('ug-nick',nick);save('ug-code',code);
- if(m)mode=m;leaveNet();if(mode!=='solo'){const ok=await joinNet();if(!ok)mode='solo'}
+ if(m)mode=m;loadMap(mapId);leaveNet();if(mode!=='solo'){const ok=await joinNet();if(!ok)mode='solo'}
  reset();state='play';['menu','dead','pause'].forEach(i=>$(i).hidden=true);lobbyPresence();lock()}
 function pause(){if(state!=='play')return;state='pause';$('pause').hidden=false;fireHeld=altHeld=false;$('pauseNote').textContent=mp()?'Игра по сети продолжается — другие игроки тебя видят.':''}
 function resume(){if(state!=='pause')return;state='play';$('pause').hidden=true;lock()}
@@ -668,6 +741,7 @@ function die(){if(!(state==='play'||(state==='pause'&&mp()))||!P.alive)return;P.
  P.alive=false;deaths++;P.respT=mode==='pvp'?3:5;fireHeld=altHeld=false;puff(new V3(P.pos.x,P.pos.y+1,P.pos.z),80,0x5a1f0e,10,1.2);sfx('kill');
  if(mode==='pvp'){const killer=T-lastAtkT<6&&lastAtk?lastAtk:myPeer;kb=[++seqN,killer];banner(killer===myPeer?'САМОПОДРЫВ':'ТЕБЯ ВЗОРВАЛ '+nameOf(killer))}else banner('ТЫ ВЫДОХСЯ')}
 function respawn(){P.alive=true;P.hp=100;P.stam=3;P.iT=1.5;P.slide=P.slam=false;placePlayer();$('respawn').textContent='';lastAtk=null}
+$('mapZ').onclick=()=>setMap('zavod');$('mapP').onclick=()=>setMap('plaza');setMap(mapId);
 $('mSolo').onclick=()=>begin('solo');$('mCoop').onclick=()=>begin('coop');$('mPvp').onclick=()=>begin('pvp');
 $('again').onclick=()=>begin();$('toMenu').onclick=toMenu;$('resume').onclick=resume;$('quit').onclick=toMenu;
 document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===wrap;if(!locked&&state==='play'&&!noLock)pause()});
@@ -717,7 +791,7 @@ function frame(now){requestAnimationFrame(frame);let dt=Math.min(.033,(now-last)
   updProj(dt);updCoins(dt);flushDmg();netFrame(dt);
   styleV=Math.max(0,styleV-dt*(7+rank()*8));feed.forEach(f=>f.t-=dt);feed=feed.filter(f=>f.t>0);
   const v=$('vig');v.style.opacity=Math.max(0,(+v.style.opacity||0)-dt*2.5);hud(dt)}
- updFx(dt);
+ updFx(dt);for(const f of mapAnims)f(dt);
  if(state==='menu'){const a=now/9000;camera.position.set(Math.sin(a)*22,9,Math.cos(a)*22);camera.lookAt(0,1,0);guns.forEach(g=>g.visible=false);fist.visible=false}
  else if(!P.alive){camera.position.set(P.pos.x,P.pos.y+7,P.pos.z+6);camera.lookAt(P.pos.x,P.pos.y,P.pos.z);guns.forEach(g=>g.visible=false)}
  else{const sh=shake;shake=Math.max(0,shake-dt*1.6);camera.position.set(P.pos.x+rnd(-sh,sh)*.6,P.pos.y+P.eye+rnd(-sh,sh)*.6,P.pos.z);camera.rotation.set(P.pitch,P.yaw,P.slide?.05:0);
