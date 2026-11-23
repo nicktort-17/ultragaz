@@ -136,6 +136,7 @@ kbd{font:600 13px Rubik,Arial,sans-serif;background:#3a1a1c;border-radius:5px;pa
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
@@ -507,6 +508,25 @@ function gunModel(i){const g=new THREE.Group(),dark=M(0x2b2b30,{metalness:.7,rou
  const fl=new THREE.Mesh(new THREE.SphereGeometry(.09,8,6),new THREE.MeshBasicMaterial({color:0xffd27a}));fl.position.set(0,.03,i===0?-.5:i===1?-.72:i===2?-.7:-.55);fl.visible=false;g.add(fl);g.userData.flash=fl;
  g.scale.setScalar(.72);g.position.set(.3,-.3,-.55);g.visible=false;gunScene.add(g);return g}
 const guns=[0,1,2,3].map(gunModel);
+/* окружение для отражений на хроме и стекле пушек */
+{const pm=new THREE.PMREMGenerator(renderer),es=new THREE.Scene();
+ const sky=new THREE.Mesh(new THREE.SphereGeometry(10,24,12),new THREE.MeshBasicMaterial({side:THREE.BackSide,vertexColors:true}));
+ const cols=[],pa=sky.geometry.attributes.position;for(let i=0;i<pa.count;i++){const y=pa.getY(i)/10,c=new THREE.Color().setHSL(.07,.35,.12+.55*Math.max(0,y));cols.push(c.r,c.g,c.b)}
+ sky.geometry.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));es.add(sky);
+ for(const [x,y,z,w,h] of [[0,8,0,8,1],[7,3,-4,1,4],[-7,4,3,1,3]]){const p=new THREE.Mesh(new THREE.BoxGeometry(w,h,w),new THREE.MeshBasicMaterial({color:0xffffff}));p.position.set(x,y,z);es.add(p)}
+ gunScene.environment=pm.fromScene(es,.04).texture}
+const GUN_FILES=['shipuchka','shaker','mentos','gazyava'],GUN_LEN=[.44,.6,.6,.52],GUN_OFF=[[0,0,-.06],[0,-.02,-.16],[.02,-.04,-.16],[0,-.02,-.12]];
+function loadGunModels(){if(!THREE.GLTFLoader)return;const L=new THREE.GLTFLoader();
+ GUN_FILES.forEach((f,i)=>L.load('models/'+f+'.glb',gl=>{const m=gl.scene,drop=[];
+  m.traverse(o=>{if(/Монетка[ _]в[ _]полёте/.test(o.name))drop.push(o);if(o.isMesh){const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(mt=>{const n=mt.name||'';
+   if(/стекло/i.test(n)){mt.transparent=true;mt.opacity=.78}if(/ПЭТ/.test(n)){mt.transparent=true;mt.opacity=.38;mt.depthWrite=false}if(/Лёд/.test(n)){mt.transparent=true;mt.opacity=.6}
+   if(/Свечение/.test(n)){mt.emissiveIntensity=2}mt.envMapIntensity=1.1})}});
+  drop.forEach(o=>o.parent&&o.parent.remove(o));
+  m.rotation.y=Math.PI;m.updateMatrixWorld(true);const box=new THREE.Box3().setFromObject(m),size=box.getSize(new V3()),c=box.getCenter(new V3());
+  const k=GUN_LEN[i]/Math.max(size.z,.01);m.position.sub(c);const holder=new THREE.Group();holder.add(m);holder.scale.setScalar(k);holder.position.set(...GUN_OFF[i]);
+  const g=guns[i],fl=g.userData.flash;g.children.slice().forEach(ch=>{if(ch!==fl)g.remove(ch)});g.add(holder);g.scale.setScalar(1);
+  fl.position.set(GUN_OFF[i][0],GUN_OFF[i][1]+.02,GUN_OFF[i][2]-GUN_LEN[i]/2-.03);g.userData.glb=true},undefined,()=>{}))}
+loadGunModels();
 const fist=new THREE.Group();{const a=new THREE.Mesh(new THREE.BoxGeometry(.12,.12,.5),M(0xc8102e));a.position.z=.1;fist.add(a);const h=new THREE.Mesh(new THREE.BoxGeometry(.17,.15,.16),M(0xe0c0a8));h.position.z=-.2;fist.add(h)}
 fist.position.set(-.3,-.35,-.5);fist.visible=false;gunScene.add(fist);
 
@@ -750,10 +770,14 @@ function hitscan(dir,dmg,pierce,src,hex,quiet){const o=camera.position;ray.set(o
 function spread(base,s){return base.clone().add(new V3(rnd(-s,s),rnd(-s,s),rnd(-s,s))).normalize()}
 function rocketMesh(){const m=new THREE.Group();const b=new THREE.Mesh(new THREE.CylinderGeometry(.12,.12,.6,10),M(0xf6eee2));b.rotation.x=Math.PI/2;m.add(b);const tip=new THREE.Mesh(new THREE.SphereGeometry(.13,10,8),M(0xc8102e));tip.position.z=-.3;m.add(tip);scene.add(m);return m}
 function bottleMesh(){const m=new THREE.Group();const b=new THREE.Mesh(new THREE.CylinderGeometry(.12,.14,.5,12),M(0x4a1f12,{roughness:.15,metalness:.2,transparent:true,opacity:.9}));m.add(b);const c=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.1,10),M(0xc8102e));c.position.y=.3;m.add(c);scene.add(m);return m}
-function capMesh(){const g=new THREE.Group();const red=M(0xc8102e,{metalness:.6,roughness:.3,emissive:0x220000});
- const rim=new THREE.Mesh(new THREE.CylinderGeometry(.2,.2,.07,21),red);g.add(rim);
- const top=new THREE.Mesh(new THREE.CylinderGeometry(.15,.15,.075,24),M(0xf6eee2,{metalness:.3,roughness:.4}));g.add(top);
- const dot=new THREE.Mesh(new THREE.CylinderGeometry(.08,.08,.08,20),red);g.add(dot);scene.add(g);return g}
+/* крышка-монетка: кроновая крышка от стеклянной бутылки — плоский верх, скруглённый край, юбка из 21 зубца */
+function crownGeo(R,pleats=21){const N=pleats*4,prof=[[.82,0,0],[.93,-.04,0],[.99,-.12,0],[1.02,-.22,.25],[1.08,-.34,.65],[1.14,-.44,1]],pos=[0,0,0],idx=[];
+ for(const [rr,yy,pa] of prof)for(let i=0;i<N;i++){const a=2*Math.PI*i/N,r=R*(rr+.075*pa*Math.cos(pleats*a));pos.push(r*Math.cos(a),yy*R,r*Math.sin(a))}
+ for(let i=0;i<N;i++)idx.push(0,1+(i+1)%N,1+i);
+ for(let k=0;k<prof.length-1;k++)for(let i=0;i<N;i++){const a=1+k*N+i,b=1+k*N+(i+1)%N,c=1+(k+1)*N+i,d=1+(k+1)*N+(i+1)%N;idx.push(a,b,c,b,d,c)}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();return g}
+const CROWN=crownGeo(.2),crownM=M(0xc8102e,{metalness:.55,roughness:.28,side:THREE.DoubleSide,emissive:0x1a0000}),linerM=M(0xd9dde2,{metalness:.8,roughness:.3,side:THREE.DoubleSide}),LINER=new THREE.CircleGeometry(.17,28);
+function capMesh(){const g=new THREE.Group();const c=new THREE.Mesh(CROWN,crownM);c.castShadow=true;g.add(c);const l=new THREE.Mesh(LINER,linerM);l.rotation.x=Math.PI/2;l.position.y=-.02;g.add(l);scene.add(g);return g}
 function throwCoin(){if(coinCh<1){sfx('throw');return false}coinCh--;const m=capMesh();m.position.copy(muzzle());
  const v=aim.clone().multiplyScalar(11).add(new V3(0,9,0)).addScaledVector(P.vel,.5);coins.push({m,vel:v,t:3.2,spin:rnd(14,20)});sfx('flip');kick=.3;
  if(mp())pushFx(['c',0,r1(m.position.x),r1(m.position.y),r1(m.position.z),r1(v.x),r1(v.y),r1(v.z)]);return true}
