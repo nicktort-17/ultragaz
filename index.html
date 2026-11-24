@@ -706,14 +706,25 @@ function damage(e,dmg,dist,src){if(e.dead)return;if(e.wet>0&&src!=='soda')dmg*=1
  if(dist<6)heal(dmg*3.5);puff(center(e),6,0x6b2a12,6,.5);
  if(e.remote){queueDmg('e'+e.id,dmg,src);if(e.hp<=0){killedIds.set(e.id,T);kill(e,src)}}
  else if(e.hp<=0)kill(e,src)}
-function kill(e,src,quiet){e.dead=true;scene.remove(e.g);const c=center(e);
+function kill(e,src,quiet){e.dead=true;const corpse=e.type==='drone'&&!e.remote;if(!corpse)scene.remove(e.g);const c=center(e);if(corpse)spawnCorpse(e);
  puff(c,e.type==='golem'?120:60,e.type==='golem'?0xf3efe6:0x5a1f0e,e.type==='golem'?14:10,1.1);puff(c,25,0xc8102e,8,.8);
  if(quiet)return;kills++;sfx('kill');
  for(let i=0;i<(e.type==='golem'?5:2);i++)orbs.push(makeOrb(c));
  let pts=60,lbl='УБИЙСТВО';if(e.type==='golem'){pts=180;lbl='ГОЛЕМ РАСТАЯЛ'}
  addStyle(lbl,pts);if(!P.grounded)addStyle('В ПОЛЁТЕ',35);if(src==='slam')addStyle('УДАР С НЕБА',70);if(src==='parry')addStyle('ВОЗВРАТ К ОТПРАВИТЕЛЮ',90);
- if(src==='combo')addStyle('КОМБО-ВЗРЫВ',60);if(src==='soda')addStyle('ЗАХЛЕБНУЛСЯ',50);if(src==='mentos')addStyle('МЕНТОС + КОЛА',90);if(src==='coin')addStyle('ЧЕРЕЗ КРЫШКУ',60);if(src==='punch')addStyle('НОКАУТ',80);
+ if(src==='combo')addStyle('КОМБО-ВЗРЫВ',60);if(src==='soda')addStyle('ЗАХЛЕБНУЛСЯ',50);if(src==='mentos')addStyle('МЕНТОС + КОЛА',90);if(src==='coin')addStyle('ЧЕРЕЗ КРЫШКУ',60);if(src==='stomp')addStyle('РАЗДАВЛЕН',120);if(src==='coinpunch')addStyle('КРЫШКОЙ В ЛОБ',90);if(src==='foam')addStyle('ВСПЕНЕН',70);if(src==='drone')addStyle('СВОЙ ЖЕ ДРОН',90);if(src==='punch')addStyle('НОКАУТ',80);
  recentKills.push(T);recentKills=recentKills.filter(t=>T-t<.35);if(recentKills.length>=2)addStyle(recentKills.length>=3?'МЯСОРУБКА':'ДУПЛЕТ',50*recentKills.length)}
+function spawnCorpse(e){const m=e.g;m.children.forEach(ch=>{if(ch.material&&ch.material.color)ch.material=ch.material.clone()});e.mats.forEach(mt=>mt.emissive.setHex(0x331a00));
+ const d=new V3(P.pos.x-e.pos.x,P.pos.y+1-e.pos.y,P.pos.z-e.pos.z).normalize();proj.push({m,vel:d.multiplyScalar(5).add(new V3(0,3,0)),owner:'enemy',kind:'dcorpse',dmg:25,r:.8,t:7,netId:++pnid,spin:rnd(3,6)});sfx('orb',.8)}
+function enemyBlast(pos){blast(pos,4,0x5fe0c8);sfx('boom');puff(pos,60,0xf4fffc,12,.8,6);shake=Math.max(shake,Math.min(.5,.6-camera.position.distanceTo(pos)/40));
+ for(const c of targets()){const cp=new V3(c.pos.x,c.pos.y+1,c.pos.z),d=cp.distanceTo(pos);if(d<4.5){const f=1-d/4.5;hitTarget(c,Math.round(10+18*f),cp.sub(pos).normalize().multiplyScalar(16*f).setY(6*f))}}
+ for(const e of enemies){if(e.dead)continue;const d=center(e,tmpA).distanceTo(pos)-e.r;if(d<4)damage(e,2,99,'x')}}
+function foamBlast(e){const c=center(e,new V3());e.wet=0;blast(c,3.6,0xf6eee2);puff(c,70,0xf6eee2,10,1,4);puff(c,30,0x6b2a12,8,.9,6);sfx('jet',.6);addStyle('ПЕННЫЙ ВЗРЫВ',60);
+ damage(e,2.5,99,'foam');for(const o of enemies){if(o===e||o.dead)continue;const d=center(o,tmpA).distanceTo(c)-o.r;if(d<3.6){damage(o,1.6,99,'foam');if(!o.remote)o.vel.y+=5}}}
+function punchCoin(c){let tgt=null,best=40;const from=c.m.position;
+ for(const e of enemies){if(e.dead)continue;const d=center(e,tmpA).distanceTo(from);if(d<best&&los(from,center(e,new V3()))){best=d;tgt=e}}
+ if(mode==='pvp')for(const [peer,r] of remotes)if(r.alive){const d=rc(r,tmpA).distanceTo(from);if(d<best){best=d;tgt={peer,r}}}
+ c.t=3.5;c.home=tgt;if(!tgt){c.vel.copy(aim).multiplyScalar(18).add(new V3(0,6,0))}sfx('ding',.8);addStyle('ПОДАЧА КРЫШКИ',30);freeze=Math.max(freeze,.04)}
 function makeOrb(p){const m=new THREE.Mesh(new THREE.SphereGeometry(.22,10,8),new THREE.MeshBasicMaterial({color:0xff4d5e}));m.position.copy(p);scene.add(m);return{m,vel:new V3(rnd(-4,4),rnd(4,8),rnd(-4,4)),t:12}}
 function los(a,b){const d=new V3().subVectors(b,a),L=d.length();ray.set(a,d.normalize());ray.far=L;return ray.intersectObjects(level,false).length===0}
 function targets(){const t=[];if(P.alive)t.push({pos:P.pos,vel:P.vel,local:true});
@@ -727,17 +738,29 @@ function updEnemies(dt){const pc=new V3(),tmp=new V3(),tg=targets();
   if(!t){e.vel.multiplyScalar(.9);continue}
   const to=tmp.set(t.pos.x-e.pos.x,0,t.pos.z-e.pos.z),dist=to.length();to.divideScalar(dist||1);e.cd-=dt;e.cd2-=dt;
   e.g.rotation.y=Math.atan2(to.x,to.z);
-  const ef=e.flash>0;e.flash-=dt;e.wet=(e.wet||0)-dt;e.mats.forEach(m=>m.emissive.setHex(ef?0xffffff:e.wind>0?0x661111:e.wet>0?0x2a1000:0));
+  const ef=e.flash>0;e.flash-=dt;e.wet=(e.wet||0)-dt;const dw=e.dashW>0&&Math.sin(T*30)>0;e.mats.forEach(m=>m.emissive.setHex(ef?0xffffff:dw||e.dashT>0?0xaa3300:e.wind>0||e.lw>0?0x661111:e.wet>0?0x2a1000:0));
   if(e.type==='vend'){
-   if(e.wind>0){e.wind-=dt;e.eyes.color.setHex(0xffffff);if(e.wind<=0){e.eyes.color.setHex(0xffcc33);for(const c of tg){const d=Math.hypot(c.pos.x-e.pos.x,c.pos.z-e.pos.z);if(d<2.8&&Math.abs(c.pos.y-e.pos.y)<2.2)hitTarget(c,18,to.clone().multiplyScalar(14).setY(5))}e.cd=1.1}}
+   if(e.stun>0){e.stun-=dt;e.g.rotation.x+=(1.3-e.g.rotation.x)*Math.min(1,dt*10);e.vel.x*=.85;e.vel.z*=.85;if(e.stun<=0){e.g.rotation.x=0;e.cd=.4}}
+   else if(e.leaping){e.leapT+=dt;e.g.rotation.x=-.35;
+    if(e.onGround&&e.leapT>.15){e.leaping=false;e.g.rotation.x=0;e.stun=1;ring(e.pos,3.2,0xc8102e);sfx('slam',.5);shake=Math.max(shake,.15);
+     for(const c of tg){const d=Math.hypot(c.pos.x-e.pos.x,c.pos.z-e.pos.z);if(d<2.7&&Math.abs(c.pos.y-e.pos.y)<2.4)hitTarget(c,22,to.clone().multiplyScalar(12).setY(6))}}}
+   else if(e.lw>0){e.lw-=dt;e.g.scale.y=.82;e.eyes.color.setHex(0xffffff);
+    if(e.lw<=0){e.g.scale.y=1;e.eyes.color.setHex(0xffcc33);e.leaping=true;e.leapT=0;const fl=.85;e.vel.set(to.x*dist/fl,11,to.z*dist/fl);e.cd2=rnd(3,5);sfx('throw')}}
+   else if(e.wind>0){e.wind-=dt;e.eyes.color.setHex(0xffffff);if(e.wind<=0){e.eyes.color.setHex(0xffcc33);for(const c of tg){const d=Math.hypot(c.pos.x-e.pos.x,c.pos.z-e.pos.z);if(d<2.8&&Math.abs(c.pos.y-e.pos.y)<2.2)hitTarget(c,18,to.clone().multiplyScalar(14).setY(5))}e.cd=1.1}}
    else if(dist<2.4&&e.cd<=0)e.wind=.4;
-   const want=e.wind>0?0:e.speed;e.vel.x+=(to.x*want-e.vel.x)*Math.min(1,dt*5);e.vel.z+=(to.z*want-e.vel.z)*Math.min(1,dt*5);
+   else if(dist>4.5&&dist<12&&e.cd2<=0&&e.onGround)e.lw=.35;
+   if(!e.leaping&&!(e.stun>0)){const want=e.wind>0||e.lw>0?0:e.speed;e.vel.x+=(to.x*want-e.vel.x)*Math.min(1,dt*5);e.vel.z+=(to.z*want-e.vel.z)*Math.min(1,dt*5)}
   }else if(e.type==='golem'){
    if(e.wind>0){e.wind-=dt;if(e.wind<=0){ring(e.pos,7,0xf3efe6);sfx('slam');shake=Math.max(shake,.3);
      for(const c of tg){const d=Math.hypot(c.pos.x-e.pos.x,c.pos.z-e.pos.z);if(d<6.5&&c.pos.y-e.pos.y<1.2)hitTarget(c,28,new V3(c.pos.x-e.pos.x,0,c.pos.z-e.pos.z).normalize().multiplyScalar(16).setY(9))}e.cd=2.4}}
+   else if(e.dashW>0){e.dashW-=dt;e.vel.x*=.8;e.vel.z*=.8;if(e.dashW<=0){e.dashT=.6;e.dashHit=false;e.dashDir=to.clone();sfx('dash');shake=Math.max(shake,.1)}}
+   else if(e.dashT>0){e.dashT-=dt;e.vel.x=e.dashDir.x*27;e.vel.z=e.dashDir.z*27;puff(new V3(e.pos.x,.3,e.pos.z),3,0xf3efe6,3,.4);
+    if(!e.dashHit)for(const c of tg){const d=Math.hypot(c.pos.x-e.pos.x,c.pos.z-e.pos.z);if(d<e.r+.9&&Math.abs(c.pos.y-e.pos.y)<3){e.dashHit=true;hitTarget(c,30,e.dashDir.clone().multiplyScalar(22).setY(7));shake=Math.max(shake,.35)}}
+    if(e.dashT<=0){e.cd3=rnd(4,6.5);e.vel.x*=.2;e.vel.z*=.2}}
    else if(dist<4.6&&e.cd<=0)e.wind=.85;
+   else if(dist>7&&dist<20&&(e.cd3=(e.cd3??rnd(2,4))-dt)<=0&&los(center(e,pc),new V3(t.pos.x,t.pos.y+1,t.pos.z))){e.dashW=.75;ring(e.pos,3.5,0xff5a00);sfx('charge',.7)}
    else if(dist>8&&e.cd2<=0&&los(center(e,pc),new V3(t.pos.x,t.pos.y+1,t.pos.z))){enemyShot(pc.set(e.pos.x,e.pos.y+4,e.pos.z),t,17,20,.55,0xf3efe6);e.cd2=rnd(3,4.5)}
-   const want=e.wind>0?0:e.speed;e.vel.x+=(to.x*want-e.vel.x)*Math.min(1,dt*3);e.vel.z+=(to.z*want-e.vel.z)*Math.min(1,dt*3);
+   if(!(e.dashT>0)){const want=e.wind>0||e.dashW>0?0:e.speed;e.vel.x+=(to.x*want-e.vel.x)*Math.min(1,dt*3);e.vel.z+=(to.z*want-e.vel.z)*Math.min(1,dt*3)}
   }else{
    const side=new V3(-to.z,0,to.x).multiplyScalar(e.strafe*4);const radial=dist<10?-5:dist>17?5:0;
    const ty=5+Math.sin(T*1.3+e.seed)*1.2+Math.max(0,t.pos.y-1);
@@ -748,7 +771,7 @@ function updEnemies(dt){const pc=new V3(),tmp=new V3(),tg=targets();
   }
   for(const o of enemies)if(o!==e&&!o.dead){const dx=e.pos.x-o.pos.x,dz=e.pos.z-o.pos.z,d=Math.hypot(dx,dz),m=e.r+o.r;if(d<m&&d>.01){e.vel.x+=dx/d*(m-d)*80*dt;e.vel.z+=dz/d*(m-d)*80*dt}}
   if(e.type==='drone'){e.pos.addScaledVector(e.vel,dt);e.pos.x=THREE.MathUtils.clamp(e.pos.x,-34,34);e.pos.z=THREE.MathUtils.clamp(e.pos.z,-34,34);if(inBox(e.pos))e.pos.y+=dt*8}
-  else{e.vel.y-=26*dt;moveBody(e.pos,e.vel,e.r*.8,e.type==='golem'?4.5:2.5,dt,true);if(e.pos.y<-10){e.pos.copy(spawns[0]);e.pos.y+=1;e.vel.set(0,0,0)}}}
+  else{e.vel.y-=26*dt;e.onGround=moveBody(e.pos,e.vel,e.r*.8,e.type==='golem'?4.5:2.5,dt,true).ground;if(e.pos.y<-10){e.pos.copy(spawns[0]);e.pos.y+=1;e.vel.set(0,0,0)}}}
  enemies=enemies.filter(e=>!e.dead)}
 
 /* ================= combat ================= */
@@ -757,8 +780,9 @@ function raySphere(o,d,c,r){const mx=o.x-c.x,my=o.y-c.y,mz=o.z-c.z,b=mx*d.x+my*d
 function muzzle(){const q=camera.quaternion;return camera.position.clone().add(new V3(.28,-.22,-.7).applyQuaternion(q))}
 const rc=(r,o=new V3())=>o.set(r.pos.x,r.pos.y+.95,r.pos.z);
 function hitscan(dir,dmg,pierce,src,hex,quiet){const o=camera.position;ray.set(o,dir);ray.far=220;const h=ray.intersectObjects(level,false);let wallD=h.length?h[0].distance:220;
- if(!quiet){let hc=null,ht=1e9;for(const c of coins)if(!c.dead){const t=raySphere(o,dir,c.m.position,.6);if(t!==null&&t<wallD&&t<ht){ht=t;hc=c}}
-  if(hc){const mz=muzzle();tracer(mz,hc.m.position.clone(),hex);if(mp())pushFx(['t',0,r1(mz.x),r1(mz.y),r1(mz.z),r1(hc.m.position.x),r1(hc.m.position.y),r1(hc.m.position.z),0]);ricochet(hc,dmg,1);return}}
+ for(const p of proj)if(p.kind==='dcorpse'&&!p.dead){const t=raySphere(o,dir,p.m.position,.9);if(t!==null&&t<wallD){p.dead=true;scene.remove(p.m);tracer(muzzle(),p.m.position.clone(),hex);explode(p.m.position.clone(),4.5,5.5,'drone');addStyle('ДРОН СБИТ',40);return}}
+ {let hc=null,ht=1e9;for(const c of coins)if(!c.dead){const t=raySphere(o,dir,c.m.position,.6);if(t!==null&&t<wallD&&t<ht){ht=t;hc=c}}
+  if(hc){const mz=muzzle();tracer(mz,hc.m.position.clone(),hex);if(mp())pushFx(['t',0,r1(mz.x),r1(mz.y),r1(mz.z),r1(hc.m.position.x),r1(hc.m.position.y),r1(hc.m.position.z),0]);ricochet(hc,quiet?2.4:dmg,1);if(quiet)addStyle('ДРОБОВОЙ РИКОШЕТ',30);return}}
  for(const p of proj)if(p.kind==='grenade'&&!p.dead){const t=raySphere(o,dir,p.m.position,.7);if(t!==null&&t<wallD){p.dead=true;explode(p.m.position.clone(),7.5,9,'combo');addStyle('КОМБО-ВЗРЫВ',100);tracer(muzzle(),p.m.position.clone(),hex);return}}
  let tg=[];for(const e of enemies){const t=raySphere(o,dir,center(e,tmpA),e.r);if(t!==null&&t<wallD)tg.push([t,e])}
  if(mode==='pvp')for(const [peer,r] of remotes)if(r.alive){const t=raySphere(o,dir,rc(r,tmpA),.62);if(t!==null&&t<wallD)tg.push([t,{peer}])}
@@ -785,14 +809,20 @@ function ricochet(c,dmg,depth){c.dead=true;scene.remove(c.m);const from=c.m.posi
  let next=null,bd=40;for(const o of coins)if(!o.dead){const d=o.m.position.distanceTo(from);if(d<bd){bd=d;next=o}}
  const seg=(a,b)=>{tracer(a,b,0xffd27a);if(mp())pushFx(['t',0,r1(a.x),r1(a.y),r1(a.z),r1(b.x),r1(b.y),r1(b.z),0])};
  if(next){seg(from,next.m.position.clone());addStyle('ЦЕПЬ ×'+(depth+1),40*depth);ricochet(next,dmg*1.5,depth+1);return}
- let tgt=null,tp=null,best=1e9;
- for(const e of enemies){if(e.dead)continue;const c2=center(e,new V3()),d=c2.distanceTo(from);if(d<best&&los(from,c2)){best=d;tgt=e;tp=c2}}
- if(mode==='pvp')for(const [peer,r] of remotes)if(r.alive){const c2=rc(r,new V3()),d=c2.distanceTo(from);if(d<best&&los(from,c2)){best=d;tgt={peer};tp=c2}}
- if(tgt){seg(from,tp);addStyle('РИКОШЕТ',50+20*depth);if(tgt.peer){queueDmg(tgt.peer,dmg*2*PVPM,'coin',tp.clone().sub(from).normalize().multiplyScalar(6));hitMark()}else damage(tgt,dmg*2,99,'coin')}
- else{const d=new V3(rnd(-1,1),rnd(.2,1),rnd(-1,1)).normalize();seg(from,from.clone().addScaledVector(d,30))}}
+ const cands=[];
+ for(const e of enemies){if(e.dead)continue;const c2=center(e,new V3());if(los(from,c2))cands.push({tgt:e,tp:c2,d:c2.distanceTo(from)})}
+ if(mode==='pvp')for(const [peer,r] of remotes)if(r.alive){const c2=rc(r,new V3());if(los(from,c2))cands.push({tgt:{peer},tp:c2,d:c2.distanceTo(from)})}
+ cands.sort((a,b)=>a.d-b.d);const hitList=cands.length>1&&Math.random()<.5?cands.slice(0,2):cands.slice(0,1);
+ if(hitList.length>1)addStyle('ДВОЙНОЙ РИКОШЕТ',60);
+ for(const {tgt,tp} of hitList){seg(from,tp);addStyle('РИКОШЕТ',50+20*depth);if(tgt.peer){queueDmg(tgt.peer,dmg*2*PVPM,'coin',tp.clone().sub(from).normalize().multiplyScalar(6));hitMark()}else damage(tgt,dmg*2,99,'coin')}
+ if(!hitList.length){const d=new V3(rnd(-1,1),rnd(.2,1),rnd(-1,1)).normalize();seg(from,from.clone().addScaledVector(d,30))}}
 function updCoins(dt){coinRegen+=dt;if(coinCh<4&&coinRegen>(nick.trim().toLowerCase()==='torch'?.5:1.6)){coinCh++;coinRegen=0}if(coinCh>=4)coinRegen=0;
- for(const c of coins){if(c.dead)continue;c.t-=dt;c.vel.y-=20*dt;c.m.position.addScaledVector(c.vel,dt);c.m.rotation.x+=dt*c.spin;c.m.rotation.z+=dt*c.spin*.3;
-  if(c.t<=0||inBox(c.m.position)||c.m.position.y<.1){c.dead=true;scene.remove(c.m);puff(c.m.position,6,0xc8102e,3,.3)}}
+ for(const c of coins){if(c.dead)continue;c.t-=dt;
+  if(c.home){const h=c.home,tp=h.peer?rc(h.r,new V3()):center(h,new V3());if((h.dead)||(h.peer&&!h.r.alive)){c.home=null}else{const to=tp.sub(c.m.position),L=to.length();c.vel.lerp(to.normalize().multiplyScalar(26),Math.min(1,dt*10));
+   if(L<(h.r&&!h.peer?h.r:.7)+.45){if(h.peer){queueDmg(h.peer,22,'coin',new V3(0,4,0));hitMark()}else damage(h,1.5,99,'coinpunch');c.home=null;c.vel.set(rnd(-1.5,1.5),12,rnd(-1.5,1.5));c.t=3;puff(c.m.position,16,0xf2b84b,6,.4);sfx('ding',.6)}}}
+  else c.vel.y-=20*dt;
+  c.m.position.addScaledVector(c.vel,dt);c.m.rotation.x+=dt*c.spin;c.m.rotation.z+=dt*c.spin*.3;
+  if(c.t<=0||(!c.home&&(inBox(c.m.position)||c.m.position.y<.1))){c.dead=true;scene.remove(c.m);puff(c.m.position,6,0xc8102e,3,.3)}}
  coins=coins.filter(c=>!c.dead)}
 function fire(alt){if(!P.alive)return;const w=WP[cur];camera.getWorldDirection(aim);
  if(!alt){if(w.t>0)return;w.t=w.cd}else{if(w.at>0)return;w.at=w.acd}
@@ -809,6 +839,7 @@ function fire(alt){if(!P.alive)return;const w=WP[cur];camera.getWorldDirection(a
 function soda(alt){if(!alt){if(gas<2){fl0();return}gas-=1.8;gasIdle=.45;const o=camera.position,mz=muzzle(),d=spread(aim,.035);spray(mz,d,4);sprayFx-=1;if(sprayFx<=0){sprayFx=3;sfx('spray')}
   ray.set(o,d);ray.far=16;const h=ray.intersectObjects(level,false);const wallD=h.length?h[0].distance:16;
   for(const p of proj)if(p.kind==='rocket'&&!p.dead&&!p.boost){const t=raySphere(o,d,p.m.position,.8);if(t!==null&&t<wallD){p.boost=true;p.m.children[1].material.color.setHex(0xf6eee2);p.m.scale.setScalar(1.5);addStyle('МЕНТОС + КОЛА',40);puff(p.m.position,30,0xf6eee2,6,.6)}}
+  for(const c of coins){if(c.dead)continue;const t=raySphere(o,d,c.m.position,.6);if(t!==null&&t<wallD){ricochet(c,1.1,1);addStyle('КОЛА-РИКОШЕТ',30);return}}
   let best=null,bt=1e9;for(const e of enemies){const t=raySphere(o,d,center(e,tmpA),e.r+.15);if(t!==null&&t<wallD&&t<bt){bt=t;best=e}}
   if(mode==='pvp')for(const [peer,r] of remotes)if(r.alive){const t=raySphere(o,d,rc(r,tmpA),.7);if(t!==null&&t<wallD&&t<bt){bt=t;best={peer}}}
   if(best){if(best.peer){queueDmg(best.peer,3,'soda',d.clone().multiplyScalar(1.2));hitMark()}else{damage(best,.32,bt,'soda');if(!best.remote)best.vel.addScaledVector(d,1.6)}}
@@ -817,7 +848,10 @@ function soda(alt){if(!alt){if(gas<2){fl0();return}gas-=1.8;gasIdle=.45;const o=
   const mz=muzzle();for(let i=0;i<4;i++)spray(mz,spread(aim,.25),10);puff(mz,30,0xf6eee2,8,.6);sfx('jet');shake=Math.max(shake,.12);fovKick=8;addStyle('РЕАКТИВНАЯ ГАЗИРОВКА',15);
   if(mp())pushFx(['j',0,r1(mz.x),r1(mz.y),r1(mz.z),r2(aim.x),r2(aim.y),r2(aim.z)])}}
 function fl0(){WP[3].t=.25;sfx('throw')}
-function explode(pos,r,dmg,src){if(src==='mentos'){puff(pos,80,0x6b2a12,16,1.2,10);puff(pos,40,0xf6eee2,12,1)}blast(pos,r,src==='combo'||src==='mentos'?0xffe066:src==='parry'?0x5fe0c8:0xff8a3d);sfx('boom');puff(pos,50,0xffa040,12,.7,6);puff(pos,25,0x3a2020,6,1.2,-2);
+function explode(pos,r,dmg,src){const wets=enemies.filter(e=>!e.dead&&e.wet>0&&center(e,new V3()).distanceTo(pos)<r+3);
+ for(const c of coins)if(!c.dead&&c.m.position.distanceTo(pos)<r*.8){setTimeout(()=>{if(!c.dead)ricochet(c,dmg*.5,1)},60)}
+ setTimeout(()=>wets.forEach(e=>{if(!e.dead)foamBlast(e)}),90);
+if(src==='mentos'){puff(pos,80,0x6b2a12,16,1.2,10);puff(pos,40,0xf6eee2,12,1)}blast(pos,r,src==='combo'||src==='mentos'?0xffe066:src==='parry'?0x5fe0c8:0xff8a3d);sfx('boom');puff(pos,50,0xffa040,12,.7,6);puff(pos,25,0x3a2020,6,1.2,-2);
  if(mp())pushFx(['b',0,r1(pos.x),r1(pos.y),r1(pos.z),r1(r)]);
  shake=Math.max(shake,Math.min(.5,.6-camera.position.distanceTo(pos)/40));
  for(const e of enemies){const d=center(e,tmpA).distanceTo(pos)-e.r;if(d<r){const f=1-Math.max(0,d)/r;damage(e,dmg*(.45+.55*f),99,src);
@@ -829,18 +863,29 @@ function explode(pos,r,dmg,src){if(src==='mentos'){puff(pos,80,0x6b2a12,16,1.2,1
   if(src!=='combo'||d<2.5){const self=Math.round(9*f);if(self>0){P.hp-=self;$('vig').style.opacity=.5;if(P.hp<=0){lastAtk=myPeer;lastAtkT=T;die()}}}
   if(f>.35)setTimeout(()=>{if(!P.grounded)addStyle('РАКЕТНЫЙ ПРЫЖОК',45)},150)}}
 function punch(){if(punchCd>0||!P.alive)return;punchCd=.45;punchT=.18;camera.getWorldDirection(aim);const o=camera.position;let did=false;
+ for(const c of coins){if(c.dead)continue;const to=tmpA.subVectors(c.m.position,o),L=to.length();if(L<8&&to.normalize().dot(aim)>.3){punchCoin(c);did=true}}
  for(const p of proj){if(p.dead)continue;const to=tmpA.subVectors(p.m.position,o),L=to.length();if(L>4.5||to.normalize().dot(aim)<.45)continue;
+  if(p.kind==='dcorpse'){if(p.owner==='enemy'){if(p.netId&&mode==='coop'&&!isHost)queueDmg('p'+p.netId,1,'x');p.owner='player';p.vel.copy(aim).multiplyScalar(38);p.t=4;heal(20);addStyle('ВОЗВРАТ ДРОНА',100);sfx('parry');freeze=.09;did=true}continue}
   if(p.owner==='enemy'){if(p.netId&&mode==='coop'&&!isHost)queueDmg('p'+p.netId,1,'x');p.owner='player';p.kind='parried';p.dmg=7;p.vel.copy(aim).multiplyScalar(55);p.t=4;p.m.material.color.setHex(0xf2b84b);p.m.position.copy(o).addScaledVector(aim,1.2);
    heal(40);addStyle('ПАРИРОВАНИЕ',120);sfx('parry');freeze=.09;did=true}
   else if(p.kind==='grenade'){p.vel.copy(aim).multiplyScalar(42);addStyle('ПОДАЧА',25);did=true}}
- for(const e of enemies){const c=center(e,tmpA),to=tmpB.subVectors(c,o),L=to.length()-e.r;if(L<2.4&&to.normalize().dot(aim)>.4){damage(e,1.6,1,'punch');if(!e.remote)e.vel.addScaledVector(aim,14);did=true}}
+ for(const e of enemies){const c=center(e,tmpA),to=tmpB.subVectors(c,o),L=to.length()-e.r;if(L<2.4&&to.normalize().dot(aim)>.4){damage(e,1.6,1,'punch');if(!e.remote&&!(e.dashT>0)&&!(e.dashW>0))e.vel.addScaledVector(aim,14);did=true}}
  if(mode==='pvp')for(const [peer,r] of remotes)if(r.alive){const to=tmpB.subVectors(rc(r,tmpA),o),L=to.length();if(L<2.6&&to.normalize().dot(aim)>.4){queueDmg(peer,22,'punch',aim.clone().multiplyScalar(16).setY(5));hitMark();did=true}}
  if(!did)sfx('throw')}
 function updProj(dt){const pc=new V3(P.pos.x,P.pos.y+1,P.pos.z);
  for(const p of proj){if(p.dead)continue;p.t-=dt;const pos=p.m.position;
   if(p.kind==='grenade'||p.kind==='ghostg'){p.vel.y-=22*dt;p.m.rotation.x+=dt*8}
   if(p.kind==='ghostc'){p.vel.y-=20*dt;p.m.rotation.x+=dt*16}
+  if(p.kind==='dcorpse'){p.m.rotation.x+=dt*p.spin;p.m.rotation.z+=dt*p.spin*.7;puff(pos,1,0x444444,1.5,.6,-2);
+   if(p.owner==='enemy'){const to=tmpA.set(P.pos.x,P.pos.y+1,P.pos.z).sub(pos);p.vel.lerp(to.normalize().multiplyScalar(14),Math.min(1,dt*1.6))}else p.vel.y-=6*dt;
+   pos.addScaledVector(p.vel,dt);
+   if(p.owner==='enemy'&&P.alive&&pos.distanceTo(pc)<p.r+.6){p.dead=true;scene.remove(p.m);enemyBlast(pos.clone());continue}
+   if(p.owner==='player'){let hit=null;for(const e of enemies)if(!e.dead&&center(e,tmpA).distanceTo(pos)<e.r+p.r){hit=e;break}if(hit){p.dead=true;scene.remove(p.m);explode(pos.clone(),4.5,5.5,'drone');continue}}
+   if(inBox(pos)||pos.y<.3||p.t<=0){p.dead=true;scene.remove(p.m);if(p.owner==='player')explode(pos.clone(),4.5,5.5,'drone');else enemyBlast(pos.clone())}continue}
   pos.addScaledVector(p.vel,dt);
+  if(p.kind==='rocket'&&!p.redir)for(const c of coins){if(c.dead||c.m.position.distanceTo(pos)>1.1)continue;c.dead=true;scene.remove(c.m);puff(c.m.position,20,0xf2b84b,7,.5);sfx('ding');
+   let tg2=null,bd=60;for(const e of enemies){if(e.dead)continue;const d=center(e,tmpA).distanceTo(pos);if(d<bd&&los(pos,center(e,new V3()))){bd=d;tg2=e}}
+   if(tg2){p.vel.copy(center(tg2,new V3()).sub(pos).normalize().multiplyScalar(60));p.redir=true;p.m.lookAt(pos.clone().add(p.vel));p.m.rotateY(Math.PI);addStyle('РАКЕТНЫЙ РИКОШЕТ',80)}break}
   if(p.kind==='rocket'||p.kind==='ghost')puff(pos,2,0xffe0b0,1.5,.35,-1);
   if(p.owner==='ghost'){if(inBox(pos)||pos.y<0||p.t<=0)p.dead=true;continue}
   if(p.owner==='enemy'){if(P.alive&&pos.distanceTo(pc)<p.r+.55){if(P.iT<=0)hurt(p.dmg);else addStyle('УВОРОТ',20);p.dead=true;continue}}
@@ -872,13 +917,15 @@ function updPlayer(dt){const wish=wishDir();
  const wasAir=!P.grounded,vyBefore=P.vel.y;
  const r=moveBody(P.pos,P.vel,.4,P.slide?.9:1.75,dt,true);P.grounded=r.ground;
  if(r.wall&&!P.grounded){P.wallN.copy(r.wall);P.wallT=.18}
+ if(vyBefore<-12)for(const e of enemies){if(e.dead||e.type!=='vend')continue;const d=Math.hypot(e.pos.x-P.pos.x,e.pos.z-P.pos.z),top=e.pos.y+2.5;
+  if(d<e.r+.3&&P.pos.y<top+.6&&P.pos.y>top-1.2){damage(e,999,1,'stomp');P.pos.y=Math.max(P.pos.y,top);P.vel.y=13;P.slam=false;P.grounded=false;r.ground=false;shake=Math.max(shake,.3);sfx('slam');ring(e.pos,4,0xc8102e);break}}
  for(const pd of pads)if(Math.hypot(P.pos.x-pd.x,P.pos.z-pd.z)<pd.r&&Math.abs(P.pos.y-pd.y)<.7&&P.vel.y<=.5&&P.dashT<=0){P.vel.set(pd.vx,pd.vy,pd.vz);P.grounded=false;P.slam=false;P.slide=false;r.ground=false;sfx('jet',.7);puff(new V3(pd.x,pd.y+.4,pd.z),30,0xf6eee2,8,.6,4);addStyle('ГЕЙЗЕР',5)}
  if(P.grounded){P.lastG=T;P.wallJ=0;if(P.slam){P.slam=false;slamLand()}else if(wasAir&&vyBefore<-18)shake=Math.max(shake,.08)}
  if(P.pos.y<-14){const sp=spawns[Math.floor(Math.random()*spawns.length)];P.pos.copy(sp);P.pos.y+=.5;P.vel.set(0,0,0);if(curMap==='plaza'){P.iT=0;banner('УПАЛ С ТЕРРАСЫ');hurt(35)}}
  P.eye+=((P.slide?.75:1.6)-P.eye)*Math.min(1,dt*14)}
 function slamLand(){ring(P.pos,6,0xf2b84b);sfx('slam');shake=Math.max(shake,.35);puff(new V3(P.pos.x,.2,P.pos.z),40,0xf2b84b,9,.5);
  if(mp())pushFx(['h',0,r1(P.pos.x),r1(P.pos.y),r1(P.pos.z)]);
- for(const e of enemies){const d=Math.hypot(e.pos.x-P.pos.x,e.pos.z-P.pos.z);if(d<6&&e.type!=='drone'&&Math.abs(e.pos.y-P.pos.y)<2){damage(e,2.2*(1-d/8),1,'slam');if(!e.remote)e.vel.y=9}}
+ for(const e of enemies){const d=Math.hypot(e.pos.x-P.pos.x,e.pos.z-P.pos.z);if(d<6&&e.type!=='drone'&&Math.abs(e.pos.y-P.pos.y)<2){damage(e,2.2*(1-d/8),1,'slam');if(!e.remote){e.vel.y=e.type==='vend'?10:5;if(e.type==='vend'){e.stun=Math.max(e.stun||0,.9);e.leaping=false;e.lw=0}}}}
  if(mode==='pvp')for(const [peer,r] of remotes)if(r.alive){const d=Math.hypot(r.pos.x-P.pos.x,r.pos.z-P.pos.z);if(d<6&&Math.abs(r.pos.y-P.pos.y)<2){queueDmg(peer,30*(1-d/8),'slam',new V3(0,10,0));hitMark()}}}
 function jump(){if(!P.alive)return;if(P.grounded||T-P.lastG<.12){P.vel.y=11;P.grounded=false;P.lastG=-9;if(P.slide){P.slide=false;addStyle('ПРЫЖОК С ПОДКАТА',8)}}
  else if(P.wallT>0&&P.wallJ<3){P.vel.x=P.wallN.x*13+P.vel.x*.3;P.vel.z=P.wallN.z*13+P.vel.z*.3;P.vel.y=10.5;P.wallJ++;P.wallT=0;sfx('dash');addStyle('ОТСКОК',6)}}
