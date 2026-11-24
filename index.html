@@ -527,8 +527,46 @@ function loadGunModels(){if(!THREE.GLTFLoader)return;const L=new THREE.GLTFLoade
   const g=guns[i],fl=g.userData.flash;g.children.slice().forEach(ch=>{if(ch!==fl)g.remove(ch)});g.add(holder);g.scale.setScalar(1);
   fl.position.set(GUN_OFF[i][0],GUN_OFF[i][1]+.02,GUN_OFF[i][2]-GUN_LEN[i]/2-.03);g.userData.glb=true},undefined,()=>{}))}
 loadGunModels();
-const fist=new THREE.Group();{const a=new THREE.Mesh(new THREE.BoxGeometry(.12,.12,.5),M(0xc8102e));a.position.z=.1;fist.add(a);const h=new THREE.Mesh(new THREE.BoxGeometry(.17,.15,.16),M(0xe0c0a8));h.position.z=-.2;fist.add(h)}
-fist.position.set(-.3,-.35,-.5);fist.visible=false;gunScene.add(fist);
+/* роботизированная рука для удара: сине-бело-красная броня, хромовые суставы, сегментные пальцы */
+const fist=new THREE.Group(),fingerJoints=[],thumbJoints=[];
+{const blue=new THREE.MeshStandardMaterial({color:0x1f4fc8,metalness:.75,roughness:.28}),navy=new THREE.MeshStandardMaterial({color:0x0e1f55,metalness:.6,roughness:.35}),
+ white=new THREE.MeshStandardMaterial({color:0xf2f5fa,metalness:.25,roughness:.3}),red=new THREE.MeshStandardMaterial({color:0xd0122c,metalness:.4,roughness:.3}),
+ chrome=new THREE.MeshStandardMaterial({color:0xe8ecf2,metalness:1,roughness:.12}),dark=new THREE.MeshStandardMaterial({color:0x1a1d24,metalness:.7,roughness:.4}),
+ glow=new THREE.MeshBasicMaterial({color:0x6fd6ff});
+ const add=(par,geo,mat,x,y,z,rx=0,ry=0,rz=0)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.rotation.set(rx,ry,rz);par.add(m);return m};
+ const R90=Math.PI/2;
+ // предплечье
+ add(fist,new THREE.CylinderGeometry(.05,.058,.42,20),blue,0,0,.12,R90);
+ add(fist,new THREE.BoxGeometry(.085,.03,.3),white,0,.048,.1);add(fist,new THREE.BoxGeometry(.03,.07,.26),white,-.05,.0,.12);
+ for(const z of[.0,.2])add(fist,new THREE.TorusGeometry(.059,.009,8,24),red,0,0,z);
+ add(fist,new THREE.TorusGeometry(.06,.006,8,24),chrome,0,0,.29);
+ for(const sx of[-1,1]){add(fist,new THREE.CylinderGeometry(.008,.008,.24,8),chrome,sx*.064,-.03,.08,R90);add(fist,new THREE.CylinderGeometry(.013,.013,.08,10),dark,sx*.064,-.03,.24,R90)}
+ // баллон-банка на предплечье
+ add(fist,new THREE.CylinderGeometry(.03,.03,.11,20),blue,.06,.05,.14,R90);add(fist,new THREE.CylinderGeometry(.0305,.0305,.03,20),white,.06,.05,.14,R90);
+ add(fist,new THREE.CylinderGeometry(.027,.027,.008,20),chrome,.06,.05,.085,R90);add(fist,new THREE.CylinderGeometry(.027,.027,.008,20),chrome,.06,.05,.195,R90);
+ add(fist,new THREE.SphereGeometry(.009,8,6),glow,-.02,.066,.02);add(fist,new THREE.SphereGeometry(.009,8,6),glow,.0,.066,.02);
+ // запястье
+ add(fist,new THREE.SphereGeometry(.05,16,12),chrome,0,0,-.11);add(fist,new THREE.TorusGeometry(.052,.008,8,24),red,0,0,-.1);
+ // ладонь
+ const hand=new THREE.Group();hand.position.set(0,0,-.13);hand.scale.setScalar(1.75);fist.add(hand);
+ add(hand,new THREE.BoxGeometry(.1,.04,.1),blue,0,0,-.04);add(hand,new THREE.BoxGeometry(.104,.012,.085),white,0,.024,-.04);
+ add(hand,new THREE.BoxGeometry(.06,.006,.05),red,0,.032,-.04);add(hand,new THREE.SphereGeometry(.007,8,6),glow,0,.036,-.06);
+ // пальцы: 3 сегмента, хромовые костяшки
+ const segL=[.034,.026,.022];
+ for(let f=0;f<4;f++){let par=hand;const x=-.036+f*.024,joints=[];
+  for(let k=0;k<3;k++){const j=new THREE.Group();j.position.set(k?0:x,k?0:.004,k?-segL[k-1]:-.094);par.add(j);
+   add(j,new THREE.SphereGeometry(.011,10,8),chrome,0,0,0);add(j,new THREE.BoxGeometry(.017,.017,segL[k]),k===2?white:blue,0,0,-segL[k]/2);
+   if(k<2)add(j,new THREE.BoxGeometry(.019,.006,segL[k]*.7),white,0,.011,-segL[k]/2);
+   if(k===2)add(j,new THREE.BoxGeometry(.012,.004,.008),red,0,.009,-segL[k]+.006);
+   joints.push(j);par=j}
+  fingerJoints.push(joints)}
+ // большой палец
+ {let par=hand;for(let k=0;k<2;k++){const j=new THREE.Group();if(!k){j.position.set(-.056,-.006,-.03);j.rotation.set(0,.7,.3)}else j.position.set(0,0,-.03);par.add(j);
+  add(j,new THREE.SphereGeometry(.012,10,8),chrome,0,0,0);add(j,new THREE.BoxGeometry(.019,.019,.03),k?white:blue,0,0,-.015);thumbJoints.push(j);par=j}}
+ fist.traverse(o=>{if(o.isMesh)o.renderOrder=1})}
+function poseFist(curl){fingerJoints.forEach((js,f)=>js.forEach((j,k)=>{j.rotation.x=-curl*[1.45,1.6,1.25][k]*(1-f*.03)}));
+ thumbJoints[0].rotation.x=-curl*.5;thumbJoints[1].rotation.x=-curl*.9;thumbJoints[0].rotation.y=.7-curl*.5}
+fist.position.set(-.26,-.3,-.45);fist.visible=false;gunScene.add(fist);poseFist(0);
 
 /* ================= game state ================= */
 const P={pos:new V3(),vel:new V3(),yaw:0,pitch:0,hp:100,stam:3,grounded:false,lastG:0,wallN:new V3(),wallT:0,wallJ:0,dashT:0,dashDir:new V3(),slide:false,slideDir:new V3(),slam:false,eye:1.6,iT:0,alive:true,respT:0};
@@ -862,7 +900,7 @@ if(src==='mentos'){puff(pos,80,0x6b2a12,16,1.2,10);puff(pos,40,0xf6eee2,12,1)}bl
  if(P.alive&&d<r*1.15&&src!=='parry'){const f=1-d/(r*1.15),dir=tmpB.subVectors(pc,pos).normalize();P.vel.addScaledVector(dir,22*f);P.vel.y+=9*f;P.grounded=false;
   if(src!=='combo'||d<2.5){const self=Math.round(9*f);if(self>0){P.hp-=self;$('vig').style.opacity=.5;if(P.hp<=0){lastAtk=myPeer;lastAtkT=T;die()}}}
   if(f>.35)setTimeout(()=>{if(!P.grounded)addStyle('РАКЕТНЫЙ ПРЫЖОК',45)},150)}}
-function punch(){if(punchCd>0||!P.alive)return;punchCd=.45;punchT=.18;camera.getWorldDirection(aim);const o=camera.position;let did=false;
+function punch(){if(punchCd>0||!P.alive)return;punchCd=.45;punchT=.28;camera.getWorldDirection(aim);const o=camera.position;let did=false;
  for(const c of coins){if(c.dead)continue;const to=tmpA.subVectors(c.m.position,o),L=to.length();if(L<8&&to.normalize().dot(aim)>.3){punchCoin(c);did=true}}
  for(const p of proj){if(p.dead)continue;const to=tmpA.subVectors(p.m.position,o),L=to.length();if(L>4.5||to.normalize().dot(aim)<.45)continue;
   if(p.kind==='dcorpse'){if(p.owner==='enemy'){if(p.netId&&mode==='coop'&&!isHost)queueDmg('p'+p.netId,1,'x');p.owner='player';p.vel.copy(aim).multiplyScalar(38);p.t=4;heal(20);addStyle('ВОЗВРАТ ДРОНА',100);sfx('parry');freeze=.09;did=true}continue}
@@ -1033,7 +1071,7 @@ function frame(now){requestAnimationFrame(frame);let dt=Math.min(.033,(now-last)
   fovKick=Math.max(0,fovKick-dt*40);const tf=90+fovKick+(P.slide?6:0);if(Math.abs(camera.fov-tf)>.1){camera.fov+=(tf-camera.fov)*Math.min(1,dt*12);camera.updateProjectionMatrix()}
   const moving=P.grounded&&Math.hypot(P.vel.x,P.vel.z)>2;bob+=dt*(moving?13:0);kick=Math.max(0,kick-dt*6);swap=Math.max(0,swap-dt);
   const g=guns[cur];g.visible=state!=='dead';g.position.set(.27+Math.sin(bob)*.01,-.26+Math.abs(Math.cos(bob))*.01-swap*1.4-(P.slide?.04:0),-.62+kick*.07);g.rotation.set(kick*.25,0,P.slide?.25:0);
-  punchT=Math.max(0,punchT-dt);fist.visible=punchT>0;fist.position.z=-.5-Math.sin((1-punchT/.18)*Math.PI)*.35}
+  punchT=Math.max(0,punchT-dt);fist.visible=punchT>0;if(punchT>0){const k=1-punchT/.28,ext=Math.sin(Math.min(1,k*1.6)*Math.PI);poseFist(Math.min(1,.25+k*4));fist.position.set(-.34+ext*.16,-.33+ext*.08,-.5-ext*.26);fist.rotation.set(.28+ext*.08,-.62+ext*.42,1.15+ext*.15)}}
  renderer.clear();if(composer)composer.render();else renderer.render(scene,camera);renderer.clearDepth();if(state!=='menu'&&P.alive)renderer.render(gunScene,gunCam)}
 initNet();
 requestAnimationFrame(frame);
