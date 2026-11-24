@@ -29,6 +29,7 @@ header p{margin:0;color:var(--soft);max-width:60ch}
 #cross:before,#cross:after{content:"";position:absolute;background:var(--cream);box-shadow:0 0 3px #000}
 #cross:before{left:10px;top:0;width:2px;height:22px}#cross:after{top:10px;left:0;height:2px;width:22px}
 #hm{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border:3px solid var(--gold);transform:rotate(45deg);opacity:0;transition:opacity .12s}
+#pflash{position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.95),rgba(255,236,190,.55) 45%,rgba(255,210,120,0) 80%);opacity:0;pointer-events:none}
 #vig{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 45%,rgba(200,16,46,.75));opacity:0}
 .bl{position:absolute;left:16px;bottom:16px;width:min(340px,40%)}
 .hp{height:22px;background:rgba(0,0,0,.55);border:2px solid var(--cream);border-radius:6px;overflow:hidden}
@@ -92,7 +93,7 @@ kbd{font:600 13px Rubik,Arial,sans-serif;background:#3a1a1c;border-radius:5px;pa
 <div id="screen">
 <canvas id="c"></canvas>
 <div class="hud">
-<div id="vig"></div>
+<div id="vig"></div><div id="pflash"></div>
 <div id="cross"></div><div id="hm"></div>
 <div class="tl"><div id="score"><small id="scl">Счёт</small><span id="sc">0</span></div><div id="board"></div></div>
 <div class="top"><div id="wave">ВОЛНА 1</div><div id="left"></div></div>
@@ -130,7 +131,7 @@ kbd{font:600 13px Rubik,Arial,sans-serif;background:#3a1a1c;border-radius:5px;pa
 </div>
 <div class="legend">
 <div class="card"><h3>Движение</h3><ul><li><kbd>WASD</kbd> бег, <kbd>Пробел</kbd> прыжок, у стены — отскок (до 3 раз)</li><li><kbd>Shift</kbd> рывок с неуязвимостью (3 заряда)</li><li><kbd>C</kbd> на земле — подкат, в воздухе — удар с неба</li></ul></div>
-<div class="card"><h3>Оружие</h3><ul><li><kbd>1</kbd> Шипучка: ЛКМ — выстрел, ПКМ — подбросить крышку-монетку (4 шт.). Выстрели в неё — пуля срикошетит во врага с двойным уроном, а через несколько крышек — цепочкой</li><li><kbd>2</kbd> Шейкер: ЛКМ — дробь, ПКМ — бутылка-граната (стрельни в неё!)</li><li><kbd>3</kbd> Ментос-пушка: ЛКМ — ракета, ПКМ — подрыв в воздухе</li><li><kbd>4</kbd> Газява: ЛКМ — струя колы (залитые враги получают +35% урона, облей летящую ракету — будет «Ментос + кола»), ПКМ — реактивный рывок на газе. Рывок встряхивает бутылку и поднимает давление</li></ul></div>
+<div class="card"><h3>Оружие</h3><ul><li><kbd>1</kbd> Шипучка: ЛКМ — выстрел, ПКМ — подбросить крышку-монетку (4 шт.). Выстрели в неё — пуля срикошетит во врага с двойным уроном, а через несколько крышек — цепочкой</li><li><kbd>2</kbd> Шейкер: ЛКМ — дробь, ПКМ — бутылка-граната (стрельни в неё!)</li><li><kbd>3</kbd> Ментос-пушка: ЛКМ — ракета, ПКМ — подрыв в воздухе</li><li><kbd>4</kbd> Газява: ЛКМ — дальняя струя колы без урона (залитые враги получают +35% урона, облей летящую ракету — будет «Ментос + кола»), ПКМ — реактивный рывок на газе. Рывок встряхивает бутылку и поднимает давление</li></ul></div>
 <div class="card"><h3>Режимы</h3><ul><li><b>Соло</b> — бесконечные волны</li><li><b>Кооп</b> — волны вместе, без огня по своим, возрождение через 5 с</li><li><b>PvP</b> — все против всех, фраги, возрождение через 3 с</li><li>Онлайн работает и на claude.ai, и на GitHub Pages</li><li>Друзья вводят ту же комнату. <kbd>F</kbd> — удар и парирование</li></ul></div>
 </div>
 </div>
@@ -478,7 +479,7 @@ function puff(pos,n,hex,spd,life,grav=14){col.setHex(hex);for(let k=0;k<n;k++){c
  const a=Math.random()*6.283,u=Math.random()*2-1,s=spd*(.3+Math.random()*.7),q=Math.sqrt(1-u*u);pv[i*3]=Math.cos(a)*q*s;pv[i*3+1]=u*s+spd*.3;pv[i*3+2]=Math.sin(a)*q*s;
  pc[i*3]=col.r;pc[i*3+1]=col.g;pc[i*3+2]=col.b;pl[i]=life*(.5+Math.random()*.5);pgv[i]=grav}}
 function spray(o,d,n){for(let k=0;k<n;k++){const i=pi=(pi+1)%PN;const foam=Math.random()<.35;col.setHex(foam?0xf6eee2:0x6b2a12);pp[i*3]=o.x;pp[i*3+1]=o.y;pp[i*3+2]=o.z;
- pv[i*3]=d.x*26+rnd(-2.5,2.5);pv[i*3+1]=d.y*26+rnd(-2,3);pv[i*3+2]=d.z*26+rnd(-2.5,2.5);pc[i*3]=col.r;pc[i*3+1]=col.g;pc[i*3+2]=col.b;pl[i]=rnd(.35,.6);pgv[i]=10}}
+ pv[i*3]=d.x*40+rnd(-2.5,2.5);pv[i*3+1]=d.y*40+rnd(-1.5,3);pv[i*3+2]=d.z*40+rnd(-2.5,2.5);pc[i*3]=col.r;pc[i*3+1]=col.g;pc[i*3+2]=col.b;pl[i]=rnd(.6,.85);pgv[i]=7}}
 const fx=[];
 function tracer(a,b,hex){const g=new THREE.BufferGeometry().setFromPoints([a,b]);const m=new THREE.Line(g,new THREE.LineBasicMaterial({color:hex,transparent:true,opacity:1}));scene.add(m);fx.push({m,t:.12,max:.12,kind:'line'})}
 function blast(pos,r,hex){const m=new THREE.Mesh(new THREE.SphereGeometry(1,20,14),new THREE.MeshBasicMaterial({color:hex,transparent:true,opacity:.85,depthWrite:false}));m.position.copy(pos);m.scale.setScalar(.3);scene.add(m);fx.push({m,t:.3,max:.3,r,kind:'blast'});flashLight.position.copy(pos);flashLight.intensity=6}
@@ -581,6 +582,7 @@ const rank=()=>Math.min(6,Math.floor(styleV/100));
 function addStyle(label,pts){styleV=Math.min(699,styleV+pts);if(mode!=='pvp')score+=Math.round(pts*(1+rank()*.3));feed.unshift({label:'+ '+label,t:2.4});if(feed.length>6)feed.length=6}
 function banner(txt){const b=$('banner');b.textContent=txt;b.style.opacity=1;clearTimeout(banner.h);banner.h=setTimeout(()=>b.style.opacity=0,1800)}
 let lastAtk=null,lastAtkT=-9;
+let pflashV=0;function parryOk(){pflashV=.7;punchCd=0;flashLight.position.copy(camera.position);flashLight.intensity=5;sfx('parry');freeze=Math.max(freeze,.09)}
 function hurt(d,from){if(P.iT>0||!(state==='play'||(state==='pause'&&mp()))||!P.alive)return;P.hp-=d;if(from){lastAtk=from;lastAtkT=T}styleV=Math.max(0,styleV-60);$('vig').style.opacity=.9;shake=Math.max(shake,.25);sfx('hurt');if(P.hp<=0)die()}
 function heal(n){if(P.hp<100&&n>0&&P.alive)P.hp=Math.min(100,P.hp+n)}
 
@@ -734,7 +736,7 @@ function buildEnemy(type){const g=new THREE.Group(),mats=[];const mm=(c,o)=>{con
   eyes=new THREE.MeshBasicMaterial({color:0xff2a3a});add(new THREE.SphereGeometry(.2,12,8),eyes,0,0,.58)}
  else{const s=mm(0xf3efe6,{roughness:.9});add(new THREE.BoxGeometry(2.4,2,1.8),s,0,2.4,0);add(new THREE.BoxGeometry(1.6,1.4,1.4),s,0,.7,0);add(new THREE.BoxGeometry(1.3,1.1,1.2),s,0,4,0);
   for(const x of[-1.7,1.7])add(new THREE.BoxGeometry(1,1.8,1),s,x,2.1,0);eyes=new THREE.MeshBasicMaterial({color:0xff2a3a});add(new THREE.BoxGeometry(.9,.18,.06),eyes,0,4.1,.62)}
- g.traverse(o=>{if(o.isMesh)o.castShadow=true});scene.add(g);return{g,mats,eyes}}
+ g.rotation.order='YXZ';g.traverse(o=>{if(o.isMesh)o.castShadow=true});scene.add(g);return{g,mats,eyes}}
 function makeEnemy(type,pos,id){const d=ENEMY[type],b=buildEnemy(type);const e=Object.assign({id,type,hp:d.hp*(1+wave*.06),r:d.r,cy:d.cy,speed:d.speed,vel:new V3(),cd:rnd(1,2.5),cd2:rnd(2,4),wind:0,flash:0,seed:Math.random()*9,strafe:Math.random()<.5?1:-1,dead:false,remote:false},b);
  e.pos=b.g.position;e.pos.copy(pos);if(type==='drone'&&pos.y<1)e.pos.y=5;return e}
 function spawnEnemy(type,pos){enemies.push(makeEnemy(type,pos,++eid));puff(new V3(pos.x,1,pos.z),40,0xff2a3a,8,.7)}
@@ -775,15 +777,17 @@ function updEnemies(dt){const pc=new V3(),tmp=new V3(),tg=targets();
   let t=null,best=1e9;for(const c of tg){const d=Math.hypot(c.pos.x-e.pos.x,c.pos.z-e.pos.z);if(d<best){best=d;t=c}}
   if(!t){e.vel.multiplyScalar(.9);continue}
   const to=tmp.set(t.pos.x-e.pos.x,0,t.pos.z-e.pos.z),dist=to.length();to.divideScalar(dist||1);e.cd-=dt;e.cd2-=dt;
-  e.g.rotation.y=Math.atan2(to.x,to.z);
+  if(!e.leaping&&!(e.stun>0))e.g.rotation.y=Math.atan2(to.x,to.z);
   const ef=e.flash>0;e.flash-=dt;e.wet=(e.wet||0)-dt;const dw=e.dashW>0&&Math.sin(T*30)>0;e.mats.forEach(m=>m.emissive.setHex(ef?0xffffff:dw||e.dashT>0?0xaa3300:e.wind>0||e.lw>0?0x661111:e.wet>0?0x2a1000:0));
   if(e.type==='vend'){
    if(e.stun>0){e.stun-=dt;e.g.rotation.x+=(1.3-e.g.rotation.x)*Math.min(1,dt*10);e.vel.x*=.85;e.vel.z*=.85;if(e.stun<=0){e.g.rotation.x=0;e.cd=.4}}
-   else if(e.leaping){e.leapT+=dt;e.g.rotation.x=-.35;
-    if(e.onGround&&e.leapT>.15){e.leaping=false;e.g.rotation.x=0;e.stun=1;ring(e.pos,3.2,0xc8102e);sfx('slam',.5);shake=Math.max(shake,.15);
-     for(const c of tg){const d=Math.hypot(c.pos.x-e.pos.x,c.pos.z-e.pos.z);if(d<2.7&&Math.abs(c.pos.y-e.pos.y)<2.4)hitTarget(c,22,to.clone().multiplyScalar(12).setY(6))}}}
+   else if(e.leaping){e.leapT+=dt;e.g.rotation.x+=(1.5-e.g.rotation.x)*Math.min(1,dt*9);e.g.position.y+=0;
+    const hd=new V3(Math.sin(e.g.rotation.y),0,Math.cos(e.g.rotation.y)),head=new V3(e.pos.x+hd.x*2.1,e.pos.y+.8,e.pos.z+hd.z*2.1);
+    for(const c of tg){if(e.rammed)break;const d=head.distanceTo(new V3(c.pos.x,c.pos.y+.9,c.pos.z));if(d<1.5){e.rammed=true;hitTarget(c,24,hd.clone().multiplyScalar(16).setY(6));shake=Math.max(shake,.25)}}
+    if(e.onGround&&e.leapT>.15){e.leaping=false;e.stun=1;ring(e.pos,3.2,0xc8102e);sfx('slam',.5);shake=Math.max(shake,.15);
+     if(!e.rammed)for(const c of tg){const d=Math.hypot(c.pos.x-e.pos.x,c.pos.z-e.pos.z);if(d<2.7&&Math.abs(c.pos.y-e.pos.y)<2.4)hitTarget(c,22,to.clone().multiplyScalar(12).setY(6))}}}
    else if(e.lw>0){e.lw-=dt;e.g.scale.y=.82;e.eyes.color.setHex(0xffffff);
-    if(e.lw<=0){e.g.scale.y=1;e.eyes.color.setHex(0xffcc33);e.leaping=true;e.leapT=0;const fl=.85;e.vel.set(to.x*dist/fl,11,to.z*dist/fl);e.cd2=rnd(3,5);sfx('throw')}}
+    if(e.lw<=0){e.g.scale.y=1;e.eyes.color.setHex(0xffcc33);e.leaping=true;e.rammed=false;e.leapT=0;const fl=.85;e.vel.set(to.x*dist/fl,11,to.z*dist/fl);e.cd2=rnd(3,5);sfx('throw')}}
    else if(e.wind>0){e.wind-=dt;e.eyes.color.setHex(0xffffff);if(e.wind<=0){e.eyes.color.setHex(0xffcc33);for(const c of tg){const d=Math.hypot(c.pos.x-e.pos.x,c.pos.z-e.pos.z);if(d<2.8&&Math.abs(c.pos.y-e.pos.y)<2.2)hitTarget(c,18,to.clone().multiplyScalar(14).setY(5))}e.cd=1.1}}
    else if(dist<2.4&&e.cd<=0)e.wind=.4;
    else if(dist>4.5&&dist<12&&e.cd2<=0&&e.onGround)e.lw=.35;
@@ -875,12 +879,12 @@ function fire(alt){if(!P.alive)return;const w=WP[cur];camera.getWorldDirection(a
    if(mp())pushFx(['r',0,r1(m.position.x),r1(m.position.y),r1(m.position.z),r1(v.x),r1(v.y),r1(v.z)])}
   else{let n=0;for(const p of proj)if(p.kind==='rocket'&&!p.dead){p.dead=true;explode(p.m.position.clone(),p.boost?7:5,p.boost?7:4.5,p.boost?'mentos':'rocket');n++}if(n)addStyle('ПОДРЫВ В ВОЗДУХЕ',40*n);else w.at=0}}}
 function soda(alt){if(!alt){if(gas<2){fl0();return}gas-=1.8;gasIdle=.45;const o=camera.position,mz=muzzle(),d=spread(aim,.035);spray(mz,d,4);sprayFx-=1;if(sprayFx<=0){sprayFx=3;sfx('spray')}
-  ray.set(o,d);ray.far=16;const h=ray.intersectObjects(level,false);const wallD=h.length?h[0].distance:16;
+  ray.set(o,d);ray.far=32;const h=ray.intersectObjects(level,false);const wallD=h.length?h[0].distance:32;
   for(const p of proj)if(p.kind==='rocket'&&!p.dead&&!p.boost){const t=raySphere(o,d,p.m.position,.8);if(t!==null&&t<wallD){p.boost=true;p.m.children[1].material.color.setHex(0xf6eee2);p.m.scale.setScalar(1.5);addStyle('МЕНТОС + КОЛА',40);puff(p.m.position,30,0xf6eee2,6,.6)}}
   for(const c of coins){if(c.dead)continue;const t=raySphere(o,d,c.m.position,.6);if(t!==null&&t<wallD){ricochet(c,1.1,1);addStyle('КОЛА-РИКОШЕТ',30);return}}
   let best=null,bt=1e9;for(const e of enemies){const t=raySphere(o,d,center(e,tmpA),e.r+.15);if(t!==null&&t<wallD&&t<bt){bt=t;best=e}}
   if(mode==='pvp')for(const [peer,r] of remotes)if(r.alive){const t=raySphere(o,d,rc(r,tmpA),.7);if(t!==null&&t<wallD&&t<bt){bt=t;best={peer}}}
-  if(best){if(best.peer){queueDmg(best.peer,3,'soda',d.clone().multiplyScalar(1.2));hitMark()}else{damage(best,.32,bt,'soda');if(!best.remote)best.vel.addScaledVector(d,1.6)}}
+  if(best&&!best.peer){if(!(best.wet>0)){addStyle('ЗАЛИТ',10);puff(center(best,tmpA),10,0x6b2a12,4,.4)}best.wet=3;if(!best.remote)best.vel.addScaledVector(d,1.2)}
   if(mp()&&(fire.wfx=(fire.wfx||0)-1)<=0){fire.wfx=2;pushFx(['w',0,r1(mz.x),r1(mz.y),r1(mz.z),r2(d.x),r2(d.y),r2(d.z)])}}
  else{if(gas<35){fl0();return}gas-=35;gasIdle=.6;P.vel.addScaledVector(aim,-13);if(aim.y<-.3)P.vel.y=Math.max(P.vel.y,-aim.y*12+2);P.grounded=false;P.slam=false;P.slide=false;
   const mz=muzzle();for(let i=0;i<4;i++)spray(mz,spread(aim,.25),10);puff(mz,30,0xf6eee2,8,.6);sfx('jet');shake=Math.max(shake,.12);fovKick=8;addStyle('РЕАКТИВНАЯ ГАЗИРОВКА',15);
@@ -903,11 +907,13 @@ if(src==='mentos'){puff(pos,80,0x6b2a12,16,1.2,10);puff(pos,40,0xf6eee2,12,1)}bl
 function punch(){if(punchCd>0||!P.alive)return;punchCd=.45;punchT=.28;camera.getWorldDirection(aim);const o=camera.position;let did=false;
  for(const c of coins){if(c.dead)continue;const to=tmpA.subVectors(c.m.position,o),L=to.length();if(L<8&&to.normalize().dot(aim)>.3){punchCoin(c);did=true}}
  for(const p of proj){if(p.dead)continue;const to=tmpA.subVectors(p.m.position,o),L=to.length();if(L>4.5||to.normalize().dot(aim)<.45)continue;
-  if(p.kind==='dcorpse'){if(p.owner==='enemy'){if(p.netId&&mode==='coop'&&!isHost)queueDmg('p'+p.netId,1,'x');p.owner='player';p.vel.copy(aim).multiplyScalar(38);p.t=4;heal(20);addStyle('ВОЗВРАТ ДРОНА',100);sfx('parry');freeze=.09;did=true}continue}
-  if(p.owner==='enemy'){if(p.netId&&mode==='coop'&&!isHost)queueDmg('p'+p.netId,1,'x');p.owner='player';p.kind='parried';p.dmg=7;p.vel.copy(aim).multiplyScalar(55);p.t=4;p.m.material.color.setHex(0xf2b84b);p.m.position.copy(o).addScaledVector(aim,1.2);
-   heal(40);addStyle('ПАРИРОВАНИЕ',120);sfx('parry');freeze=.09;did=true}
+  if(p.kind==='dcorpse'){if(p.owner==='enemy'){if(p.netId&&mode==='coop'&&!isHost)queueDmg('p'+p.netId,1,'x');p.owner='player';p.vel.copy(aim).multiplyScalar(38);p.t=4;p.dmg2=true;heal(20);addStyle('ВОЗВРАТ ДРОНА',100);parryOk();did=true}continue}
+  if(p.owner==='enemy'){if(p.netId&&mode==='coop'&&!isHost)queueDmg('p'+p.netId,1,'x');p.owner='player';p.kind='parried';p.dmg=14;p.vel.copy(aim).multiplyScalar(55);p.t=4;p.m.material.color.setHex(0xf2b84b);p.m.position.copy(o).addScaledVector(aim,1.2);
+   heal(40);addStyle('ПАРИРОВАНИЕ',120);parryOk();did=true}
   else if(p.kind==='grenade'){p.vel.copy(aim).multiplyScalar(42);addStyle('ПОДАЧА',25);did=true}}
- for(const e of enemies){const c=center(e,tmpA),to=tmpB.subVectors(c,o),L=to.length()-e.r;if(L<2.4&&to.normalize().dot(aim)>.4){damage(e,1.6,1,'punch');if(!e.remote&&!(e.dashT>0)&&!(e.dashW>0))e.vel.addScaledVector(aim,14);did=true}}
+ for(const e of enemies){const c=center(e,tmpA),to=tmpB.subVectors(c,o),L=to.length()-e.r;
+  if(e.type==='vend'&&e.leaping&&!e.remote&&L<3.6&&to.normalize().dot(aim)>.2){e.leaping=false;e.stun=1.6;e.vel.copy(aim).multiplyScalar(18).setY(6);damage(e,3.2,1,'punch');heal(30);addStyle('ПАРИРОВАНИЕ ТАРАНА',140);parryOk();did=true;continue}
+  if(L<2.4&&to.normalize().dot(aim)>.4){damage(e,1.6,1,'punch');if(!e.remote&&!(e.dashT>0)&&!(e.dashW>0))e.vel.addScaledVector(aim,14);did=true}}
  if(mode==='pvp')for(const [peer,r] of remotes)if(r.alive){const to=tmpB.subVectors(rc(r,tmpA),o),L=to.length();if(L<2.6&&to.normalize().dot(aim)>.4){queueDmg(peer,22,'punch',aim.clone().multiplyScalar(16).setY(5));hitMark();did=true}}
  if(!did)sfx('throw')}
 function updProj(dt){const pc=new V3(P.pos.x,P.pos.y+1,P.pos.z);
@@ -918,8 +924,8 @@ function updProj(dt){const pc=new V3(P.pos.x,P.pos.y+1,P.pos.z);
    if(p.owner==='enemy'){const to=tmpA.set(P.pos.x,P.pos.y+1,P.pos.z).sub(pos);p.vel.lerp(to.normalize().multiplyScalar(14),Math.min(1,dt*1.6))}else p.vel.y-=6*dt;
    pos.addScaledVector(p.vel,dt);
    if(p.owner==='enemy'&&P.alive&&pos.distanceTo(pc)<p.r+.6){p.dead=true;scene.remove(p.m);enemyBlast(pos.clone());continue}
-   if(p.owner==='player'){let hit=null;for(const e of enemies)if(!e.dead&&center(e,tmpA).distanceTo(pos)<e.r+p.r){hit=e;break}if(hit){p.dead=true;scene.remove(p.m);explode(pos.clone(),4.5,5.5,'drone');continue}}
-   if(inBox(pos)||pos.y<.3||p.t<=0){p.dead=true;scene.remove(p.m);if(p.owner==='player')explode(pos.clone(),4.5,5.5,'drone');else enemyBlast(pos.clone())}continue}
+   if(p.owner==='player'){let hit=null;for(const e of enemies)if(!e.dead&&center(e,tmpA).distanceTo(pos)<e.r+p.r){hit=e;break}if(hit){p.dead=true;scene.remove(p.m);explode(pos.clone(),4.5,11,'drone');continue}}
+   if(inBox(pos)||pos.y<.3||p.t<=0){p.dead=true;scene.remove(p.m);if(p.owner==='player')explode(pos.clone(),4.5,11,'drone');else enemyBlast(pos.clone())}continue}
   pos.addScaledVector(p.vel,dt);
   if(p.kind==='rocket'&&!p.redir)for(const c of coins){if(c.dead||c.m.position.distanceTo(pos)>1.1)continue;c.dead=true;scene.remove(c.m);puff(c.m.position,20,0xf2b84b,7,.5);sfx('ding');
    let tg2=null,bd=60;for(const e of enemies){if(e.dead)continue;const d=center(e,tmpA).distanceTo(pos);if(d<bd&&los(pos,center(e,new V3()))){bd=d;tg2=e}}
@@ -929,8 +935,8 @@ function updProj(dt){const pc=new V3(P.pos.x,P.pos.y+1,P.pos.z);
   if(p.owner==='enemy'){if(P.alive&&pos.distanceTo(pc)<p.r+.55){if(P.iT<=0)hurt(p.dmg);else addStyle('УВОРОТ',20);p.dead=true;continue}}
   else{let hit=null;for(const e of enemies)if(center(e,tmpA).distanceTo(pos)<e.r+p.r+.1){hit=e;break}
    if(!hit&&mode==='pvp')for(const r of remotes.values())if(r.alive&&rc(r,tmpA).distanceTo(pos)<.7+p.r){hit=r;break}
-   if(hit){p.dead=true;if(p.kind==='rocket')explode(pos.clone(),p.boost?7:4.8,p.boost?7:4.5,p.boost?'mentos':'rocket');else if(p.kind==='grenade')explode(pos.clone(),5.5,5,'grenade');else{if(hit.type)damage(hit,p.dmg,99,'parry');explode(pos.clone(),3.5,3,'parry')}continue}}
-  if(inBox(pos)||pos.y<0||p.t<=0){p.dead=true;if(p.owner==='player'){if(p.kind==='rocket')explode(pos.clone(),p.boost?7:4.8,p.boost?7:4.5,p.boost?'mentos':'rocket');else if(p.kind==='grenade')explode(pos.clone(),5.5,5,'grenade');else explode(pos.clone(),3.5,3,'parry')}else puff(pos,8,p.m.material.color.getHex(),4,.4)}}
+   if(hit){p.dead=true;if(p.kind==='rocket')explode(pos.clone(),p.boost?7:4.8,p.boost?7:4.5,p.boost?'mentos':'rocket');else if(p.kind==='grenade')explode(pos.clone(),5.5,5,'grenade');else{if(hit.type)damage(hit,p.dmg,99,'parry');explode(pos.clone(),3.5,6,'parry')}continue}}
+  if(inBox(pos)||pos.y<0||p.t<=0){p.dead=true;if(p.owner==='player'){if(p.kind==='rocket')explode(pos.clone(),p.boost?7:4.8,p.boost?7:4.5,p.boost?'mentos':'rocket');else if(p.kind==='grenade')explode(pos.clone(),5.5,5,'grenade');else explode(pos.clone(),3.5,6,'parry')}else puff(pos,8,p.m.material.color.getHex(),4,.4)}}
  proj=proj.filter(p=>{if(p.dead)scene.remove(p.m);return!p.dead});
  for(const o of orbs){o.t-=dt;const to=tmpA.subVectors(pc,o.m.position),L=to.length();
   if(L<9&&P.alive){o.vel.lerp(to.normalize().multiplyScalar(18),Math.min(1,dt*6))}else{o.vel.y-=14*dt;o.vel.x*=.98;o.vel.z*=.98}
@@ -1063,7 +1069,7 @@ function frame(now){requestAnimationFrame(frame);let dt=Math.min(.033,(now-last)
   if(mode==='solo'||(mode==='coop'&&isHost)){updEnemies(dt);updWaves(dt)}else if(mode==='coop')clientEnemyAnim(dt);
   updProj(dt);updCoins(dt);flushDmg();netFrame(dt);
   styleV=Math.max(0,styleV-dt*(7+rank()*8));feed.forEach(f=>f.t-=dt);feed=feed.filter(f=>f.t>0);
-  const v=$('vig');v.style.opacity=Math.max(0,(+v.style.opacity||0)-dt*2.5);hud(dt)}
+  pflashV=Math.max(0,pflashV-dt*4);$('pflash').style.opacity=pflashV;const v=$('vig');v.style.opacity=Math.max(0,(+v.style.opacity||0)-dt*2.5);hud(dt)}
  updFx(dt);for(const f of mapAnims)f(dt);
  if(state==='menu'){const a=now/9000;camera.position.set(Math.sin(a)*22,9,Math.cos(a)*22);camera.lookAt(0,1,0);guns.forEach(g=>g.visible=false);fist.visible=false}
  else if(!P.alive){camera.position.set(P.pos.x,P.pos.y+7,P.pos.z+6);camera.lookAt(P.pos.x,P.pos.y,P.pos.z);guns.forEach(g=>g.visible=false)}
