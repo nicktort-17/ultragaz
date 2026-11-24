@@ -1064,7 +1064,7 @@ function applyFx(e){const k=e[0],n=e.slice(2).map(v=>+v||0);
 function sendPresence(){const o={n:nick,c:myColor,m:mode,r:code,pl:1,al:P.alive?1:0,x:r2(P.pos.x),y:r2(P.pos.y),z:r2(P.pos.z),yw:r2(P.yaw),pt:r2(P.pitch),an:(P.grounded?0:1)|(P.slide?2:0)|(P.dashT>0?4:0)|(P.slam?8:0),fc:fireCount,pu:punchCount,hp:Math.max(0,Math.ceil(P.hp)),w:cur,k:kills,d:deaths,sc:score,dl:dl.slice(),fx:fxOut.slice()};
  if(kb)o.kb=kb;
  if(mode==='coop'&&isHost){o.wv=wave;o.lf=toSpawn.length+telegraphs.length+enemies.length;
-  o.en=enemies.slice(0,26).map(e=>[e.id,'vdgb'.indexOf(e.type[0]),r1(e.pos.x),r1(e.pos.y),r1(e.pos.z),r2(e.g.rotation.y),Math.ceil(e.hp*10),e.wind>0?1:0]);
+  o.en=enemies.slice(0,26).map(e=>[e.id,'vdgb'.indexOf(e.type[0]),r1(e.pos.x),r1(e.pos.y),r1(e.pos.z),r2(e.g.rotation.y),Math.ceil(e.hp*10),e.wind>0?1:0,e.wet>0?Math.ceil(e.wet*10):0]);
   o.op=proj.filter(p=>p.owner==='enemy'&&p.netId).slice(-16).map(p=>[p.netId,r1(p.m.position.x),r1(p.m.position.y),r1(p.m.position.z),r1(p.vel.x),r1(p.vel.y),r1(p.vel.z),p.r>.4?1:0])}
  net.presence(o).catch(()=>{if(o.op){o.op=o.op.slice(-6);o.en=o.en.slice(0,14);net.presence(o).catch(()=>{})}})}
 function becomeClient(){enemies.forEach(e=>scene.remove(e.g));enemies=[];telegraphs.forEach(t=>scene.remove(t.m));telegraphs=[];toSpawn=[];
@@ -1077,7 +1077,7 @@ function syncFromHost(){const h=hostSnap;if(!h)return;if(h.wv&&+h.wv!==wave){wav
  for(const k of [...killedIds.keys()])if(T-killedIds.get(k)>1.5)killedIds.delete(k);
  for(const a of list){if(!Array.isArray(a))continue;const id=+a[0],type=TYPES[+a[1]]||'vend';ids.add(id);if(killedIds.has(id))continue;
   let e=enemies.find(x=>x.id===id);if(!e){e=makeEnemy(type,new V3(+a[2]||0,+a[3]||0,+a[4]||0),id);e.remote=true;enemies.push(e);puff(new V3(e.pos.x,1,e.pos.z),20,0xff2a3a,6,.5)}
-  e.tgt=e.tgt||new V3();e.tgt.set(+a[2]||0,+a[3]||0,+a[4]||0);e.ry=+a[5]||0;const hh=(+a[6]||0)/10;e.hp=T-(e.lastHit||-9)<.6?Math.min(e.hp,hh):hh;e.wind=a[7]?1:0}
+  e.tgt=e.tgt||new V3();e.tgt.set(+a[2]||0,+a[3]||0,+a[4]||0);e.ry=+a[5]||0;const hh=(+a[6]||0)/10;e.hp=T-(e.lastHit||-9)<.6?Math.min(e.hp,hh):hh;e.wind=a[7]?1:0;if(a[8])e.wet=Math.max(e.wet||0,(+a[8]||0)/10)}
  for(const e of enemies)if(!ids.has(e.id)&&!e.dead){e.dead=true;scene.remove(e.g);puff(center(e),40,0x5a1f0e,9,1)}
  enemies=enemies.filter(e=>!e.dead);
  const ops=Array.isArray(h.op)?h.op:[],live=new Set();
@@ -1086,7 +1086,7 @@ function syncFromHost(){const h=hostSnap;if(!h)return;if(h.wv&&+h.wv!==wave){wav
   proj.push({m,vel:new V3(+a[4]||0,+a[5]||0,+a[6]||0),owner:'enemy',dmg:big?20:12,r:big?.55:.28,t:6,kind:'orb',netId:nid})}
  for(const id of knownOp)if(!live.has(id)&&knownOp.size>40)knownOp.delete(id)}
 function clientEnemyAnim(dt){for(const e of enemies){if(!e.remote||!e.tgt)continue;e.pos.lerp(e.tgt,Math.min(1,dt*12));e.g.rotation.y=e.ry;
- const ef=e.flash>0;e.flash-=dt;e.wet=(e.wet||0)-dt;e.mats.forEach(m=>m.emissive.setHex(ef?0xffffff:e.wind?0x661111:e.wet>0?0x2a1000:0));if(e.type==='vend')e.eyes.color.setHex(e.wind?0xffffff:0xffcc33);if(e.type==='drone')e.g.children[1].rotation.z+=dt*4}}
+ const ef=e.flash>0;e.flash-=dt;e.wet=(e.wet||0)-dt;e.mats.forEach(m=>m.emissive.setHex(ef?0xffffff:e.wind?0x661111:e.wet>0?0x2a1000:0));wetFx(e,dt);if(e.type==='vend')e.eyes.color.setHex(e.wind?0xffffff:0xffcc33);if(e.type==='drone')e.g.children[1].rotation.z+=dt*4}}
 
 /* ================= enemies ================= */
 const ENEMY={vend:{hp:5,r:.9,cy:1.2,speed:7.5},drone:{hp:2.4,r:.75,cy:0,speed:6},golem:{hp:24,r:1.6,cy:2,speed:4.2},banan:{hp:16,r:1,cy:1.5,speed:10.5}};
@@ -1134,7 +1134,7 @@ function damage(e,dmg,dist,src){if(e.dead)return;if(e.wet>0&&src!=='soda')dmg*=1
  if(dist<6)heal(dmg*3.5);puff(center(e),6,0x6b2a12,6,.5);
  if(e.remote){queueDmg('e'+e.id,dmg,src);if(e.hp<=0){killedIds.set(e.id,T);kill(e,src)}}
  else if(e.hp<=0)kill(e,src)}
-function kill(e,src,quiet){e.dead=true;const corpse=e.type==='drone'&&!e.remote;if(!corpse)scene.remove(e.g);const c=center(e);if(corpse)spawnCorpse(e);
+function kill(e,src,quiet){e.dead=true;if(e.puddle){scene.remove(e.puddle);e.puddle=null}const corpse=e.type==='drone'&&!e.remote;if(!corpse)scene.remove(e.g);const c=center(e);if(corpse)spawnCorpse(e);
  puff(c,e.type==='golem'?120:60,e.type==='golem'?0xf3efe6:0x5a1f0e,e.type==='golem'?14:10,1.1);puff(c,25,0xc8102e,8,.8);
  if(quiet)return;kills++;sfx('kill');
  for(let i=0;i<(e.type==='golem'?5:2);i++)orbs.push(makeOrb(c));
@@ -1147,6 +1147,17 @@ function spawnCorpse(e){const m=e.g;m.children.forEach(ch=>{if(ch.material&&ch.m
 function enemyBlast(pos){blast(pos,4,0x5fe0c8);sfx('boom');puff(pos,60,0xf4fffc,12,.8,6);shake=Math.max(shake,Math.min(.5,.6-camera.position.distanceTo(pos)/40));
  for(const c of targets()){const cp=new V3(c.pos.x,c.pos.y+1,c.pos.z),d=cp.distanceTo(pos);if(d<4.5){const f=1-d/4.5;hitTarget(c,Math.round(10+18*f),cp.sub(pos).normalize().multiplyScalar(16*f).setY(6*f))}}
  for(const e of enemies){if(e.dead)continue;const d=center(e,tmpA).distanceTo(pos)-e.r;if(d<4)damage(e,2,99,'x')}}
+/* облитый газявой враг: глянцевая корка колы, капли, шипящие пузырьки, лужица */
+const COLA=new THREE.Color(0x3b1407),PUD_G=new THREE.CircleGeometry(1,20).rotateX(-Math.PI/2);
+function wetFx(e,dt){const w=Math.max(0,Math.min(1,(e.wet||0)/.6)),k=e.wetK||0,nk=k+(w-k)*Math.min(1,dt*8);e.wetK=nk;
+ if(nk>.01||k>.01)e.mats.forEach(m=>{const u=m.userData;if(!u.c0){u.c0=m.color.clone();u.r0=m.roughness;u.m0=m.metalness}
+  m.color.copy(u.c0).lerp(COLA,nk*.62);m.roughness=u.r0+(.06-u.r0)*nk;m.metalness=u.m0+(.35-u.m0)*nk});
+ if(!e.puddle&&w>0&&!e.dead){const pm=new THREE.Mesh(PUD_G,new THREE.MeshStandardMaterial({color:0x2a0c04,roughness:.04,metalness:.3,transparent:true,opacity:0,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2}));scene.add(pm);e.puddle=pm}
+ if(e.puddle){const pm=e.puddle;pm.position.set(e.pos.x,e.pos.y+.03,e.pos.z);pm.scale.setScalar(e.r*(.9+.5*nk));pm.material.opacity=.75*nk;pm.visible=e.type!=='drone';if(e.dead||nk<.01&&w===0){scene.remove(pm);pm.material.dispose();e.puddle=null}}
+ if(w>0&&!e.dead){e.dripT=(e.dripT||0)-dt;if(e.dripT<=0){e.dripT=.07+Math.random()*.06;const c=center(e,tmpA),r=e.r*.8;
+  const p=new V3(c.x+(Math.random()-.5)*r,c.y+(Math.random()-.2)*r,c.z+(Math.random()-.5)*r);puff(p,1,0x4a1a08,.6,.7,22);
+  if(Math.random()<.6){const q=new V3(c.x+(Math.random()-.5)*r*1.4,c.y+Math.random()*r,c.z+(Math.random()-.5)*r*1.4);puff(q,2,0xf6eee2,1.4,.45,-5)}
+  if(Math.random()<.08)sfx('spray',.12)}}}
 function foamBlast(e){const c=center(e,new V3());e.wet=0;blast(c,3.6,0xf6eee2);puff(c,70,0xf6eee2,10,1,4);puff(c,30,0x6b2a12,8,.9,6);sfx('jet',.6);addStyle('ПЕННЫЙ ВЗРЫВ',60);
  damage(e,2.5,99,'foam');for(const o of enemies){if(o===e||o.dead)continue;const d=center(o,tmpA).distanceTo(c)-o.r;if(d<3.6){damage(o,1.6,99,'foam');if(!o.remote)o.vel.y+=5}}}
 function punchCoin(c){let tgt=null,best=40;const from=c.m.position;
@@ -1166,7 +1177,7 @@ function updEnemies(dt){const pc=new V3(),tmp=new V3(),tg=targets();
   if(!t){e.vel.multiplyScalar(.9);continue}
   const to=tmp.set(t.pos.x-e.pos.x,0,t.pos.z-e.pos.z),dist=to.length();to.divideScalar(dist||1);e.cd-=dt;e.cd2-=dt;
   if(!e.leaping&&!(e.stun>0))e.g.rotation.y=Math.atan2(to.x,to.z);
-  const ef=e.flash>0;e.flash-=dt;e.wet=(e.wet||0)-dt;const dw=e.dashW>0&&Math.sin(T*30)>0;e.mats.forEach(m=>m.emissive.setHex(ef?0xffffff:dw||e.dashT>0?0xaa3300:e.wind>0||e.lw>0?0x661111:e.wet>0?0x2a1000:0));
+  const ef=e.flash>0;e.flash-=dt;e.wet=(e.wet||0)-dt;const dw=e.dashW>0&&Math.sin(T*30)>0;e.mats.forEach(m=>m.emissive.setHex(ef?0xffffff:dw||e.dashT>0?0xaa3300:e.wind>0||e.lw>0?0x661111:e.wet>0?0x2a1000:0));wetFx(e,dt);
   if(e.type==='vend'){
    if(e.stun>0){e.stun-=dt;e.g.rotation.x+=(1.3-e.g.rotation.x)*Math.min(1,dt*10);e.vel.x*=.85;e.vel.z*=.85;if(e.stun<=0){e.g.rotation.x=0;e.cd=.4}}
    else if(e.leaping){e.leapT+=dt;e.g.rotation.x+=(1.5-e.g.rotation.x)*Math.min(1,dt*9);e.g.position.y+=0;
@@ -1393,7 +1404,7 @@ function updWaves(dt){spawnT-=dt;
  if(!left){waveT+=dt;if(waveT>.01&&waveT-dt<=.01){banner('ВОЛНА ЗАЧИЩЕНА');heal(30);addStyle('ЗАЧИСТКА',50)}if(waveT>3){waveT=0;startWave(wave+1)}}}
 
 /* ================= flow ================= */
-function clearWorld(){enemies.forEach(e=>scene.remove(e.g));proj.forEach(p=>scene.remove(p.m));orbs.forEach(o=>scene.remove(o.m));telegraphs.forEach(t=>scene.remove(t.m));coins.forEach(c=>scene.remove(c.m));coins=[];peels.forEach(p=>scene.remove(p.m));peels=[];enemies=[];proj=[];orbs=[];telegraphs=[];toSpawn=[]}
+function clearWorld(){enemies.forEach(e=>{if(e.puddle)scene.remove(e.puddle)});enemies.forEach(e=>scene.remove(e.g));proj.forEach(p=>scene.remove(p.m));orbs.forEach(o=>scene.remove(o.m));telegraphs.forEach(t=>scene.remove(t.m));coins.forEach(c=>scene.remove(c.m));coins=[];peels.forEach(p=>scene.remove(p.m));peels=[];enemies=[];proj=[];orbs=[];telegraphs=[];toSpawn=[]}
 function placePlayer(){const s=mode==='solo'?(curMap==='plaza'?new V3(0,.1,20):new V3(0,1.3,10)):farSpawn().clone();P.pos.copy(s);P.pos.y=Math.max(P.pos.y,.05);P.vel.set(0,0,0);P.yaw=Math.atan2(P.pos.x,P.pos.z);P.pitch=0}
 function reset(){clearWorld();Object.assign(P,{hp:100,stam:3,slide:false,slam:false,dashT:0,iT:mode==='solo'?0:1.5,eye:1.6,alive:true,respT:0});placePlayer();
  score=0;kills=0;deaths=0;styleV=0;feed=[];waveT=0;T=0;kb=null;dl.length=0;fxOut.length=0;pending.clear();killedIds.clear();isHost=true;hostPeer=null;
