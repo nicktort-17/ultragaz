@@ -620,7 +620,7 @@ function setupGun(i,m){const cf=GUN_CFG[i],drop=[];
  Object.assign(u,{glb:true,holder,model:m,k,gi,hand,parts:{}});const P_=u.parts;
  if(i===0){const ax=boxIn(m,/^Ось[ _]барабана/,m);P_.drum=partPivot(m,/^Баночка/,b=>{const cc=ax?ax.getCenter(new V3()):b.getCenter(new V3());return new V3(cc.x,cc.y,b.getCenter(new V3()).z)});
   P_.hammer=partPivot(m,/^(Рычаг[ _]крана|Набалдашник[ _]рычага)/,b=>new V3((b.min.x+b.max.x)/2,b.min.y,b.max.z));
-  P_.caps=[];m.traverse(o=>{const r=/^Запасная[ _]крышка[ _](\d)$/.exec(o.name);if(r)P_.caps[+r[1]-1]=o})}
+  P_.caps=[];const extra=[];m.traverse(o=>{const r=/^Запасная[ _]крышка[ _](\d)$/.exec(o.name);if(r){if(+r[1]<=4)P_.caps[+r[1]-1]=o;else extra.push(o)}});extra.forEach(o=>o.parent&&o.parent.remove(o))}
  else if(i===1){P_.pump=partPivot(m,/^Цевьё/);P_.cap=partPivot(m,/^Крышка[ _]шейкера/);const sb=boxIn(m,/^Шейкер$/,g);u.eject=sb?new V3(sb.max.x,sb.max.y-.01,(sb.min.z+sb.max.z)/2):new V3(.05,.03,-.15)}
  else if(i===2){P_.pump=partPivot(m,/^(Ручка[ _]насоса|Шток[ _]насоса)/);P_.ments=[1,2,3,4].map(n=>partPivot(m,new RegExp('^Ментос[ _]'+n+'$')));
   P_.mstep=P_.ments[1]&&P_.ments[0]?P_.ments[1].userData.base.clone().sub(P_.ments[0].userData.base):new V3();P_.mo=0;P_.mu=0;P_.mg=1}
@@ -687,7 +687,7 @@ function vmUpdate(dt){const g=guns[cur],u=g.userData,cf=GUN_CFG[cur],e=r=>1-Math
  // части оружия
  if(cur===0){VP.drum+=(VP.drumT-VP.drum)*e(26);if(Math.abs(VP.drumT)>50){VP.drum-=VP.drumT;VP.drumT=0}
   if(P_.drum)P_.drum.rotation.z=VP.drum;VP.hammer=Math.max(0,VP.hammer-dt*7);if(P_.hammer)P_.hammer.rotation.x=-.55*Math.sin(VP.hammer*Math.PI);
-  if(P_.caps){const n=Math.round(coinCh*1.75);P_.caps.forEach((c,j)=>{if(c)c.visible=j<n})}
+  if(P_.caps)P_.caps.forEach((c,j)=>{if(c)c.visible=j<coinCh})
   if(VM.insp>0&&!VP.inspFx&&VM.insp>.2){VP.inspFx=1;VP.drumT-=Math.PI*4}
   if(dw<1&&dw>.55&&!VP.drawFx){VP.drawFx=1;VP.drumT-=Math.PI*2/3}}
  else if(cur===1){let pp=0;if(VP.pump>0){VP.pump+=dt;const t=(VP.pump-.2)/.38;if(t>0&&t<1)pp=Math.sin(t*Math.PI);if(t>.45&&!VP.ej){VP.ej=1;ejectIce(g,u)}if(VP.pump>.7){VP.pump=0;VP.ej=0}}
