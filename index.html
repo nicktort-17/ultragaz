@@ -1222,10 +1222,38 @@ function startSlip(e){e.slip=e.type==='golem'?1.5:1.15;e.slipCd=3;e.slipDir=Math
 function slipUpd(e,dt){e.slip-=dt;e.vel.x*=1-dt*.8;e.vel.z*=1-dt*.8;const k=Math.min(1,e.slip*2);e.g.rotation.y+=dt*11*e.slipDir*Math.min(1,e.slip);e.g.rotation.z=Math.sin(e.slip*9)*.32*k;
  if(Math.random()<dt*8)puff(new V3(e.pos.x,e.pos.y+.1,e.pos.z),2,0x4a1a08,3,.4,14);if(e.slip<=0){e.slip=0;e.g.rotation.z=0;e.g.rotation.x=0;e.cd=Math.max(e.cd,.5)}}
 /* ================= гейзер: кола + ментос ================= */
-let geysers=[];const GEY_G=new THREE.CylinderGeometry(.75,1.25,1,18,1,true).translate(0,.5,0),FOAM_G=new THREE.SphereGeometry(1,14,10);
-function geyserFx(x,y,z){const col=new THREE.Mesh(GEY_G,new THREE.MeshStandardMaterial({color:0x5a1f0a,roughness:.15,metalness:.2,transparent:true,opacity:.9,side:THREE.DoubleSide,emissive:0x1a0600}));
- const foam=new THREE.Mesh(FOAM_G,new THREE.MeshStandardMaterial({color:0xf6eee2,roughness:.6,emissive:0x332a20}));col.position.set(x,y,z);foam.position.set(x,y,z);scene.add(col,foam);
- geysers.push({col,foam,x,y,z,t:0});blast(new V3(x,y+.5,z),3,0xf6eee2);ring(new V3(x,y,z),5,0x6b2a12);sfx('jet');sfx('boom',.5);shake=Math.max(shake,Math.min(.35,.5-camera.position.distanceTo(new V3(x,y,z))/40))}
+let geysers=[];
+const GEY_CYL=new THREE.CylinderGeometry(1,1,1,28,30,true),BLOB_G=new THREE.IcosahedronGeometry(1,1),MENT_G=new THREE.CylinderGeometry(.13,.13,.06,16),SPL_G=new THREE.RingGeometry(.82,1,48).rotateX(-Math.PI/2);
+const BLOB_M=new THREE.MeshStandardMaterial({color:0xfbf5ea,roughness:.5,emissive:0x40362c,envMap:ENV,envMapIntensity:.6}),MENT_M=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.35,emissive:0x222222});
+const GEY_VS=`uniform float uT,uH,uR0,uR1;varying vec2 vUv;varying vec3 vN;varying vec3 vV;varying float vY;
+void main(){vUv=uv;vec3 p=position;float y=p.y+.5;vY=y;float a=atan(p.z,p.x);
+ float w=1.+.13*sin(y*19.-uT*15.+a*3.)+.07*sin(a*7.+uT*9.+y*6.);float r=mix(uR0,uR1,y)*w*(1.+.45*smoothstep(.86,1.,y));
+ p.xz*=r;p.y=y*uH;vec4 wp=modelMatrix*vec4(p,1.);vN=normalize(mat3(modelMatrix)*vec3(normal.x,0.,normal.z));vV=cameraPosition-wp.xyz;gl_Position=projectionMatrix*viewMatrix*wp;}`;
+const GEY_FS=`uniform float uT,uA,uF;uniform vec3 uC0,uC1;varying vec2 vUv;varying vec3 vN;varying vec3 vV;varying float vY;
+float hs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+void main(){float y=vY;vec3 n=normalize(vN),v=normalize(vV);float fr=pow(1.-abs(dot(n,v)),2.2);
+ vec3 col=mix(uC0,uC1,clamp(y*.9+.08*sin(y*22.-uT*13.),0.,1.));
+ float st=smoothstep(.72,1.,sin(vUv.x*69.1+sin(y*11.-uT*7.)*2.5))*(.55+.45*sin(y*26.-uT*24.));
+ vec2 g=vec2(vUv.x*26.,y*34.-uT*16.);vec2 f=fract(g)-.5;float h=hs(floor(g));float b=smoothstep(.24,.1,length(f))*step(.78,h);
+ col+=vec3(1.,.86,.62)*st*.55+vec3(1.)*b*.85+vec3(1.,.7,.4)*fr*.55;
+ float foam=smoothstep(.8,.99,y)*uF+smoothstep(.13,0.,y)*.9;col=mix(col,vec3(.98,.95,.9),clamp(foam,0.,1.));
+ gl_FragColor=vec4(col,clamp(uA*(.5+.5*fr+foam*.5+b*.6+st*.2),0.,1.));}`;
+function gMat(a,c0,c1){return new THREE.ShaderMaterial({uniforms:{uT:{value:Math.random()*9},uH:{value:.01},uR0:{value:1},uR1:{value:.6},uA:{value:a},uF:{value:1},uC0:{value:new THREE.Vector3(...c0)},uC1:{value:new THREE.Vector3(...c1)}},
+ vertexShader:GEY_VS,fragmentShader:GEY_FS,transparent:true,depthWrite:false,side:THREE.DoubleSide})}
+/* брызги гейзера: инстансы-капли, вытянутые по скорости */
+const GD_N=600,GD=new THREE.InstancedMesh(new THREE.SphereGeometry(1,8,6),new THREE.MeshStandardMaterial({roughness:.15,metalness:.15,envMap:ENV,envMapIntensity:1.2}),GD_N);
+GD.instanceMatrix.setUsage(THREE.DynamicDrawUsage);GD.frustumCulled=false;{const c=new THREE.Color();for(let i=0;i<GD_N;i++)GD.setColorAt(i,c)}GD.count=0;scene.add(GD);
+const gdrops=[],_gd=new THREE.Object3D(),_gc=new THREE.Color(),_gv=new V3(),FOAM_C=0xfaf3e6;
+const geyLight=new THREE.PointLight(0xffa850,0,16,2);scene.add(geyLight);
+function gDrop(x,y,z,vx,vy,vz,s,c,gy){if(gdrops.length>=GD_N)gdrops.shift();gdrops.push({p:new V3(x,y,z),v:new V3(vx,vy,vz),s,c,gy,t:3})}
+function geyserFx(x,y,z){const G=new THREE.Group();G.position.set(x,y,z);scene.add(G);
+ const inner=new THREE.Mesh(GEY_CYL,gMat(.95,[.07,.02,.008],[.34,.12,.03])),outer=new THREE.Mesh(GEY_CYL,gMat(.72,[.22,.06,.02],[.8,.4,.12]));outer.renderOrder=2;inner.renderOrder=1;G.add(inner,outer);
+ const crown=[],skirt=[];for(let i=0;i<10;i++){const m=new THREE.Mesh(BLOB_G,BLOB_M);m.castShadow=true;G.add(m);crown.push(m)}for(let i=0;i<8;i++){const m=new THREE.Mesh(BLOB_G,BLOB_M);G.add(m);skirt.push(m)}
+ const spl=[0,1].map(()=>{const m=new THREE.Mesh(SPL_G,new THREE.MeshBasicMaterial({color:0xfff6e8,transparent:true,opacity:0,depthWrite:false}));m.position.y=.06;G.add(m);return m});
+ const ments=[];for(let i=0;i<6;i++){const m=new THREE.Mesh(MENT_G,MENT_M);m.position.set(x,y+1,z);scene.add(m);const a=Math.random()*6.3;ments.push({m,v:new V3(Math.cos(a)*rnd(2,5),rnd(15,22),Math.sin(a)*rnd(2,5)),w:new V3(rnd(-12,12),rnd(-12,12),rnd(-12,12)),gy:y})}
+ geysers.push({G,inner,outer,crown,skirt,spl,ments,x,y,z,t:0,acc:0,fz:0});
+ blast(new V3(x,y+.6,z),2.2,0xfff0d8);ring(new V3(x,y,z),6,0x6b2a12);puff(new V3(x,y+.4,z),40,0xfaf3e6,9,.7,10);
+ geyLight.position.set(x,y+3,z);geyLight.intensity=2.4;sfx('jet');sfx('boom',.5);shake=Math.max(shake,Math.min(.4,.55-camera.position.distanceTo(new V3(x,y,z))/40))}
 function colaGeyser(e){const x=e.pos.x,z=e.pos.z,y=e.type==='drone'||e.type==='boss'?groundY(e.pos):e.pos.y;
  geyserFx(x,y,z);if(mp())pushFx(['y',0,r1(x),r1(y),r1(z)]);addStyle('ГЕЙЗЕР КОЛЫ',120);e.wet=0;
  for(const o of enemies){if(o.dead)continue;const d=Math.hypot(o.pos.x-x,o.pos.z-z);if(d>4.8)continue;damage(o,o===e?5:2.2,99,'geyser');
@@ -1236,12 +1264,31 @@ function updCola(dt){
  for(const p of puddles){p.t-=dt;p.g=Math.min(1,p.g+dt*2.5);const s=p.r*(.35+.65*(1-Math.pow(1-p.g,3)))*(1+Math.sin(T*2+p.x)*.015);p.m.scale.set(s,1,s);p.m.material.opacity=.82*Math.min(1,p.t/1.5)*Math.min(1,p.g*3);
   if(p.t<=0){scene.remove(p.m);p.m.material.dispose()}}
  puddles=puddles.filter(p=>p.t>0);
- for(const g of geysers){g.t+=dt;const t=g.t,up=t<.22?t/.22:t<1.1?1:Math.max(0,1-(t-1.1)/.5),h=10*up*(1+Math.sin(t*30)*.03),w=.8+.25*Math.sin(t*18);
-  g.col.scale.set(w,Math.max(.01,h),w);g.foam.position.set(g.x,g.y+h,g.z);g.foam.scale.setScalar(Math.max(.01,(1.1+Math.sin(t*25)*.15)*up));
-  if(up>.2){const top=new V3(g.x,g.y+h,g.z);puff(top,5,Math.random()<.5?0x6b2a12:0xf6eee2,7,.9,16);if(Math.random()<.5)puff(new V3(g.x,g.y+.3,g.z),3,0xf6eee2,5,.5,8)}
-  if(t>1.65){scene.remove(g.col,g.foam);g.col.material.dispose();g.foam.material.dispose();g.dead=true}}
- geysers=geysers.filter(g=>!g.dead)}
-function clearCola(){puddles.forEach(p=>{scene.remove(p.m);p.m.material.dispose()});puddles=[];geysers.forEach(g=>scene.remove(g.col,g.foam));geysers=[];if(bossRing){scene.remove(bossRing);bossRing=null}}
+ let gl=0;for(const g of geysers){g.t+=dt;const t=g.t,HM_=11;let H,k=0;
+  if(t<.2){const x=t/.2-1;H=HM_*(1+2.4*x*x*x+1.4*x*x)}else if(t<1.45)H=HM_*(1+.07*Math.sin(t*13)+.04*Math.sin(t*29));else{k=Math.min(1,(t-1.45)/.6);H=HM_*(1-k*k)}
+  H=Math.max(.05,H);const r0=1+.12*Math.sin(t*21);
+  for(const [m,rs] of [[g.inner,.58],[g.outer,1]]){const u=m.material.uniforms;u.uT.value+=dt;u.uH.value=H;u.uR0.value=r0*rs*(1-.4*k);u.uR1.value=.58*rs*(1-.3*k);u.uF.value=1-k}
+  const cz=t<.2?t/.2:1-k;g.crown.forEach((m,i)=>{const a=i/g.crown.length*6.283+t*1.6,rr=(.55+.45*Math.sin(t*7+i*1.7))*(1+k*1.5);
+   m.position.set(Math.cos(a)*rr,H+.25*Math.sin(t*9+i*2)+(i%3)*.25-k*2,Math.sin(a)*rr);m.scale.setScalar(Math.max(.01,(.5+.22*Math.sin(t*11+i))*cz*(i%3===0?1.25:1)));m.rotation.set(t*2+i,t*3,0)});
+  g.skirt.forEach((m,i)=>{const a=i/g.skirt.length*6.283+i;m.position.set(Math.cos(a)*1.15,.18+.08*Math.sin(t*10+i),Math.sin(a)*1.15);m.scale.setScalar(Math.max(.01,(.42+.15*Math.sin(t*13+i*2))*(t<.15?t/.15:1-Math.max(0,(t-1.7)/.5))))});
+  g.spl.forEach((m,i)=>{const ph=((t+i*.17)%.34)/.34;m.scale.setScalar(1.1+ph*4.5);m.material.opacity=t<1.6?.55*(1-ph):0});
+  // брызги: колу и пену разбрасывает зонтиком
+  if(t<1.5){g.acc+=dt*(t<.25?420:240);while(g.acc>=1){g.acc--;const a=Math.random()*6.283,rr=Math.random()*.55,foam=Math.random()<.42,sp=rnd(2.5,8.5);
+    gDrop(g.x+Math.cos(a)*rr,g.y+H-.2,g.z+Math.sin(a)*rr,Math.cos(a)*sp,rnd(2,9),Math.sin(a)*sp,foam?rnd(.09,.2):rnd(.05,.15),foam?FOAM_C:(Math.random()<.5?0x4a1606:0x8a3510),g.y)}}
+  else if(t<2){g.acc+=dt*160;while(g.acc>=1){g.acc--;const a=Math.random()*6.283,rr=rnd(.2,1.6);gDrop(g.x+Math.cos(a)*rr,g.y+H+rnd(0,1),g.z+Math.sin(a)*rr,Math.cos(a)*rnd(.5,3),rnd(-2,2),Math.sin(a)*rnd(.5,3),rnd(.06,.18),Math.random()<.5?FOAM_C:0x5a1f0a,g.y)}}
+  if(t<1.5&&(g.fz-=dt)<=0){g.fz=.16;sfx('spray',.35);puff(new V3(g.x,g.y+.3,g.z),6,0xfaf3e6,4,.5,6)}
+  for(const mn of g.ments){if(!mn.m.parent)continue;mn.v.y-=20*dt;mn.m.position.addScaledVector(mn.v,dt);mn.m.rotation.x+=mn.w.x*dt;mn.m.rotation.y+=mn.w.y*dt;mn.m.rotation.z+=mn.w.z*dt;
+   if(mn.m.position.y<mn.gy){scene.remove(mn.m);puff(mn.m.position,4,0xffffff,3,.4)}}
+  gl=Math.max(gl,t<.15?2.4:t<1.45?1.05+.3*Math.sin(t*17):Math.max(0,1.05*(1-k)));
+  if(t>2.3){scene.remove(g.G);g.ments.forEach(mn=>scene.remove(mn.m));g.inner.material.dispose();g.outer.material.dispose();g.spl.forEach(m=>m.material.dispose());g.dead=true}}
+ geysers=geysers.filter(g=>!g.dead);geyLight.intensity=gl;
+ let n=0;for(const d of gdrops){d.t-=dt;d.v.y-=21*dt;d.p.addScaledVector(d.v,dt);
+  if(d.p.y<d.gy){d.t=0;if(Math.random()<.25)puff(new V3(d.p.x,d.gy+.05,d.p.z),2,d.c===FOAM_C?0xfaf3e6:0x5a1f0a,2,.3,10);continue}if(d.t<=0)continue;
+  const sp=d.v.length();_gd.position.copy(d.p);_gd.quaternion.setFromUnitVectors(UPV,_gv.copy(d.v).divideScalar(sp||1));const st=1+Math.min(1.6,sp*.08);_gd.scale.set(d.s/Math.sqrt(st),d.s*st,d.s/Math.sqrt(st));
+  _gd.updateMatrix();GD.setMatrixAt(n,_gd.matrix);GD.setColorAt(n,_gc.setHex(d.c));n++}
+ for(let i=gdrops.length-1;i>=0;i--)if(gdrops[i].t<=0)gdrops.splice(i,1);
+ GD.count=n;GD.instanceMatrix.needsUpdate=true;if(GD.instanceColor)GD.instanceColor.needsUpdate=true}
+function clearCola(){puddles.forEach(p=>{scene.remove(p.m);p.m.material.dispose()});puddles=[];geysers.forEach(g=>{scene.remove(g.G);g.ments.forEach(mn=>scene.remove(mn.m))});geysers=[];gdrops.length=0;GD.count=0;geyLight.intensity=0;if(bossRing){scene.remove(bossRing);bossRing=null}}
 /* ================= босс: Генеральный Директор Газ-Ада ================= */
 let bossRing=null;const UPV=new V3(0,1,0);
 function buildBoss(g,mm,add){const E={envMap:ENV},suit=mm(0x5c0b16,{metalness:.55,roughness:.3,...E}),dark=mm(0x15161b,{metalness:.8,roughness:.34,...E}),chrome=mm(0xdfe4ea,{metalness:1,roughness:.12,...E,envMapIntensity:1.3}),
