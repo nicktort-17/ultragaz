@@ -1261,10 +1261,10 @@ const LEVELS=[
    {name:'КАРУСЕЛЬ РОЗЛИВА',trig:[-24,24,-136,-93],bounds:[-24.5,24.5,-136.5,-87.5],cp:[0,0,-91],entry:2,exit:null,bossAt:[0,0,-128],
     sp:[[-21.5,6,-120],[21.5,6,-120],[-21.5,6,-104],[21.5,6,-104],[-14,0,-131],[14,0,-131],[0,0,-132],[-15,0,-97],[15,0,-97]],waves:[{boss:1,vend:2,drone:2}],
     rein:[{at:.6,w:{can:4,vend:2}},{at:.3,w:{golem:1,can:3,drone:2}}]}]},
- {id:'l2',n:2,name:'СИРОПНЫЕ ЦИСТЕРНЫ',sub:'Сироп поднимается и опускается. Стреляй в красные вентили, чтобы слить его.',desc:'Прилив сиропа и вентили слива. Финал — в сиропном озере.',boss:'Карамельная Царица',diff:5,par:420,build:buildL2,start:[0,3.2,29],open:[0],
+ {id:'l2',n:2,name:'СИРОПНЫЕ ЦИСТЕРНЫ',sub:'Сироп поднимается и опускается. Стреляй в красные вентили, чтобы слить его.',desc:'Прилив сиропа и вентили слива. Финал — в сиропном озере.',boss:'Карамельная Царица',diff:5,par:420,build:buildL2,start:[0,3.2,29],open:[0,3],
   rooms:[{name:'НАСОСНАЯ',trig:[-18,18,-16,14.2],bounds:[-18.5,18.5,-16.5,22.5],cp:[0,3.2,19.5],entry:0,exit:1,
     sp:[[-14,3.2,-4],[14,3.2,-4],[-14,3.2,8],[14,3.2,8],[-5,3.2,-13],[5,3.2,-13],[0,3.2,2],[0,0,-6],[-7,0,12]],waves:[{jelly:2,vend:4},{jelly:2,can:4,drone:2}]},
-   {name:'РЕЗЕРВУАР',trig:[-20,20,-68,-32.6],bounds:[-20.5,20.5,-68.5,-27.5],cp:[0,3.2,-30.2],entry:1,exit:2,
+   {name:'РЕЗЕРВУАР',trig:[-20,20,-68,-32.6],bounds:[-20.5,20.5,-68.5,-27.5],zone:[0,-48,19.3],cp:[0,3.2,-30.6],entry:3,exit:2,
     sp:[[-10,0,-50],[10,0,-50],[0,6.5,-52],[0,0,-61],[-13,0,-40],[13,0,-40],[-15.3,7.5,-57],[15.3,7.5,-57],[0,9.7,-62]],waves:[{jelly:3,vend:4,can:2},{golem:1,jelly:3,drone:2},{jelly:4,vend:3,can:3}]},
    {name:'СЕРДЦЕ СИРОПА',trig:[-24,24,-128,-84.8],bounds:[-24.5,24.5,-128.5,-79.5],cp:[8,2.8,-82],entry:2,exit:null,bossAt:[0,0,-104],qspots:[[0,-104],[-5.5,-100],[5.5,-100],[0,-110]],
     sp:[[0,2.8,-91],[-11.3,2.8,-97.5],[11.3,2.8,-97.5],[-11.3,2.8,-110.5],[11.3,2.8,-110.5],[0,2.8,-117]],waves:[{queen:1}],
@@ -1345,7 +1345,7 @@ function buildL2(){const m=storyMats();scene.background=new THREE.Color(0x140b05
  // --- РЕЗЕРВУАР ---
  corridorZ(0,-28,-17,7,3.2,7,Rc);
  roomBox(-20,20,-68,-28,26,R,{s:[{c:0,w:6,y0:3.2,h:4.5}],n:[{c:0,w:6,y0:9.7,h:4.5}]});addDoor(0,9.7,-68.5,6,4.5,false);
- tankRoom(0,-48,19.6,26,[{th:0,y0:3.2,y1:7.7},{th:Math.PI,y0:9.7,y1:14.2}]);addPool(-20,20,-68,-28,-.3,5);
+ addDoor(0,3.2,-27.5,6,4.5,true);tankRoom(0,-48,19.6,26,[{th:0,y0:3.2,y1:7.7},{th:Math.PI,y0:9.7,y1:14.2}]);addPool(-20,20,-68,-28,-.3,5);
  addBoxW(0,0,-30.25,8,3.2,4.5,m.plat);trim(-4,4,-32.5,-28,3.2);
  for(const s of[-1,1])for(let k=0;k<10;k++){const a=s*(.55+k*.245),x=Math.sin(a)*16.5,z=-48+Math.cos(a)*16.5,h=4.2+k*.55;addBoxW(x,h-.5,z,3.6,.5,3.6,m.grate,2);decoW(x,h-.62,z,3.7,.12,3.7,m.hz,1);deco(new THREE.CylinderGeometry(.12,.12,h-.5,6),m.pipe,x,(h-.5)/2,z)}
  addBoxW(0,9.3,-63,10,.4,10,m.grate,2);trim(-5,5,-68,-58,9.7);for(const [x,z] of[[-4.5,-58.5],[4.5,-58.5]])addBoxW(x,0,z,.6,9.3,.6,m.pipe);
@@ -1385,7 +1385,16 @@ function roomReset(){const S=story,R=S.lv.rooms[S.room];enemies.forEach(e=>{if(e
 function roomClear(){const S=story,R=S.lv.rooms[S.room];S.phase='clear';if(R.exit!=null)setDoor(doors[R.exit],true);heal(40);addStyle('ЗАЛ ЗАЧИЩЕН',150);
  if(S.room>=S.lv.rooms.length-1)levelDone();else{banner('ПРОХОД ОТКРЫТ');sfx('ding')}}
 function levelDone(){const S=story;S.phase='done';S.doneT=T;S.endT=T;banner('УРОВЕНЬ ПРОЙДЕН');sfx('frag');freeze=Math.max(freeze,.5)}
-function updStoryHost(dt){const S=story,LV=S.lv;spawnTick(dt);const tg=targets();
+function roomOf(){const S=story;return S&&S.room>=0?S.lv.rooms[S.room]:null}
+function spawnOk(p,type){const R=roomOf(),r=(ENEMY[type]?ENEMY[type].r:1)*.8;
+ if(R){const b=R.bounds;if(p.x<b[0]+r+.6||p.x>b[1]-r-.6||p.z<b[2]+r+.6||p.z>b[3]-r-.6)return false;if(R.zone&&Math.hypot(p.x-R.zone[0],p.z-R.zone[1])>R.zone[2]-r-.8)return false}
+ const q=new V3(p.x,p.y+.35,p.z);for(const b of boxes)if(b.max.y-b.min.y>1.2&&ov(q,r,1.6,b))return false;return true}
+function safeSpawnPos(sp,type){const fly=ENEMY[type]&&ENEMY[type].fly;for(let k=0;k<10;k++){const j=k<9?2*(1-k/9):0,p=sp.clone().add(new V3(rnd(-j,j),0,rnd(-j,j)));if(!fly)p.y=groundAt(p.x,p.z,sp.y+.6);if(k===9||spawnOk(p,type))return p}return sp.clone()}
+function containEnemies(){const R=roomOf();if(!R||story.phase!=='fight')return;const b=R.bounds,topY=Math.max(...R.sp.map(s=>s[1]))+9;
+ for(const e of enemies){if(e.dead||e.remote||ENEMY[e.type].boss)continue;const p=e.pos;if(L3&&!onHull(p.x,p.z))continue;
+  let bad=p.x<b[0]-.3||p.x>b[1]+.3||p.z<b[2]-.3||p.z>b[3]+.3||p.y>topY||p.y<-6;if(!bad&&R.zone)bad=Math.hypot(p.x-R.zone[0],p.z-R.zone[1])>R.zone[2]+.3;
+  if(bad){(story.escLog=story.escLog||[]).push(e.type+'@'+[p.x,p.y,p.z].map(v=>v.toFixed(1))+(e.sp0?' sp '+e.sp0:''));if(story.escLog.length>30)story.escLog.shift();const sp=R.sp[Math.floor(Math.random()*R.sp.length)];p.copy(safeSpawnPos(new V3(...sp),e.type));if(ENEMY[e.type].fly)p.y=Math.max(p.y,sp[1]+3);e.vel.set(0,0,0);story.escN=(story.escN||0)+1}}}
+function updStoryHost(dt){const S=story,LV=S.lv;spawnTick(dt);containEnemies();const tg=targets();
  if(S.phase==='idle'||S.phase==='clear'){const ni=S.room+1,R=LV.rooms[ni];if(R&&tg.some(c=>inR(c.pos,R.trig)))roomStart(ni);return}
  if(S.phase!=='fight')return;const R=LV.rooms[S.room];
  if(!tg.length)S.wipe=true;else if(S.wipe){S.wipe=false;roomReset();return}
@@ -3046,7 +3055,7 @@ function buildEnemy(type){const g=new THREE.Group(),mats=[];const mm=(c,o)=>{con
  g.rotation.order='YXZ';g.traverse(o=>{if(o.isMesh)o.castShadow=true});scene.add(g);return{g,mats,eyes}}
 function makeEnemy(type,pos,id){const d=ENEMY[type],b=buildEnemy(type);const e=Object.assign({id,type,hp:d.hp*(1+wave*.06),r:d.r,cy:d.cy,speed:d.speed,vel:new V3(),cd:rnd(1,2.5),cd2:rnd(2,4),wind:0,flash:0,seed:Math.random()*9,strafe:Math.random()<.5?1:-1,dead:false,remote:false},b);
  e.pos=b.g.position;e.pos.copy(pos);if(type==='drone'&&pos.y<1)e.pos.y=5;if(type==='boss'){if(mode==='coop')e.hp*=1+.6*remotes.size;e.pos.y+=3}if((type==='queen'||type==='alt')&&mode==='coop')e.hp*=1+.6*remotes.size;e.maxHp=e.hp;return e}
-function spawnEnemy(type,pos){if(type==='alt'){banner('АЛЬТУШКА 10/10 НА ТАНКЕ «ДЕНЕЖНЫЙ МЕШОК»');sfx('horn');shake=Math.max(shake,.3)}if(!ENEMY[type].fly&&type!=='queen'&&type!=='alt'){const hh=type==='golem'||type==='boss'?4.6:2.5,rr=type==='boss'?1.3:ENEMY[type].r*.8;for(let k=0;k<6;k++){const b=boxes.find(b=>ov(pos,rr,hh,b));if(!b)break;pos=pos.clone();pos.y=b.max.y+.02}}if(type==='jelly')pos=pos.clone().setY(pos.y+5);if(type==='queen'){pos=pos.clone().setY(-13);banner('КАРАМЕЛЬНАЯ ЦАРИЦА ПРОБУЖДАЕТСЯ');shake=Math.max(shake,.35)}enemies.push(makeEnemy(type,pos,++eid));puff(new V3(pos.x,Math.max(1,pos.y+1),pos.z),40,type==='banan'?0xffe135:type==='jelly'||type==='queen'?0xffa030:0xff2a3a,8,.7);if(type==='banan'){banner('МАКСИМИ БАНАНИНИ ПРИБЫЛ!');sfx('frag')}if(type==='boss'){banner('ГЕНЕРАЛЬНЫЙ ДИРЕКТОР ВЫШЕЛ НА СВЯЗЬ');sfx('frag');shake=Math.max(shake,.3)}}
+function spawnEnemy(type,pos){const y0=pos.y;if(type==='alt'){banner('АЛЬТУШКА 10/10 НА ТАНКЕ «ДЕНЕЖНЫЙ МЕШОК»');sfx('horn');shake=Math.max(shake,.3)}if(!ENEMY[type].fly&&type!=='queen'&&type!=='alt'){const hh=type==='golem'||type==='boss'?4.6:2.5,rr=type==='boss'?1.3:ENEMY[type].r*.8;const p0=pos;for(let k=0;k<6;k++){const b=boxes.find(b=>ov(pos,rr,hh,b));if(!b)break;pos=pos.clone();pos.y=b.max.y+.02}if(pos.y-p0.y>1.6)pos=p0}if(type==='jelly')pos=pos.clone().setY(pos.y+5);if(type==='queen'){pos=pos.clone().setY(-13);banner('КАРАМЕЛЬНАЯ ЦАРИЦА ПРОБУЖДАЕТСЯ');shake=Math.max(shake,.35)}{const ne=makeEnemy(type,pos,++eid);if(ENEMY[type].fly){const fy=groundAt(ne.pos.x,ne.pos.z,y0+.5),hr=headroom(ne.pos.x,fy,ne.pos.z,1.2,40);ne.ceil=fy+hr-1.1;if(ne.pos.y>ne.ceil)ne.pos.y=Math.max(fy+1.2,ne.ceil)}enemies.push(ne)}puff(new V3(pos.x,Math.max(1,pos.y+1),pos.z),40,type==='banan'?0xffe135:type==='jelly'||type==='queen'?0xffa030:0xff2a3a,8,.7);if(type==='banan'){banner('МАКСИМИ БАНАНИНИ ПРИБЫЛ!');sfx('frag')}if(type==='boss'){banner('ГЕНЕРАЛЬНЫЙ ДИРЕКТОР ВЫШЕЛ НА СВЯЗЬ');sfx('frag');shake=Math.max(shake,.3)}}
 let peels=[];const peelGeo=new THREE.ConeGeometry(.6,.12,5),peelMat=M(0xffd93a,{roughness:.5});
 function dropPeel(pos){const m=new THREE.Mesh(peelGeo,peelMat);m.position.set(pos.x,pos.y+.06,pos.z);m.rotation.y=Math.random()*6;m.scale.set(1,1,1.4);scene.add(m);peels.push({m,t:16});if(peels.length>14){scene.remove(peels[0].m);peels.shift()}}
 function updPeels(dt){for(const pe of peels){pe.t-=dt;if(P.alive&&P.grounded&&Math.hypot(P.pos.x-pe.m.position.x,P.pos.z-pe.m.position.z)<.85&&Math.abs(P.pos.y-pe.m.position.y)<.6){pe.t=0;
@@ -3309,7 +3318,7 @@ function updEnemies(dt){const pc=new V3(),tmp=new V3(),tg=targets();
   for(const o of enemies)if(o!==e&&!o.dead){const dx=e.pos.x-o.pos.x,dz=e.pos.z-o.pos.z,d=Math.hypot(dx,dz),m=e.r+o.r;if(d<m&&d>.01){e.vel.x+=dx/d*(m-d)*80*dt;e.vel.z+=dz/d*(m-d)*80*dt}}
   if(e.type==='queen'||e.type==='alt'){}
   else if(e.type==='boss'){e.onGround=moveBody(e.pos,e.vel,1.3,4.6,dt,false).ground;if(story&&e.onGround)carryBody(e.pos,1.3,4.6,dt);if(e.pos.y<-10){e.pos.copy(spawns[0]);e.pos.y+=4}}
-  else if(ENEMY[e.type].fly){_fp.set(e.pos.x,e.pos.y-.55,e.pos.z);moveBody(_fp,e.vel,e.r*.8,1.1,dt,false);e.pos.set(_fp.x,_fp.y+.55,_fp.z);e.pos.x=THREE.MathUtils.clamp(e.pos.x,mapB.x0+1,mapB.x1-1);e.pos.z=THREE.MathUtils.clamp(e.pos.z,mapB.z0+1,mapB.z1-1);if(inBox(e.pos))e.pos.y+=dt*8}
+  else if(ENEMY[e.type].fly){_fp.set(e.pos.x,e.pos.y-.55,e.pos.z);moveBody(_fp,e.vel,e.r*.8,1.1,dt,false);e.pos.set(_fp.x,_fp.y+.55,_fp.z);if(e.ceil!=null&&e.pos.y>e.ceil){e.pos.y=e.ceil;if(e.vel.y>0)e.vel.y=0}e.pos.x=THREE.MathUtils.clamp(e.pos.x,mapB.x0+1,mapB.x1-1);e.pos.z=THREE.MathUtils.clamp(e.pos.z,mapB.z0+1,mapB.z1-1);if(inBox(e.pos))e.pos.y+=dt*8}
   else{e.vel.y-=26*dt;if(story){const sy=syrupDepth(e.pos);if(sy>.15&&!(e.dashT>0)){const cap=e.speed*.45+1,hs=Math.hypot(e.vel.x,e.vel.z);if(hs>cap){e.vel.x*=cap/hs;e.vel.z*=cap/hs}if(e.vel.y<-5)e.vel.y=-5}}e.onGround=moveBody(e.pos,e.vel,e.r*.8,e.type==='golem'?4.5:2.5,dt,true).ground;if(story&&e.onGround)carryBody(e.pos,e.r*.8,e.type==='golem'?4.5:2.5,dt);if(e.pos.y<-10){e.pos.copy(spawns[0]);e.pos.y+=1;e.vel.set(0,0,0)}}}
  enemies=enemies.filter(e=>!e.dead)}
 
@@ -3504,7 +3513,7 @@ function updWaves(dt){spawnTick(dt);
  if(!left){waveT+=dt;if(waveT>.01&&waveT-dt<=.01){banner('ВОЛНА ЗАЧИЩЕНА');heal(30);addStyle('ЗАЧИСТКА',50)}if(waveT>3){waveT=0;startWave(wave+1)}}}
 function spawnTick(dt){spawnT-=dt;
  if(toSpawn.length&&enemies.length+telegraphs.length<(mode==='coop'?18:13)&&spawnT<=0){const type=toSpawn.pop();const tp=targets()[0]||{pos:P.pos};const sp=spawns.slice().sort((a,b)=>b.distanceTo(tp.pos)-a.distanceTo(tp.pos))[Math.floor(Math.random()*4)];
-  const pos=sp.clone().add(new V3(rnd(-2,2),0,rnd(-2,2)));if(!ENEMY[type].fly)pos.y=groundAt(pos.x,pos.z,pos.y+.6);telegraphs.push({m:makeTele(pos,type==='boss'||type==='golem'),pos,type,t:.8});spawnT=.55}
+  const pos=story?safeSpawnPos(sp,type):sp.clone().add(new V3(rnd(-2,2),0,rnd(-2,2)));if(!story&&!ENEMY[type].fly)pos.y=groundAt(pos.x,pos.z,pos.y+.6);telegraphs.push({m:makeTele(pos,type==='boss'||type==='golem'),pos,type,t:.8});spawnT=.55}
  for(const t of telegraphs){t.t-=dt;teleAnim(t,dt);if(t.t<=0){scene.remove(t.m);spawnEnemy(t.type,t.pos)}}
  telegraphs=telegraphs.filter(t=>t.t>0)}
 
