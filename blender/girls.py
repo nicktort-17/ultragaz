@@ -97,7 +97,7 @@ def w_body(p):
 def w_arm(side):
     def f(p):
         x, y, z = p
-        el = sstep(1.12, 1.04, y); wr = sstep(.85, .80, y); top = sstep(1.37, 1.42, y) * .5
+        el = sstep(1.12, 1.04, y); wr = sstep(.848, .818, y); top = sstep(1.37, 1.42, y) * .5
         w = {side+'Sh': (1 - el) * (1 - top), side+'El': el * (1 - wr), side+'Wr': el * wr, 'spine': (1 - el) * top}
         return w
     return f
@@ -125,8 +125,8 @@ weigh(body, w_body)
 arms = {}
 for s, n in ((1, 'l'), (-1, 'r')):
     a = skin_mesh('arm_'+n, [((s*.128, 1.355, 0), (.044, .044)), ((s*.16, 1.31, 0), (.04, .041)), ((s*.165, 1.20, 0), (.035, .036)),
-                             ((s*.165, 1.08, 0), (.029, .03)), ((s*.165, .98, .004), (.032, .03)), ((s*.165, .845, 0), (.021, .017))],
-                  [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5)])
+                             ((s*.165, 1.08, 0), (.029, .03)), ((s*.165, .98, .004), (.032, .03)), ((s*.165, .85, 0), (.022, .018)), ((s*.165, .805, .002), (.024, .015))],
+                  [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)])
     weigh(a, w_arm(n)); arms[n] = a
 
 # ---------------- оболочки одежды из копии тела ----------------
@@ -302,7 +302,7 @@ else:
 
 # ---------------- кисти: ладонь + шаблоны пальцев ----------------
 for s, n in ((1, 'l'), (-1, 'r')):
-    rigid.append(prim(bpy.ops.mesh.primitive_cube_add, 'R_%sWr_palm' % n, skinM, (s*.165, .787, .002), (.066, .084, .03), subd=2, size=1))
+    rigid.append(prim(bpy.ops.mesh.primitive_cube_add, 'R_%sWr_palm' % n, skinM, (s*.165, .783, .002), (.084, .112, .036), subd=2, size=1))
 def finger(name, L, r0, r1):
     me = bpy.data.meshes.new(name); bm = bmesh.new(); N = 8; rows = []
     for i in range(7):
@@ -314,13 +314,13 @@ def finger(name, L, r0, r1):
     bm.faces.new(rows[-1][::-1]); bm.faces.new(rows[0])
     bm.to_mesh(me); o = link(bpy.data.objects.new(name, me)); set_mat(o, skinM); smooth_all(o)
     o.modifiers.new('sub', 'SUBSURF').levels = 1; apply_mods(o); smooth_all(o); return o
-fing = [finger('T_finger', .068, .0088, .0074), finger('T_thumb', .054, .0098, .0082)]
+fing = [finger('T_finger', .078, .0092, .0076), finger('T_thumb', .06, .0102, .0085)]
 if ALT:
     nail = mat('nail', '#0c0a10', .2)
     for f in fing:
         f.data.materials.append(nail)
         for p in f.data.polygons:
-            if T(p.center).y < -(.054 if 'thumb' in f.name else .068) + .006 and T(p.center).z > 0: p.material_index = 1
+            if T(p.center).y < -(.06 if 'thumb' in f.name else .078) + .006 and T(p.center).z > 0: p.material_index = 1
 
 # ---------------- волосы: пряди ----------------
 HAIR = ('#16141c' if ALT else '#f2d68e')
