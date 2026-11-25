@@ -1317,7 +1317,10 @@ let mapId='zavod';try{mapId=localStorage.getItem('ug-map')==='plaza'?'plaza':'za
 loadMap(mapId);
 const inBox=p=>{for(const b of boxes)if(p.x>b.min.x&&p.x<b.max.x&&p.y>b.min.y&&p.y<b.max.y&&p.z>b.min.z&&p.z<b.max.z)return true;return false};
 function ov(p,r,h,b){return p.x+r>b.min.x&&p.x-r<b.max.x&&p.z+r>b.min.z&&p.z-r<b.max.z&&p.y+h>b.min.y&&p.y<b.max.y}
-function moveBody(p,v,r,h,dt,step){let ground=false,wall=null;
+function moveBody(p,v,r,h,dt,step){const d=Math.max(Math.abs(v.x),Math.abs(v.y),Math.abs(v.z))*dt;
+ if(d>.3){const n=Math.min(12,Math.ceil(d/.3)),sd=dt/n;let ground=false,wall=null;for(let i=0;i<n;i++){const r2=moveStep(p,v,r,h,sd,step);if(r2.ground)ground=true;if(r2.wall)wall=r2.wall}return{ground,wall}}
+ return moveStep(p,v,r,h,dt,step)}
+function moveStep(p,v,r,h,dt,step){let ground=false,wall=null;
  p.x+=v.x*dt;for(const b of boxes)if(ov(p,r,h,b)){const up=b.max.y-p.y;if(step&&up>0&&up<=.55){p.y=b.max.y;continue}
   if(p.x+r-b.min.x<b.max.x-(p.x-r)){p.x=b.min.x-r-1e-3;wall=new V3(-1,0,0)}else{p.x=b.max.x+r+1e-3;wall=new V3(1,0,0)}v.x=0}
  p.z+=v.z*dt;for(const b of boxes)if(ov(p,r,h,b)){const up=b.max.y-p.y;if(step&&up>0&&up<=.55){p.y=b.max.y;continue}
