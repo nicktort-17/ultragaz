@@ -285,6 +285,8 @@ button:disabled{cursor:not-allowed}
  linear-gradient(160deg,transparent 0 22%,#ff4fa8 22% 25%,#f2efe8 25% 31%,transparent 31%) 70% 0/30% 100% no-repeat,
  repeating-linear-gradient(180deg,rgba(255,246,226,.55) 0 2px,transparent 2px 9px) 0 100%/100% 34% no-repeat,
  linear-gradient(180deg,#3a2456 0,#9a4a78 30%,#ff9a5c 56%,#f0a030 66%,#b86410 100%)}
+#objm{position:absolute;left:0;top:0;z-index:5;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:4px;margin:-14px 0 0 -60px;width:120px}#objm[hidden]{display:none}
+#objm i{width:16px;height:16px;border:3px solid #62e3ff;transform:rotate(45deg);box-shadow:0 0 10px #62e3ff}#objm b{font:700 11px/1 Rubik,sans-serif;letter-spacing:.14em;color:#e8fbff;text-shadow:0 1px 3px #000;white-space:nowrap}#objm.off i{border-color:#ffcf1a;box-shadow:0 0 10px #ffcf1a}
 #l3hint{position:absolute;left:50%;bottom:18vh;transform:translateX(-50%);padding:.7em 1.3em;font:600 14px/1 Rubik,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#fff6e2;background:rgba(20,10,4,.7);border:1px solid rgba(255,200,120,.45);pointer-events:none;z-index:5}
 #l3hint b{color:#ffc040;font-weight:800}
 .lvc .tx{display:block;padding:1vh 1vw 1.2vh}
@@ -802,6 +804,7 @@ const smk=k=>k*k*(3-2*k);
 function groundAt(x,z,maxY=8){let y=0;for(const b of boxes)if(x>b.min.x&&x<b.max.x&&z>b.min.z&&z<b.max.z&&b.max.y<=maxY&&b.max.y>y)y=b.max.y;return y}
 function syrupLvl(x,z){for(const p of pools)if(x>p.x0&&x<p.x1&&z>p.z0&&z<p.z1)return p.y;return -99}
 function syrupDepth(p){const l=syrupLvl(p.x,p.z);return l>p.y?l-p.y:0}
+function floorAt(x,y,z){if(!story)return true;for(const b of boxes)if(x>b.min.x&&x<b.max.x&&z>b.min.z&&z<b.max.z&&b.max.y<=y+.45&&b.max.y>=y-.9)return true;const sl=syrupLvl(x,z);return sl>-50&&Math.abs(sl-y)<1}
 const surfY=(x,z)=>Math.max(groundAt(x,z,7.5),syrupLvl(x,z));
 const sndV=(x,y,z)=>Math.max(0,1-Math.hypot(camera.position.x-x,camera.position.y-y,camera.position.z-z)/46);
 const fmtT=s=>{s=Math.max(0,Math.floor(s));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
@@ -980,7 +983,7 @@ function makeCyl(x,y,z,r,h,hex){const t=cylTex(),g=new THREE.Group();g.position.
  g.userData={shell,bands,bt,core,base,r,h};return g}
 function cylAnim(g,dt,k,pulse){const u=g.userData;u.bt.offset.y-=dt*(.6+k*1.6);const p=pulse==null?1:pulse;u.shell.material.opacity=.42*p+.12;u.bands.material.opacity=.3*p+.08;u.core.material.opacity=.22*p;u.base.material.opacity=.6+.4*p;u.base.rotation.y+=dt}
 function addBeacon(di){const d=doors[di],w=d.box.max.x-d.box.min.x,g=makeCyl(d.x,d.y,d.z,Math.min(1.7,w/2-.4),Math.min(d.h-.15,headroom(d.x,d.y,d.z,1.7,5)),0x62e3ff);g.visible=false;mapGroup.add(g);beacons.push({d:di,g})}
-function updBeacons(dt,S,R){for(const b of beacons){const on=(S.phase==='clear'&&R&&R.exit===b.d)||(S.room<0&&b.d===S.lv.open[0]);b.g.visible=on;if(on)cylAnim(b.g,dt,.2,.75+.25*Math.sin(lvT*3.5))}}
+function updBeacons(dt,S,R){for(const b of beacons){const on=((S.phase==='clear'||S.phase==='exit')&&R&&R.exit===b.d)||(S.room<0&&b.d===S.lv.open[0]);b.g.visible=on;if(on)cylAnim(b.g,dt,.2,.75+.25*Math.sin(lvT*3.5))}}
 /* метка появления врага — красный цилиндр, сжимается к моменту появления */
 function makeTele(pos,big){const r=big?2:1.2,h=headroom(pos.x,pos.y,pos.z,r,big?8:5),g=makeCyl(pos.x,pos.y,pos.z,r,h,big?0xff6a2a:0xff2a3a);scene.add(g);return g}
 function teleAnim(t,dt){const u=t.m.userData;if(!u.shell){t.m.scale.x=t.m.scale.z=.3+t.t;return}if(!u.dur)u.dur=t.t+dt;const k=1-Math.max(0,t.t)/u.dur;
@@ -1253,20 +1256,20 @@ function weakHit(e,o,dir){if(e.type!=='queen'||!e.g.userData.q)return false;e.g.
 
 /* ================= уровни ================= */
 const LEVELS=[
- {id:'l1',n:1,name:'ЛИНИЯ РОЗЛИВА',sub:'Конвейеры везут всех. Прессы бьют по ритму — заманивай врагов под удар.',desc:'Конвейеры и гидропрессы. Финал — на карусели розлива.',boss:'Генеральный директор',diff:3,par:330,build:buildL1,start:[0,0,30],open:[0],
+ {id:'l1',n:1,name:'ЛИНИЯ РОЗЛИВА',sub:'Конвейеры везут всех. Прессы бьют по ритму — заманивай врагов под удар.',desc:'Конвейеры и гидропрессы. Финал — на карусели розлива.',boss:'Генеральный директор',diff:3,par:330,build:buildL1,start:[0,0,30],open:[0],exitTrig:[-3.4,3.4,-146.5,-139,0],
   rooms:[{name:'ПРИЁМКА',trig:[-20,20,-18,15.5],bounds:[-20.5,20.5,-18.5,22.5],cp:[0,0,19],entry:0,exit:1,
     sp:[[-16.5,4.5,-10],[16.5,4.5,-10],[-16.5,4.5,6],[16.5,4.5,6],[-12,0,-9.5],[12,0,-14],[0,0,-14],[-14,0,1],[14,0,1]],waves:[{vend:4,drone:2},{vend:3,can:4,drone:1}]},
    {name:'ПРЕСС-ЦЕХ',trig:[-14,14,-76,-36],bounds:[-14.5,14.5,-76.5,-29.5],cp:[-8,0,-33],entry:1,exit:2,
     sp:[[-12,4.5,-68],[12,4.5,-68],[-12,4.5,-56],[12,4.5,-56],[-9,0,-72],[9,0,-72],[0,.5,-73],[-9,0,-61],[9,0,-61]],waves:[{vend:4,can:3},{golem:1,vend:3,drone:2},{can:5,vend:3,golem:1}]},
-   {name:'КАРУСЕЛЬ РОЗЛИВА',trig:[-24,24,-136,-93],bounds:[-24.5,24.5,-136.5,-87.5],cp:[0,0,-91],entry:2,exit:null,bossAt:[0,0,-128],
+   {name:'КАРУСЕЛЬ РОЗЛИВА',trig:[-24,24,-136,-93],bounds:[-24.5,24.5,-136.5,-87.5],cp:[0,0,-91],entry:2,exit:3,bossAt:[0,0,-128],
     sp:[[-21.5,6,-120],[21.5,6,-120],[-21.5,6,-104],[21.5,6,-104],[-14,0,-131],[14,0,-131],[0,0,-132],[-15,0,-97],[15,0,-97]],waves:[{boss:1,vend:2,drone:2}],
     rein:[{at:.6,w:{can:4,vend:2}},{at:.3,w:{golem:1,can:3,drone:2}}]}]},
- {id:'l2',n:2,name:'СИРОПНЫЕ ЦИСТЕРНЫ',sub:'Сироп поднимается и опускается. Стреляй в красные вентили, чтобы слить его.',desc:'Прилив сиропа и вентили слива. Финал — в сиропном озере.',boss:'Карамельная Царица',diff:5,par:420,build:buildL2,start:[0,3.2,29],open:[0,3],
+ {id:'l2',n:2,name:'СИРОПНЫЕ ЦИСТЕРНЫ',sub:'Сироп поднимается и опускается. Стреляй в красные вентили, чтобы слить его.',desc:'Прилив сиропа и вентили слива. Финал — в сиропном озере.',boss:'Карамельная Царица',diff:5,par:420,build:buildL2,start:[0,3.2,29],open:[0,3],exitTrig:[-3.4,3.4,-138.5,-131,2.8],
   rooms:[{name:'НАСОСНАЯ',trig:[-18,18,-16,14.2],bounds:[-18.5,18.5,-16.5,22.5],cp:[0,3.2,19.5],entry:0,exit:1,
     sp:[[-14,3.2,-4],[14,3.2,-4],[-14,3.2,8],[14,3.2,8],[-5,3.2,-13],[5,3.2,-13],[0,3.2,2],[0,0,-6],[-7,0,12]],waves:[{jelly:2,vend:4},{jelly:2,can:4,drone:2}]},
    {name:'РЕЗЕРВУАР',trig:[-20,20,-68,-32.6],bounds:[-20.5,20.5,-68.5,-27.5],zone:[0,-48,19.3],cp:[0,3.2,-30.6],entry:3,exit:2,
     sp:[[-10,0,-50],[10,0,-50],[0,6.5,-52],[0,0,-61],[-13,0,-40],[13,0,-40],[-15.3,7.5,-57],[15.3,7.5,-57],[0,9.7,-62]],waves:[{jelly:3,vend:4,can:2},{golem:1,jelly:3,drone:2},{jelly:4,vend:3,can:3}]},
-   {name:'СЕРДЦЕ СИРОПА',trig:[-24,24,-128,-84.8],bounds:[-24.5,24.5,-128.5,-79.5],cp:[8,2.8,-82],entry:2,exit:null,bossAt:[0,0,-104],qspots:[[0,-104],[-5.5,-100],[5.5,-100],[0,-110]],
+   {name:'СЕРДЦЕ СИРОПА',trig:[-24,24,-128,-84.8],bounds:[-24.5,24.5,-128.5,-79.5],cp:[8,2.8,-82],entry:2,exit:4,bossAt:[0,0,-104],qspots:[[0,-104],[-5.5,-100],[5.5,-100],[0,-110]],
     sp:[[0,2.8,-91],[-11.3,2.8,-97.5],[11.3,2.8,-97.5],[-11.3,2.8,-110.5],[11.3,2.8,-110.5],[0,2.8,-117]],waves:[{queen:1}],
     rein:[{at:.7,w:{jelly:2,can:2}},{at:.35,w:{jelly:3,vend:2}}]}]}];
 const lvIdx=id=>LEVELS.findIndex(l=>l.id===id);
@@ -1275,14 +1278,14 @@ const lvUnlocked=i=>i===0||!!(prog[LEVELS[i-1].id]&&prog[LEVELS[i-1].id].done);
 /* ---------- Уровень 1: ЛИНИЯ РОЗЛИВА ---------- */
 function buildL1(){const m=storyMats();scene.background=new THREE.Color(0x1d1714);scene.fog=new THREE.Fog(0x2c231c,30,120);
  const hemi=new THREE.HemisphereLight(0xffe6cc,0x3a2c22,.66),sun=shadowLight(new THREE.DirectionalLight(0xffe2c4,.5),38,90);addLights([hemi,sun]);followSun(sun,9,40,7);
- mapB={x0:-24,x1:24,z0:-136,z1:34};const R={floor:m.conc,wall:m.ribs,ceil:m.ceilL},D={c:0,w:6,h:5};
+ mapB={x0:-24,x1:24,z0:-148,z1:34};const R={floor:m.conc,wall:m.ribs,ceil:m.ceilL},D={c:0,w:6,h:5};
  corridorZ(0,23,34,8,0,7,R,'s');wsign('ЛИНИЯ РОЗЛИВА',0,6.05,23.04,0,5.6,1.05,'#f6eee2','#8a0f1f');
  roomBox(-20,20,-18,22,13,R,{s:[D],n:[D]});addDoor(0,0,22.5,6,5,true);addDoor(0,0,-18.5,6,5,false);
  corridorZ(0,-29,-19,7,0,7,R);
  roomBox(-14,14,-76,-30,14,R,{s:[D],n:[D]});addDoor(0,0,-76.5,6,5,false);
  corridorZ(0,-87,-77,7,0,7,R);
- roomBox(-24,24,-136,-88,16,R,{s:[D]});
- for(let i=0;i<3;i++)addBeacon(i);
+ roomBox(-24,24,-136,-88,16,R,{s:[D],n:[D]});addDoor(0,0,-136.5,6,5,false);corridorZ(0,-147,-137,7,0,7,R,'n');wsign('ВЫХОД',0,5.4,-136.95,Math.PI,3.6,.8,'#f6eee2','#2a7a4a');
+ for(let i=0;i<4;i++)addBeacon(i);
  for(const [x0,x1,z0,z1] of[[-20,20,-18,22],[-14,14,-76,-30],[-24,24,-136,-88]]){decoW(x0+.06,1,(z0+z1)/2,.1,.5,z1-z0,m.red);decoW(x1-.06,1,(z0+z1)/2,.1,.5,z1-z0,m.red)}
  // --- ПРИЁМКА ---
  wsign('ПРИЁМКА',0,8.6,-17.95,0,7,1.3);wsign('ЦЕХ №2 · ПРЕССЫ →',0,6,-17.94,0,5,.6,'#2b0a0e','#f2b84b');
@@ -1325,7 +1328,7 @@ function island(x,z,r,top){discSolid(x,z,r,0,top,.9);const c=deco(new THREE.Cyli
  const t=deco(new THREE.CylinderGeometry(r-.05,r-.05,.06,32),SM.plat,x,top+.01,z);const tr=deco(new THREE.TorusGeometry(r-.1,.08,6,40),SM.yel,x,top+.04,z);tr.rotation.x=Math.PI/2}
 function buildL2(){const m=storyMats();scene.background=new THREE.Color(0x140b05);scene.fog=new THREE.Fog(0x2a1606,26,100);
  const hemi=new THREE.HemisphereLight(0xffdcb0,0x2a1404,.6),sun=shadowLight(new THREE.DirectionalLight(0xffd6a8,.45),38,90);addLights([hemi,sun]);followSun(sun,8,40,6);
- mapB={x0:-24,x1:24,z0:-128,z1:32};const R={floor:m.pit,wall:m.tile,ceil:m.ceilD},Rc={floor:m.plat,wall:m.tile,ceil:m.ceilD};
+ mapB={x0:-24,x1:24,z0:-140,z1:32};const R={floor:m.pit,wall:m.tile,ceil:m.ceilD},Rc={floor:m.plat,wall:m.tile,ceil:m.ceilD};
  mapAnims.push(dt=>{m.syrT.offset.x+=dt*.012;m.syrT.offset.y+=dt*.008});
  corridorZ(0,23,32,8,3.2,7,Rc,'s');wsign('СИРОПНЫЕ ЦИСТЕРНЫ',0,8.95,23.04,0,6.4,1.05,'#f6eee2','#6b2a06');
  // --- НАСОСНАЯ ---
@@ -1355,7 +1358,7 @@ function buildL2(){const m=storyMats();scene.background=new THREE.Color(0x140b05
  plight(0,20,-48,0xffb060,.8,50);plight(-12,6,-48,0xff8020,.45,28);plight(12,6,-48,0xff8020,.45,28);
  // --- СЕРДЦЕ СИРОПА ---
  corridorZ(0,-80,-69,7,9.7,6,Rc);
- roomBox(-24,24,-128,-80,22,R,{s:[{c:0,w:6,y0:9.7,h:4.5}]});addPool(-24,24,-128,-80,.6,2.4);
+ roomBox(-24,24,-128,-80,22,R,{s:[{c:0,w:6,y0:9.7,h:4.5}],n:[{c:0,w:6,y0:2.8,h:4.5}]});addDoor(0,2.8,-128.5,6,4.5,false);corridorZ(0,-139,-129,7,2.8,6,Rc,'n');wsign('ВЫХОД',0,8,-128.95,Math.PI,3.6,.8,'#f6eee2','#2a7a4a');addPool(-24,24,-128,-80,.6,2.4);
  addBoxW(0,9.1,-82.25,10,.6,4.5,m.grate,2);rails(0,9.7,-84.45,10,true);
  addBoxW(0,0,-82,48,2.8,4,m.plat);addBoxW(0,0,-126,48,2.8,4,m.plat);addBoxW(-22,0,-104,4,2.8,40,m.plat);addBoxW(22,0,-104,4,2.8,40,m.plat);
  trim(-24,24,-84,-80,2.8);trim(-24,24,-128,-124,2.8);trim(-24,-20,-124,-84,2.8);trim(20,24,-124,-84,2.8);
@@ -1365,7 +1368,7 @@ function buildL2(){const m=storyMats();scene.background=new THREE.Color(0x140b05
  for(let i=0;i<10;i++){const a=i/10*Math.PI*2;deco(new THREE.CylinderGeometry(.35,.35,22,10),m.pipe,Math.sin(a)*22.6,11,-104+Math.cos(a)*22.6)}
  plight(-14,6,-96,0xff8020,.45,26);plight(14,6,-112,0xff8020,.45,26);trusses(-24,24,-128,-80,22,8);for(const [x,z] of[[-12,-92],[12,-92],[-12,-116],[12,-116],[0,-104]])hangLamp(x,z,22,2.4,0xffb860);
  poster(6,-23.94,6.5,-100,Math.PI/2);poster(4,23.94,6.5,-108,-Math.PI/2);dust([[-16,16,-14,20,3.5,12],[-17,17,-64,-32,3,20],[-22,22,-126,-82,3,18]],700,0xffd090);
- for(let i=0;i<3;i++)addBeacon(i)}
+ for(let i=0;i<3;i++)addBeacon(i);addBeacon(4)}
 
 /* ================= ход уровня ================= */
 function newStory(id){const lv=LEVELS[Math.max(0,lvIdx(id))];return{lv,room:-1,phase:'idle',wi:0,wt:0,cp:new V3(...lv.start),cpYaw:0,t0:0,endT:0,maxR:0,doneT:0,rein:new Set(),wipe:false,tries:0}}
@@ -1383,7 +1386,9 @@ function roomReset(){const S=story,R=S.lv.rooms[S.room];enemies.forEach(e=>{if(e
  proj=proj.filter(p=>{if(p.owner==='enemy'){scene.remove(p.m);if(p.mark)scene.remove(p.mark);return false}return true});quakes.forEach(q=>{if(q.m)scene.remove(q.m);if(q.c)scene.remove(q.c)});quakes=[];wrings.forEach(w=>scene.remove(w.m));wrings=[];
  S.rein=new Set();S.tries++;drainT=0;banner('ЕЩЁ РАЗ · '+R.name);startRoomWave(0)}
 function roomClear(){const S=story,R=S.lv.rooms[S.room];S.phase='clear';if(R.exit!=null)setDoor(doors[R.exit],true);heal(40);addStyle('ЗАЛ ЗАЧИЩЕН',150);
- if(S.room>=S.lv.rooms.length-1)levelDone();else{banner('ПРОХОД ОТКРЫТ');sfx('ding')}}
+ if(S.room>=S.lv.rooms.length-1){S.phase='exit';exitBanner()}else{banner('ПРОХОД ОТКРЫТ');sfx('ding')}}
+function exitBanner(){banner(story.lv.id==='l3'?'ПРЫГАЙ ЗА НЕЙ В ПИВО!':'ВЫХОД ОТКРЫТ — ИДИ К ДВЕРИ');sfx('ding')}
+function exitHit(p){const LV=story.lv;if(LV.id==='l3')return !onHull(p.x,p.z)&&p.y<SEA_Y+1.6;const e=LV.exitTrig;return e&&inR(p,e)&&p.y>e[4]-1&&p.y<e[4]+4}
 function levelDone(){const S=story;S.phase='done';S.doneT=T;S.endT=T;banner('УРОВЕНЬ ПРОЙДЕН');sfx('frag');freeze=Math.max(freeze,.5)}
 function roomOf(){const S=story;return S&&S.room>=0?S.lv.rooms[S.room]:null}
 function spawnOk(p,type){const R=roomOf(),r=(ENEMY[type]?ENEMY[type].r:1)*.8;
@@ -1395,26 +1400,27 @@ function containEnemies(){const R=roomOf();if(!R||story.phase!=='fight')return;c
   let bad=p.x<b[0]-.3||p.x>b[1]+.3||p.z<b[2]-.3||p.z>b[3]+.3||p.y>topY||p.y<-6;if(!bad&&R.zone)bad=Math.hypot(p.x-R.zone[0],p.z-R.zone[1])>R.zone[2]+.3;
   if(bad){(story.escLog=story.escLog||[]).push(e.type+'@'+[p.x,p.y,p.z].map(v=>v.toFixed(1))+(e.sp0?' sp '+e.sp0:''));if(story.escLog.length>30)story.escLog.shift();const sp=R.sp[Math.floor(Math.random()*R.sp.length)];p.copy(safeSpawnPos(new V3(...sp),e.type));if(ENEMY[e.type].fly)p.y=Math.max(p.y,sp[1]+3);e.vel.set(0,0,0);story.escN=(story.escN||0)+1}}}
 function updStoryHost(dt){const S=story,LV=S.lv;spawnTick(dt);containEnemies();const tg=targets();
- if(S.phase==='idle'||S.phase==='clear'){const ni=S.room+1,R=LV.rooms[ni];if(R&&tg.some(c=>inR(c.pos,R.trig)))roomStart(ni);return}
+ if(S.phase==='exit'){if(tg.some(c=>exitHit(c.pos)))levelDone();return}
+ if(S.phase==='idle'||S.phase==='clear'){for(let j=LV.rooms.length-1;j>S.room;j--){const R=LV.rooms[j];if(tg.some(c=>inR(c.pos,R.trig))){roomStart(j);break}}return}
  if(S.phase!=='fight')return;const R=LV.rooms[S.room];
  if(!tg.length)S.wipe=true;else if(S.wipe){S.wipe=false;roomReset();return}
  if(R.rein){const b=enemies.find(e=>ENEMY[e.type].boss&&!e.dead);if(b)R.rein.forEach((r,i)=>{if(!S.rein.has(i)&&b.hp<b.maxHp*r.at){S.rein.add(i);toSpawn.push(...expandWave(r.w));spawnT=.3;banner('ПОДКРЕПЛЕНИЕ!')}})}
  const left=toSpawn.length+telegraphs.length+enemies.length,last=S.wi>=R.waves.length-1;
  if(left<=(last?0:1)){S.wt+=dt;if(S.wt>.9){S.wt=0;if(last)roomClear();else startRoomWave(S.wi+1)}}else S.wt=0}
-const PHS=['idle','fight','clear','done'];
+const PHS=['idle','fight','clear','done','exit'];
 function storyNet(){const S=story;let m=0;doors.forEach((d,i)=>{if(d.open)m|=1<<i});return[lvIdx(S.lv.id),S.room,PHS.indexOf(S.phase),m,r2(lvT),r1(drainT),S.wi,r1(surgeT),r1(T-S.t0),L3&&L3.q?L3.q.st:0]}
 function syncStory(h){const a=h&&h.lv;if(!story||!Array.isArray(a))return;const S=story;
  if(Math.abs((+a[4]||0)-lvT)>.3)lvT=+a[4]||0;drainT=+a[5]||0;surgeT=+a[7]||0;const m=+a[3]||0;doors.forEach((d,i)=>setDoor(d,!!(m&(1<<i))));
  const room=+a[1],ph=PHS[+a[2]]||'idle';
  if(room!==S.room&&room>=-1){S.room=room;if(room>=0){const R=S.lv.rooms[room];S.cp=new V3(...R.cp);S.cpYaw=R.yaw||0;spawns=R.sp.map(v=>new V3(...v));if(ph==='fight'){banner(S.lv.n+'-'+(room+1)+' · '+R.name);pullIn(R)}}}
- if(ph!==S.phase){if(ph==='clear'&&S.room<S.lv.rooms.length-1){banner('ПРОХОД ОТКРЫТ');sfx('ding')}if(ph==='done'){S.doneT=T;S.endT=T;banner('УРОВЕНЬ ПРОЙДЕН');sfx('frag')}S.phase=ph}
+ if(ph!==S.phase){if(ph==='clear'&&S.room<S.lv.rooms.length-1){banner('ПРОХОД ОТКРЫТ');sfx('ding')}if(ph==='exit')exitBanner();if(ph==='done'){S.doneT=T;S.endT=T;banner('УРОВЕНЬ ПРОЙДЕН');sfx('frag')}S.phase=ph}
  S.wi=+a[6]||0;if(S.phase!=='done')S.t0=T-(+a[8]||0);if(L3&&L3.q)questSync(+a[9]||0)}
 function updLevel(dt){const S=story;if(!S)return;lvT+=dt;drainT=Math.max(0,drainT-dt);surgeT=Math.max(0,surgeT-dt);
  for(const d of doors){d.k+=((d.open?1:0)-d.k)*Math.min(1,dt*(d.open?2.4:6));doorPose(d)}
  updPresses();updCarousel(dt);updTide(dt);
  for(const v of valves){v.wheel.rotation.z+=v.spin*dt*5;v.spin=Math.max(0,v.spin-dt*.5);const on=drainT<=0;v.glowM.color.setHex(on?0xff2a3a:0x5fe0c8);v.glowM.opacity=on?.35+.3*Math.sin(lvT*5):.55;v.wm.emissive.setHex(on?0x550000:0x003322)}
  const R=S.room>=0?S.lv.rooms[S.room]:null;
- updBeacons(dt,S,R);if(L3)updL3(dt);
+ updBeacons(dt,S,R);objMark(S,R);if(L3)updL3(dt);
  for(const p of proj)if(p.mark){p.mark.material.opacity=.45+.4*Math.abs(Math.sin(T*14));p.mark.rotation.y+=dt*2}
  updGoo(dt);updQuakes(dt);updWrings(dt);
  if(P.alive&&P.syr>.45&&state==='play'&&!(poolAt(P.pos)||{}).safe){P.hp-=6*dt;if((S.syrT=(S.syrT||0)-dt)<=0){S.syrT=1.2;sfx('gloop',.5);feed.unshift({label:'− ВЯЗНЕШЬ В СИРОПЕ',t:1.4})}if(P.hp<=0)die()}
@@ -1422,7 +1428,7 @@ function updLevel(dt){const S=story;if(!S)return;lvT+=dt;drainT=Math.max(0,drain
  S.maxR=Math.max(S.maxR,rank());ambTick(dt);
  const el=S.phase==='done'?S.endT-S.t0:T-S.t0;$('wave').textContent=R?S.lv.n+'-'+(S.room+1)+' · '+R.name:S.lv.n+' · '+S.lv.name;
  const host=mode==='solo'||isHost,lf=host?toSpawn.length+telegraphs.length+enemies.length:(+((hostSnap&&hostSnap.lf)||0));
- $('left').textContent=(S.phase==='fight'?'волна '+(S.wi+1)+'/'+R.waves.length+' · врагов: '+lf:S.phase==='clear'?'▶ ПРОХОД ОТКРЫТ':S.phase==='done'?'УРОВЕНЬ ПРОЙДЕН':'▶ ВПЕРЁД')+' · '+fmtT(el)+(mode==='coop'?' · хост: '+(isHost?'ты':nameOf(hostPeer)):'');
+ $('left').textContent=(S.phase==='exit'?(S.lv.id==='l3'?'▶ ПРЫГАЙ ЗА АЛЬТУШКОЙ':'▶ К ВЫХОДУ'):S.phase==='fight'?'волна '+(S.wi+1)+'/'+R.waves.length+' · врагов: '+lf:S.phase==='clear'?'▶ ПРОХОД ОТКРЫТ':S.phase==='done'?'УРОВЕНЬ ПРОЙДЕН':'▶ ВПЕРЁД')+' · '+fmtT(el)+(mode==='coop'?' · хост: '+(isHost?'ты':nameOf(hostPeer)):'');
  if(S.phase==='done'&&state==='play'&&T-S.doneT>3)showResults()}
 
 /* ---------- фон уровня: гул цеха, бульканье сиропа, шум моря ---------- */
@@ -1441,6 +1447,17 @@ function ambTick(dt){if(!AMB||!ac||muted||state!=='play')return;AMB.t=(AMB.t??rn
  if(AMB.kind==='l3'){AMB.t=rnd(5,11);const f=rnd(1300,1800),v=rnd(.02,.04);tone(.16,'sine',f,f*1.55,v);setTimeout(()=>{if(ac)tone(.22,'sine',f*1.5,f*.9,v*.8)},170)}
  else if(AMB.kind==='l1'){AMB.t=rnd(6,13);nz(.5,'bandpass',rnd(500,1400),.05,rnd(200,500));tone(.4,'triangle',rnd(180,320),rnd(90,160),.025)}
  else{AMB.t=rnd(2.5,6);tone(.25,'sine',rnd(180,300),rnd(500,700),.035)}}
+
+/* ---------- метка цели на экране ---------- */
+const _om=new V3();
+function objMark(S,R){let el=document.getElementById('objm');if(!el){el=document.createElement('div');el.id='objm';el.innerHTML='<i></i><b></b>';(document.querySelector('.hud')||document.body).appendChild(el)}
+ let tgt=null,lbl='';if(state==='play'&&P.alive){if(S.phase==='exit'&&S.lv.id==='l3'&&L3&&L3.car){tgt=_om.copy(L3.car.position);tgt.y+=2;lbl='ЗА НЕЙ'}
+  else if((S.phase==='clear'||S.phase==='exit')&&R&&R.exit!=null&&doors[R.exit]){const d=doors[R.exit];tgt=_om.set(d.x,d.y+2.2,d.z);lbl=S.phase==='exit'?'ВЫХОД':'ДАЛЬШЕ'}
+  else if(S.room<0&&doors[S.lv.open[0]]){const d=doors[S.lv.open[0]];tgt=_om.set(d.x,d.y+2.2,d.z);lbl='ВПЕРЁД'}}
+ if(!tgt){el.hidden=true;return}const dist=Math.hypot(tgt.x-P.pos.x,tgt.z-P.pos.z);if(dist<4&&S.phase!=='exit'){el.hidden=true;return}
+ const v=tgt.clone().project(camera),w=innerWidth,h=innerHeight;let x=(v.x*.5+.5)*w,y=(-v.y*.5+.5)*h;const behind=v.z>1;if(behind){x=w-x;y=h-y}
+ const m=48,off=behind||x<m||x>w-m||y<m||y>h-m;if(off){const cx=w/2,cy=h/2;let dx=x-cx,dy=y-cy;if(behind&&Math.abs(dy)<1)dy=1;const k=Math.min((cx-m)/Math.abs(dx||1e-3),(cy-m)/Math.abs(dy||1e-3));x=cx+dx*Math.min(k,1e9);y=cy+dy*Math.min(k,1e9)}
+ el.hidden=false;el.style.transform='translate('+Math.round(x)+'px,'+Math.round(y)+'px)';el.querySelector('b').textContent=lbl+' · '+Math.round(dist)+' м';el.classList.toggle('off',off)}
 
 /* ---------- итоги уровня, титры, меню сюжета ---------- */
 const GRADES='DCBAS';
@@ -1570,13 +1587,13 @@ function buildL3(){const m=storyMats(),b=beerMats();L3={kegs:[],rings:[],chairs:
  mapAnims.push(dt=>{const t=lvT;seaM.uniforms.uT.value=t;sky.material.uniforms.uT.value=t;sky.position.copy(camera.position)});
  // корпус
  const out=hullOutline();ribbon(out,-6,0,b.hull,16);
- const sh=new THREE.Shape(out.map(p=>new THREE.Vector2(p[0],-p[1])));const dg=new THREE.ShapeGeometry(sh,24).rotateX(-Math.PI/2);dg.translate(0,.005,0);
+ const sh=new THREE.Shape(out.map(p=>new THREE.Vector2(p[0],-p[1])));{const hp=new THREE.Path();hp.moveTo(-3.6,70);hp.lineTo(-3.6,80);hp.lineTo(3.6,80);hp.lineTo(3.6,70);hp.lineTo(-3.6,70);sh.holes.push(hp)}const dg=new THREE.ShapeGeometry(sh,24).rotateX(-Math.PI/2);dg.translate(0,.005,0);
  const deck=new THREE.Mesh(dg,b.teak);deck.receiveShadow=true;mapGroup.add(deck);level.push(deck);
  for(const s of[-1,1]){const nm=deco(new THREE.PlaneGeometry(9,1.4),new THREE.MeshBasicMaterial({map:signTex('ПЕННАЯ ЛЕДИ','#d4a640','rgba(0,0,0,0)',1024,160,'italic bold 120px "Russo One",Arial'),transparent:true}),s*12.6,-1.7,40);nm.rotation.y=s*(Math.PI/2+.42)}
  // твёрдый пол и фальшборт (коллизия по ступенькам)
- solid(0,-1,-24.7,26.4,1,109.4);solid(0,-1,-88.7,26.4,1,14.6);solid(-9.05,-1,-75,8.3,1,12.8);solid(9.05,-1,-75,8.3,1,12.8);for(let z=30;z<58;z+=2){const hw=hullHW(z+1);solid(0,-1,z+1,hw*2,1,2)}
- const bulw=(x0,x1,z0,z1)=>solid((x0+x1)/2,0,(z0+z1)/2,x1-x0,1.08,z1-z0);
- bulw(12.8,13.3,-96,30);bulw(-13.3,-12.8,-96,30);bulw(-13,13,-96.4,-95.9);for(let z=30;z<57;z+=1.5){const hw=hullHW(z+.75);bulw(hw-.35,hw+.25,z,z+1.5);bulw(-hw-.25,-hw+.35,z,z+1.5)}
+ solid(0,-1,-33,26.4,1,126);for(let z=30;z<58;z+=.5){const hw=hullHW(z);if(hw>0)solid(0,-1,z+.25,hw*2,1,.5)}
+ const bulw=(x0,x1,z0,z1)=>solid((x0+x1)/2,0,(z0+z1)/2,x1-x0,1.65,z1-z0);
+ bulw(12.8,13.3,-96,30);bulw(-13.3,-12.8,-96,30);bulw(-13,13,-96.4,-95.9);for(let z=29.5;z<58;z+=.5){const a=hullHW(z),b2=hullHW(Math.min(58,z+.5));if(a<0)continue;const lo=Math.max(0,(b2>0?b2:0)-.35),hi=a+.3;bulw(lo,hi,z,z+.5);bulw(-hi,-lo,z,z+.5)}solid(0,0,58.4,2.4,1.65,1)
  const rail=offsetPts(out,-.12);ribbon(rail,0,1.02,b.white,6).material.side=THREE.DoubleSide;
  const rc=new THREE.CatmullRomCurve3(rail.map(p=>new V3(p[0],1.05,p[1])));deco(new THREE.TubeGeometry(rc,600,.055,6,false),b.chrome,0,0,0);
  // --- нос: стартовая площадка ---
@@ -1595,7 +1612,7 @@ function buildL3(){const m=storyMats(),b=beerMats();L3={kegs:[],rings:[],chairs:
  for(const x of[-2.6,2.6]){plight(x,3.2,30.5,0xffd7a0,.5,9)}
  // внешний облик надстройки
  decoW(0,salonH+.5,15,23.6,.12,29,b.teak);
- decoW(0,salonH+.5,16,18,4.2,18,b.white);for(const s of[-1,1]){const t=deco(new THREE.PlaneGeometry(16,1.3),b.tint,s*9.02,salonH+2.9,16);t.rotation.y=s*Math.PI/2}deco(new THREE.PlaneGeometry(16,1.4),b.tint,0,salonH+2.9,25.02);
+ addBoxW(0,salonH+.5,16,18,4.2,18,b.white);for(const s of[-1,1]){const t=deco(new THREE.PlaneGeometry(16,1.3),b.tint,s*9.02,salonH+2.9,16);t.rotation.y=s*Math.PI/2}deco(new THREE.PlaneGeometry(16,1.4),b.tint,0,salonH+2.9,25.02);
  decoW(0,salonH+4.7,13,14,.3,14,b.navy);{const ar=deco(new THREE.TorusGeometry(4.6,.35,10,40,Math.PI),b.white,0,salonH+4.8,10);ar.rotation.y=Math.PI/2}
  for(const [x,y,z,r] of[[-1.6,salonH+9.2,10,.7],[1.6,salonH+9.1,10,.55]])deco(new THREE.SphereGeometry(r,16,12),b.white,x,y,z);
  deco(new THREE.CylinderGeometry(.12,.16,8,8),b.chrome,0,salonH+8,10);
@@ -1652,7 +1669,7 @@ function buildL3(){const m=storyMats(),b=beerMats();L3={kegs:[],rings:[],chairs:
  plight(0,5,-12,0xffc070,.45,22);plight(0,5,-32,0xffc070,.45,22);
  // --- рубка на корме z[-56,-44] ---
  wallX(-44.5,-13.3,13.3,3.6,b.white,[{c:0,w:4.2,h:3.4}]);addDoor(0,0,-44.5,4.2,3.4,false,doorM,'slide');
- for(const s of[-1,1]){addBoxW(s*8.4,0,-50,9.8,3.6,11,b.white);decoW(s*8.4,3.6,-50,9.8,3.9,11,b.white)}decoW(0,3.9,-50.25,26.6,.3,12.5,b.white);decoW(0,4.2,-50,7,3.3,11,b.white);
+ for(const s of[-1,1]){addBoxW(s*8.4,0,-50,9.8,3.6,11,b.white);addBoxW(s*8.4,3.6,-50,9.8,3.9,11,b.white)}addBoxW(0,3.9,-50.25,26.6,.3,12.5,b.white);addBoxW(0,4.2,-50,7,3.3,11,b.white);
  addBoxW(0,3.6,-50,4.6,.3,11,b.cream).userData.noCast=true;for(const s of[-1,1])addBoxW(s*2.9,0,-50,.8,3.6,11,b.panel);decoW(0,.012,-50,5,.02,11,b.parq,2);
  for(const s of[-1,1]){const t=deco(new THREE.PlaneGeometry(10,1.3),b.tint,s*13.32,5.2,-50);t.rotation.y=s*Math.PI/2}{const t=deco(new THREE.PlaneGeometry(22,1.2),b.tint,0,5.4,-44.24)}{const t=deco(new THREE.PlaneGeometry(22,1.2),b.tint,0,5.4,-55.76);t.rotation.y=Math.PI}
  wsign('КОРМА · ВЕРТОЛЁТНАЯ ▸',0,3.95,-44.22,0,5.2,.6,'#d8b05a','#1a1008');plight(0,3,-50,0xffd7a0,.5,10);
@@ -1665,11 +1682,17 @@ function buildL3(){const m=storyMats(),b=beerMats();L3={kegs:[],rings:[],chairs:
   const base=fg.attributes.position.array.slice();L3.flag={fl,base}}
  // --- КОРМОВАЯ ПАЛУБА z[-96,-56] ---
  wsign('ВЕРТОЛЁТНАЯ ПЛОЩАДКА',0,4.6,-55.78,Math.PI,6.4,.7,'#f6eee2','#14213d');
- // бассейн с пивом
- for(const [x0,x1,z0,z1] of[[-4.9,4.9,-81.4,-81],[-4.9,4.9,-69,-68.6],[-4.9,-4.5,-81,-69],[4.5,4.9,-81,-69]])addBoxW((x0+x1)/2,0,(z0+z1)/2,x1-x0,.55,z1-z0,b.white,2);
- addBoxW(0,-1.2,-75,9,.1,12,b.navy);addPool(-4.5,4.5,-81,-69,-.3,-.3);{const q=pools[pools.length-1];q.dry=-.3;q.safe=1;q.m.material=b.beer}
- for(const [x0,x1,z0,z1] of[[-4.5,4.5,-81,-80.8],[-4.5,4.5,-69.2,-69],[-4.5,-4.3,-81,-69],[4.3,4.5,-81,-69]])decoW((x0+x1)/2,-1.1,(z0+z1)/2,x1-x0,.8,z1-z0,b.navy);
- {const pl=deco(new THREE.PlaneGeometry(9,12).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xffc040,transparent:true,opacity:.35,blending:THREE.AdditiveBlending,depthWrite:false}),0,-1.08,-75)}
+ // люк ракетной шахты: открывается, когда Альтушка вызывает ракету
+ {const hz=storyMats().hz,dm=new THREE.MeshStandardMaterial({color:0x2b2f36,metalness:.65,roughness:.38,envMap:ENV}),g=new THREE.Group();g.position.set(0,0,-75);mapGroup.add(g);
+  for(const [x,z,w,d] of[[0,-5.25,7.9,.5],[0,5.25,7.9,.5],[-3.85,0,.5,10],[3.85,0,.5,10]]){const m=new THREE.Mesh(new THREE.BoxGeometry(w,.05,d),hz);m.position.set(x,.025,z);g.add(m)}
+  const tc=document.createElement('canvas');tc.width=tc.height=256;const c2=tc.getContext('2d');c2.fillStyle='#ffcf1a';c2.beginPath();c2.arc(128,128,118,0,7);c2.fill();c2.fillStyle='#111';for(let k=0;k<3;k++){c2.beginPath();c2.moveTo(128,128);c2.arc(128,128,104,-Math.PI/2+k*2.094-.52,-Math.PI/2+k*2.094+.52);c2.closePath();c2.fill()}c2.fillStyle='#ffcf1a';c2.beginPath();c2.arc(128,128,30,0,7);c2.fill();c2.fillStyle='#111';c2.beginPath();c2.arc(128,128,18,0,7);c2.fill();
+  const tm=new THREE.MeshStandardMaterial({map:new THREE.CanvasTexture(tc),transparent:true,roughness:.6});const doors=[];
+  for(const s of[-1,1]){const d=new THREE.Group();d.position.x=s*1.8;g.add(d);const pl=new THREE.Mesh(new THREE.BoxGeometry(3.6,.14,10),dm);pl.position.y=-.07;d.add(pl);pl.receiveShadow=true;
+   const st=new THREE.Mesh(new THREE.BoxGeometry(.18,.02,10),hz);st.position.set(-s*1.71,.005,0);d.add(st);const tf=new THREE.Mesh(new THREE.PlaneGeometry(2.6,2.6),tm);tf.rotation.x=-Math.PI/2;tf.position.set(-s*.5,.008,0);tf.scale.x=s;d.add(tf);doors.push(d)}
+  const sh2=new THREE.Mesh(new THREE.BoxGeometry(7.2,9,10),new THREE.MeshStandardMaterial({color:0x0e0f12,side:THREE.BackSide,roughness:.9}));sh2.position.y=-4.55;g.add(sh2);
+  const gl=new THREE.Mesh(new THREE.PlaneGeometry(6.8,9.6),new THREE.MeshBasicMaterial({color:0xff5a1a,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));gl.rotation.x=-Math.PI/2;gl.position.y=-7;g.add(gl);
+  wsign('ШАХТА · НЕ СТОЯТЬ',0,.03,-69.2,0,4,.5,'#111','#ffcf1a').rotation.x=-Math.PI/2;
+  L3.hatch={g,doors,glow:gl,k:0,want:0}}
  // вертолётная площадка и шахта ракеты
  {const hc=document.createElement('canvas');hc.width=hc.height=512;const g=hc.getContext('2d');g.strokeStyle='#f4f2ec';g.lineWidth=18;g.beginPath();g.arc(256,256,226,0,7);g.stroke();g.strokeStyle='#d8b05a';g.lineWidth=8;g.beginPath();g.arc(256,256,196,0,7);g.stroke();
   g.fillStyle='#f4f2ec';g.font='900 260px Arial';g.textAlign='center';g.textBaseline='middle';g.fillText('H',256,262);const hp=deco(new THREE.PlaneGeometry(13,13).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(hc),transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2}),0,.02,-88)}
@@ -1681,8 +1704,8 @@ function buildL3(){const m=storyMats(),b=beerMats();L3={kegs:[],rings:[],chairs:
  for(const [x,z] of[[11.6,-66],[-11.6,-82],[11.6,-84]])addBox(x,0,z,1.4,1,1.8,mats.crate);
  for(const [x,z] of[[-5,-10],[6,-27],[-6,-36],[10.5,-20],[-7.4,-57.6],[5.5,-60],[11.2,-91.2],[-6.4,3.4],[8.6,3.6],[-8.8,25.6],[8.9,25.6]])addKeg(x,z);
  // денежная тачка на цепи за кормой
- L3.car=buildMoneyCar();L3.car.position.set(0,SEA_Y,-121);mapGroup.add(L3.car);
- {const im=new THREE.InstancedMesh(new THREE.TorusGeometry(.2,.06,6,10),b.chrome,34);im.userData.dyn=1;im.frustumCulled=false;mapGroup.add(im);L3.chain=im}
+ L3.car=buildMoneyCar();L3.car.position.set(0,SEA_Y,-108);mapGroup.add(L3.car);deco(new THREE.CylinderGeometry(.22,.28,.7,12),b.chrome,0,.35,-94.9);deco(new THREE.TorusGeometry(.32,.08,8,16),b.chrome,0,.55,-95.95);
+ {const im=new THREE.InstancedMesh(new THREE.TorusGeometry(.12,.035,6,10),b.chrome,70);im.userData.dyn=1;im.frustumCulled=false;mapGroup.add(im);L3.chain=im}
  plight(0,6,-62,0xffc070,.45,24);plight(0,6,-86,0xffc070,.45,24);plight(0,-1,-75,0xffb040,.6,10);
  for(let i=0;i<3;i++)addBeacon(i);questInit();
  // прогрев шейдеров и текстур босса, чтобы его появление не подвисало
@@ -1725,14 +1748,15 @@ function updL3(dt){const S=story;if(!L3||!S)return;const t=lvT;
  updQuest(dt);updHelperBottles(dt);updAltEnd(dt);updObbs(dt);l3Hint();if(L3.wreck&&Math.random()<dt*14){const w=L3.wreck.ob;puff(new V3(w.x+rnd(-1,1),1.8,w.z+rnd(-1.5,1.5)),2,Math.random()<.3?0xff8a3a:0x2a2626,2.2,1.4,-3)}
  if(L3.chand)L3.chand.rotation.set(Math.sin(t*.41)*.06,0,Math.sin(t*.55)*.09);
  if(L3.flag){const p=L3.flag.fl.geometry.attributes.position,a=p.array,bs=L3.flag.base;for(let i=0;i<p.count;i++){const x=bs[i*3],y=bs[i*3+1],w=x/4.2;a[i*3+2]=Math.sin(t*6-x*1.6+y*.6)*.32*w+Math.sin(t*3.3-x*.8)*.18*w;a[i*3+1]=y-w*w*.25+Math.sin(t*4-x)*.05*w}p.needsUpdate=true;L3.flag.fl.geometry.computeVertexNormals()}
- if(L3.car){const c=L3.car,cz=-121+Math.sin(t*.37)*1.2,cx=Math.sin(t*.29)*1.6;c.position.set(cx,seaH(cx,cz,t)-.35,cz);c.rotation.z=Math.sin(t*1.1)*.06;c.rotation.x=Math.sin(t*.9)*.05;
-  const a=new V3(0,.4,-96.3),bb=new V3(cx,c.position.y+.7,cz+2.5),im=L3.chain,n=im.count,o=_cl;for(let i=0;i<n;i++){const k=i/(n-1);o.position.set(a.x+(bb.x-a.x)*k,a.y+(bb.y-a.y)*k-Math.sin(k*Math.PI)*2.2,a.z+(bb.z-a.z)*k);o.lookAt(bb);if(i%2)o.rotateZ(Math.PI/2);o.updateMatrix();im.setMatrixAt(i,o.matrix)}im.instanceMatrix.needsUpdate=true}
+ if(L3.car){const c=L3.car,cz=-108+Math.sin(t*.37)*.5,cx=Math.sin(t*.29)*.7;c.position.set(cx,seaH(cx,cz,t)-.4,cz);c.rotation.z=Math.sin(t*1.1)*.06;c.rotation.x=Math.sin(t*.9)*.05;
+  const a=new V3(0,.55,-96),bb=new V3(cx,c.position.y+.75,cz+2.45),im=L3.chain,n=im.count,o=_cl;for(let i=0;i<n;i++){const k=i/(n-1);o.position.set(a.x+(bb.x-a.x)*k,a.y+(bb.y-a.y)*k-Math.sin(k*Math.PI)*.45,a.z+(bb.z-a.z)*k);o.lookAt(bb);if(i%2)o.rotateZ(Math.PI/2);o.updateMatrix();im.setMatrixAt(i,o.matrix)}im.instanceMatrix.needsUpdate=true}
+ if(L3.hatch){const H=L3.hatch;H.k+=(H.want-H.k)*Math.min(1,dt*3);H.doors.forEach((d,i)=>{d.position.x=(i?1:-1)*(1.8+H.k*3.5);d.position.y=-H.k*.16});H.glow.material.opacity=H.k*.5}
  // пенный вал
  const wc=t-WAVE_T0,wi=Math.floor(wc/WAVE_PER),wp=wc-wi*WAVE_PER;
  if(wc>0){if(wp<dt&&wi!==L3.lastWarn){L3.lastWarn=wi;if(S.room>=1){sfx('horn');banner('ПЕННЫЙ ВАЛ! ДЕРЖИСЬ!')}}
   if(wp>=2.6&&wp<8.6){const x=-46+(wp-2.6)*16;updFoamWave(x,dt,wi)}else if(L3.wave)L3.wave.visible=false}
  // за бортом
- if(P.alive&&state==='play'&&!onHull(P.pos.x,P.pos.z)&&P.pos.y<SEA_Y+.4){if(!L3.inSeaT){splash(P.pos.x,P.pos.z,1.4);banner('ЗА БОРТОМ! СЕЙЧАС ВЫЛОВИМ…')}L3.inSeaT+=dt;
+ const fin=S.phase==='exit'||S.phase==='done';if(P.alive&&state==='play'&&!onHull(P.pos.x,P.pos.z)&&P.pos.y<SEA_Y+.4){if(!L3.inSeaT){splash(P.pos.x,P.pos.z,1.4);if(!fin)banner('ЗА БОРТОМ! СЕЙЧАС ВЫЛОВИМ…')}L3.inSeaT+=dt;if(fin)L3.inSeaT=Math.min(L3.inSeaT,1);
   const tgt=seaH(P.pos.x,P.pos.z,t)-1.35;P.vel.y+=(tgt-P.pos.y)*16*dt;P.vel.y*=1-Math.min(1,dt*4);const h2=Math.hypot(P.vel.x,P.vel.z);if(h2>4.5){P.vel.x*=4.5/h2;P.vel.z*=4.5/h2}
   if(L3.inSeaT>2.4){L3.inSeaT=0;P.pos.copy(S.cp).setY(S.cp.y+.05);P.vel.set(0,0,0);P.iT=0;hurt(12);banner('ВЫЛОВИЛИ ИЗ ПИВА')}}else L3.inSeaT=0;
  if(mode==='solo'||isHost)for(const e of enemies){if(e.dead||e.remote||ENEMY[e.type].fly||ENEMY[e.type].boss)continue;if(!onHull(e.pos.x,e.pos.z)&&e.pos.y<-.6){splash(e.pos.x,e.pos.z,1.6);if(mp())pushFx(['W',0,r1(e.pos.x),r1(e.pos.z)]);addStyle('ЗА БОРТ!',120);damage(e,9999,99,'overboard')}}
@@ -2123,7 +2147,7 @@ function altOnAc(e,A,ac){const s=ALT_SAY[ac];if(s){say(A.girl,s[0],2.4);setFace(
 function altNukeMark(e){const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');g.strokeStyle='#ffcf1a';g.lineWidth=14;g.beginPath();g.arc(128,128,118,0,7);g.stroke();g.fillStyle='rgba(255,207,26,.22)';g.fill();
  g.fillStyle='#ffcf1a';for(let k=0;k<3;k++){g.beginPath();g.moveTo(128,128);g.arc(128,128,80,-Math.PI/2+k*2.094-.5,-Math.PI/2+k*2.094+.5);g.closePath();g.fill()}g.fillStyle='#111';g.beginPath();g.arc(128,128,22,0,7);g.fill();
  const m=new THREE.Mesh(new THREE.PlaneGeometry(16,16).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));m.position.set(e.pos.x,.08,e.pos.z);m.renderOrder=3;scene.add(m);L3.altFx.nuke=m}
-function altAnim(e,dt){const A=e.g.userData.alt;if(!A||!L3)return;const ac=e.ac||10,ph=Math.floor(ac/10)||1;if(ac!==A.ac){A.ac=ac;A.acT=0;altOnAc(e,A,ac)}A.acT+=dt;const T_=A.tank,G=A.girl;L3.altFx=L3.altFx||{};
+function altAnim(e,dt){const A=e.g.userData.alt;if(!A||!L3)return;const ac=e.ac||10,ph=Math.floor(ac/10)||1;if(L3.hatch)L3.hatch.want=ph===2&&A.acT>.2&&A.acT<4.5?1:0;if(ac!==A.ac){A.ac=ac;A.acT=0;altOnAc(e,A,ac)}A.acT+=dt;const T_=A.tank,G=A.girl;L3.altFx=L3.altFx||{};
  // оценка скорости по смещению (одинаково у хоста и клиентов)
  if(A.lp){_av.subVectors(e.pos,A.lp).divideScalar(Math.max(dt,1e-3));if(_av.lengthSq()<4000)A.vs.lerp(_av,Math.min(1,dt*6))}else A.lp=new V3();A.lp.copy(e.pos);
  const near=()=>{let b=null,bd=1e9;for(const c of targets()){const d=Math.hypot(c.pos.x-e.pos.x,c.pos.z-e.pos.z);if(d<bd){bd=d;b=c}}return b};
@@ -2267,7 +2291,7 @@ function resetL3(){if(!L3)return;altCleanup();for(const k of L3.kegs){if(!k.aliv
  for(const c of L3.chairs)if(!c.alive){c.alive=true;c.g.visible=true;if(!boxes.includes(c.box))boxes.push(c.box)}
  for(const r of L3.rings){r.has=true;r.rg.visible=true}
  const q=L3.q;if(q){if(q.ring)ringDrop(q.ring);q.ring=null;for(const R of L3.ghostR||[])ringDrop(R);L3.ghostR=[];q.held=null;heldVM(false);q.st=0;q.t=0;q.placed=false;q.ann=0;q.annT=0;q.G.g.visible=true;setFace(q.G,'scared');questPlace(0)}
- for(const h of L3.hb||[])scene.remove(h.m);L3.hb=[];if(L3.wave)L3.wave.visible=false;L3.waveHit.clear();L3.lastWarn=-1;L3.inSeaT=0}
+ for(const h of L3.hb||[])scene.remove(h.m);L3.hb=[];if(L3.hatch){L3.hatch.want=0;L3.hatch.k=0}if(L3.wave)L3.wave.visible=false;L3.waveHit.clear();L3.lastWarn=-1;L3.inSeaT=0}
 function clearL3(){altCleanup();const q=L3.q;if(q){if(q.ring)ringDrop(q.ring);for(const R of L3.ghostR||[])ringDrop(R);if(q.vm)gunScene.remove(q.vm)}for(const h of L3.hb||[])scene.remove(h.m);const hn=document.getElementById('l3hint');if(hn)hn.hidden=true}
 /* подсказки */
 function l3Hint(){let el=document.getElementById('l3hint');if(!el){el=document.createElement('div');el.id='l3hint';el.hidden=true;(document.querySelector('.hud')||document.body).appendChild(el)}
@@ -2291,6 +2315,9 @@ LEVELS.push({id:'l3',n:3,name:'ПИВНОЕ МОРЕ',sub:'Яхта «Пенна
    sp:[[-6,0,-60],[10,0,-60],[-11,0,-77],[11,0,-77],[-9,0,-92],[8.5,0,-92.5],[0,0,-60],[-4,5,-70],[4,5,-84]],waves:[{alt:1}],
    rein:[{at:.8,w:{can:4,vend:2}},{at:.5,w:{drone:3,jelly:2}},{at:.25,w:{can:4,vend:2,drone:2}}]}]});
 /*BEER-END*/
+
+
+
 
 
 
@@ -2865,7 +2892,9 @@ const RANKS=[['D','ТЁПЛЕНЬКО','#d6bfb2'],['C','ШИПИТ','#8fd0f5'],[
 const PVPM=14; // урон по игрокам = урон по врагам × PVPM
 const rank=()=>Math.min(6,Math.floor(styleV/100));
 function addStyle(label,pts){styleV=Math.min(699,styleV+pts);bankAdd(pts);if(mode!=='pvp')score+=Math.round(pts*(1+rank()*.3));feed.unshift({label:'+ '+label,t:2.4});if(feed.length>6)feed.length=6}
-function banner(txt){const b=$('banner');b.textContent=txt;b.style.opacity=1;clearTimeout(banner.h);banner.h=setTimeout(()=>b.style.opacity=0,1800)}
+const SEEN=(()=>{try{return new Set(JSON.parse(localStorage.getItem('ug-seen')||'[]'))}catch(e){return new Set()}})();
+const BANNER_ALWAYS=/^\d+-\d+ · |^\d+ · |^УРОВЕНЬ ПРОЙДЕН|^ЕЩЁ РАЗ|^ФРАГ|^ВОЛНА \d+$|ВЫШЕЛ НА СВЯЗЬ|ПРОБУЖДАЕТСЯ|^АЛЬТУШКА 10\/10 НА|ПОВЕРЖЕН|РАСТАЯЛА|УВОЛЕН|^Не удалось|^ОТКРЫТО|★|СПАСЕНА|^ВЫХОД|^ПРЫГАЙ|ПРИБЫЛ/;
+function banner(txt){if(!BANNER_ALWAYS.test(txt)){const k=txt.replace(/\d+/g,'#');if(SEEN.has(k))return;SEEN.add(k);try{localStorage.setItem('ug-seen',JSON.stringify([...SEEN]))}catch(e){}}const b=$('banner');b.textContent=txt;b.style.opacity=1;clearTimeout(banner.h);banner.h=setTimeout(()=>b.style.opacity=0,1800)}
 let lastAtk=null,lastAtkT=-9;
 let pflashV=0;function parryOk(){pflashV=.7;punchCd=0;flashLight.position.copy(camera.position);flashLight.intensity=5;sfx('parry');freeze=Math.max(freeze,.09)}
 function hurt(d,from){if(P.iT>0||!(state==='play'||(state==='pause'&&mp()))||!P.alive)return;P.hp-=d;if(from){lastAtk=from;lastAtkT=T}styleV=Math.max(0,styleV-60);$('vig').style.opacity=.9;shake=Math.max(shake,.25);sfx('hurt');if(P.hp<=0)die()}
@@ -2981,7 +3010,7 @@ function applyFx(e){const k=e[0],n=e.slice(2).map(v=>+v||0);
  else if(k==='g'){const m=bottleMesh();m.position.set(n[0],n[1],n[2]);proj.push({m,vel:new V3(n[3],n[4],n[5]),owner:'ghost',kind:'ghostg',t:2.6,r:.3})}
  else if(k==='c'){const m=capMesh();m.position.set(n[0],n[1],n[2]);proj.push({m,vel:new V3(n[3],n[4],n[5]),owner:'ghost',kind:'ghostc',t:3,r:.2})}
  else if(k==='w'){const o=new V3(n[0],n[1],n[2]),d=new V3(n[3],n[4],n[5]).normalize();spray(o,d,6);floorPuddle(o,d,32,.55,7)}
- else if(k==='y'){geyserFx(n[0],n[1],n[2]);addPuddle(n[0],n[1],n[2],2.6,10)}
+ else if(k==='y'){if(n[3])colaBurst(n[0],n[1],n[2],false);else{geyserFx(n[0],n[1],n[2]);addPuddle(n[0],n[1],n[2],2.6,10)}}
  else if(k==='j'){const o=new V3(n[0],n[1],n[2]),d=new V3(n[3],n[4],n[5]).normalize();for(let i=0;i<3;i++)spray(o,spread(d,.25),10);sfx('jet',.4)}
  else if(k==='h'){const p=new V3(n[0],n[1],n[2]);ring(p,6,0xf2b84b);puff(p,30,0xf2b84b,9,.5);sfx('slam',.4)}
  else if(k==='v'){if(isHost&&story)openValve(n[0],false)}
@@ -3094,7 +3123,7 @@ function wetFx(e,dt){const w=Math.max(0,Math.min(1,(e.wet||0)/.6)),k=e.wetK||0,n
 const PUD_GS=[0,1,2].map(s=>{const sh=new THREE.Shape(),N=26;for(let i=0;i<N;i++){const a=i/N*Math.PI*2,r=1+.13*Math.sin(a*3+s*2)+.08*Math.sin(a*5+s*4)+.05*Math.cos(a*7+s);const x=Math.cos(a)*r,y=Math.sin(a)*r;i?sh.lineTo(x,y):sh.moveTo(x,y)}
  return new THREE.ShapeGeometry(sh,2).rotateX(-Math.PI/2)});
 let puddles=[];
-function addPuddle(x,y,z,r,life){for(const p of puddles){if(p.t>.5&&Math.abs(p.y-y)<.5&&Math.hypot(p.x-x,p.z-z)<p.r*.8+r*.4){p.r=Math.min(4.2,Math.sqrt(p.r*p.r+r*r*.35));p.t=Math.max(p.t,life);return p}}
+function addPuddle(x,y,z,r,life){if(!floorAt(x,y,z))return;for(const p of puddles){if(p.t>.5&&Math.abs(p.y-y)<.5&&Math.hypot(p.x-x,p.z-z)<p.r*.8+r*.4){p.r=Math.min(4.2,Math.sqrt(p.r*p.r+r*r*.35));p.t=Math.max(p.t,life);return p}}
  if(puddles.length>=28){const o=puddles.shift();scene.remove(o.m);o.m.material.dispose()}
  const m=new THREE.Mesh(PUD_GS[puddles.length%3],new THREE.MeshStandardMaterial({color:0x2c0d04,roughness:.03,metalness:.35,envMap:ENV,envMapIntensity:1.4,transparent:true,opacity:0,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
  m.position.set(x,y+.02,z);m.rotation.y=Math.random()*6.3;m.receiveShadow=true;scene.add(m);const p={x,y,z,r,t:life,m,g:0};puddles.push(p);return p}
@@ -3140,7 +3169,14 @@ function geyserFx(x,y,z){const G=new THREE.Group();G.position.set(x,y,z);scene.a
  geysers.push({G,inner,outer,crown,skirt,spl,ments,x,y,z,t:0,acc:0,fz:0});
  blast(new V3(x,y+.6,z),2.2,0xfff0d8);ring(new V3(x,y,z),6,0x6b2a12);puff(new V3(x,y+.4,z),40,0xfaf3e6,9,.7,10);
  geyLight.position.set(x,y+3,z);geyLight.intensity=2.4;sfx('jet');sfx('boom',.5);shake=Math.max(shake,Math.min(.4,.55-camera.position.distanceTo(new V3(x,y,z))/40))}
-function colaGeyser(e){const x=e.pos.x,z=e.pos.z,y=e.type==='drone'||e.type==='boss'?groundY(e.pos):e.pos.y;
+function colaBurst(x,y,z,net){const p=new V3(x,y,z);blast(p,3.6,0xfff0d8);blast(p,2.3,0x8a3510);ring(p,6.5,0x6b2a12);puff(p,80,0xfaf3e6,13,.9,5);puff(p,60,0x6b2a12,11,1,9);
+ const gy=groundY(p);for(let i=0;i<70;i++){const a=Math.random()*6.283,b=rnd(-1.2,1.4),sp=rnd(5,13),foam=Math.random()<.4;gDrop(x,y,z,Math.cos(a)*Math.cos(b)*sp,Math.sin(b)*sp+3,Math.sin(a)*Math.cos(b)*sp,foam?rnd(.09,.2):rnd(.05,.15),foam?FOAM_C:(Math.random()<.5?0x4a1606:0x8a3510),gy)}
+ geyLight.position.set(x,y,z);geyLight.intensity=2.6;sfx('jet');sfx('boom',.7);shake=Math.max(shake,Math.min(.45,.6-camera.position.distanceTo(p)/40));if(net&&mp())pushFx(['y',0,r1(x),r1(y),r1(z),1])}
+function colaGeyser(e){const air=ENEMY[e.type].fly||e.type==='boss'||(e.type==='alt'&&e.ph===3)||(e.pos.y-groundY(e.pos)>2.2)||(story&&!floorAt(e.pos.x,groundY(e.pos),e.pos.z));
+ if(air){const c=center(e,new V3());colaBurst(c.x,c.y,c.z,true);addStyle('КОЛА-ВЗРЫВ',120);e.wet=0;
+  for(const o of enemies){if(o.dead)continue;const d=center(o,tmpA).distanceTo(c);if(d>5.2)continue;damage(o,o===e?5:2.4,99,'geyser');if(!o.remote&&!o.dead&&!ENEMY[o.type].boss){o.vel.add(tmpB.subVectors(o.pos,c).normalize().multiplyScalar(12*(1-d/6))).y+=6}}
+  const pc=tmpA.set(P.pos.x,P.pos.y+.9,P.pos.z),dp=pc.distanceTo(c);if(P.alive&&dp<4){P.vel.add(tmpB.subVectors(pc,c).normalize().multiplyScalar(16*(1-dp/5)));P.vel.y+=7;P.grounded=false}return}
+ const x=e.pos.x,z=e.pos.z,y=e.pos.y;
  geyserFx(x,y,z);if(mp())pushFx(['y',0,r1(x),r1(y),r1(z)]);addStyle('ГЕЙЗЕР КОЛЫ',120);e.wet=0;
  for(const o of enemies){if(o.dead)continue;const d=Math.hypot(o.pos.x-x,o.pos.z-z);if(d>4.8)continue;damage(o,o===e?5:2.2,99,'geyser');
   if(!o.remote&&!o.dead&&o.type!=='drone'&&o.type!=='boss'){o.vel.y=Math.max(o.vel.y,18*(1-d/7));o.vel.x+=(o.pos.x-x)*.6;o.vel.z+=(o.pos.z-z)*.6;o.leaping=false;o.lw=0;o.wind=0;if(o.type==='vend')o.stun=Math.max(o.stun||0,1.3)}}
