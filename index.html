@@ -3764,6 +3764,7 @@ function menuStage(now,dt){const h=selfHero,v=MM.view==='page'?MM.page:MM.view,w
  else if(an==='death'){st.alive=(lt%3.4)>2.6;st.hp=st.alive?100:0}
  else if(an==='idle'&&v!=='hero'){MSC.fl-=dt;if(MSC.fl<=0){MSC.fl=7+Math.random()*5;if(Math.random()<.6){heroFire(h);setTimeout(()=>heroFire(h),180)}else heroPunch(h)}}
  animHero(h,st,dt);stageTick(dt)}
+if(/[?&]debug\b/.test(location.search))window.__ugEval=s=>eval(s);
 initNet();
 requestAnimationFrame(frame);
 }
