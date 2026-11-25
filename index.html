@@ -1907,7 +1907,7 @@ const GPOSE={
  sulk:{lSh:[-.9,.5,.2],lEl:[-1.9,.6,0],rSh:[-.9,-.5,-.2],rEl:[-1.9,-.6,0],lHip:[-1.5,0,.25],lKn:[1.5,0,0],rHip:[-1.5,0,-.25],rKn:[1.5,0,0],spine:[.12,0,0],head:[.25,.5,0],fl:'fist',fr:'fist'},
  chute:{lSh:[-.2,0,2.6],lEl:[-.5,0,.4],rSh:[-.2,0,-2.6],rEl:[-.5,0,-.4],lHip:[-.2,0,.08],lKn:[.4,0,0],rHip:[-.5,0,-.08],rKn:[.7,0,0],head:[.1,.3,0],fl:'grip',fr:'grip'}};
 const FING={relax:[.5,.6,.7,.8,.3],fist:[1.9,2,2,1.9,.9],rock:[0,2.2,2.2,0,1],point:[0,2,2,1.9,.9],grip:[1.4,1.5,1.5,1.4,.9],open:[.05,.05,.05,.1,.1]};
-function buildGirl(o){const S=o.scale||1,root=new THREE.Group(),J={},mats=[];const ENVO={envMap:ENV,envMapIntensity:.35};
+function buildGirlP(o){const S=o.scale||1,root=new THREE.Group(),J={},mats=[];const ENVO={envMap:ENV,envMapIntensity:.35};
  const mt=(c,x)=>{const m=new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.6},x||{}));mats.push(m);return m};
  const skin=mt(o.skin,{roughness:.55,emissive:new THREE.Color(o.skin).multiplyScalar(.14)}),hairM=mt(0xffffff,{map:hairTex(o.hair,o.streak,o.soft),roughness:.42,side:THREE.DoubleSide,...ENVO,envMapIntensity:.25});
  const gp=(par,x,y,z)=>{const g=new THREE.Group();g.position.set(x,y,z);par.add(g);return g};
@@ -1971,20 +1971,121 @@ function buildGirl(o){const S=o.scale||1,root=new THREE.Group(),J={},mats=[];con
   const th=gp(wr,s*.04,-.03,.012);th.rotation.z=s*.5;put(th,new THREE.CylinderGeometry(.009,.008,.055,6),skin,0,-.027,0);F.push(th)}
  root.scale.setScalar(S);root.traverse(m=>{if(m.isMesh)m.castShadow=true});mergeKids(root);
  const G={g:root,J,mats,kind:o.kind,pose:'stand',ex:null,blinkT:2+Math.random()*3,bubble:null,bubT:0,t:Math.random()*9};setFace(G,o.kind==='alt'?'smirk':'scared');return G}
+/* ---------- модели девушек из Blender (girls.py): гладкое тело на скелете, одежда, волосы прядями ---------- */
+let GIRL_T={};
+function loadGirls(){if(!THREE.GLTFLoader)return;for(const k of['alt','beach']){if(GIRL_T[k])continue;GIRL_T[k]='load';
+ new THREE.GLTFLoader().load('models/girl_'+k+'.json',gl=>{gl.scene.updateMatrixWorld(true);GIRL_T[k]=gl.scene},undefined,()=>{GIRL_T[k]=null})}}
+function strandTex(){if(GT.strand)return GT.strand;const t=cTex(256,256,(g,w,h)=>{g.fillStyle='#fff';g.fillRect(0,0,w,h);let sd=5;const rn=()=>(sd=(sd*16807)%2147483647)/2147483647;
+  for(let i=0;i<340;i++){const x=rn()*w;g.strokeStyle=rn()<.55?`rgba(0,0,0,${.08+rn()*.18})`:`rgba(255,255,255,${.1+rn()*.2})`;g.lineWidth=.8+rn()*2.2;g.beginPath();g.moveTo(x,0);g.bezierCurveTo(x+rn()*4-2,h*.4,x+rn()*4-2,h*.7,x+rn()*5-2.5,h);g.stroke()}
+  const sh=g.createLinearGradient(0,0,0,h);sh.addColorStop(0,'rgba(0,0,0,.25)');sh.addColorStop(.12,'rgba(255,255,255,0)');sh.addColorStop(.2,'rgba(255,255,255,.4)');sh.addColorStop(.3,'rgba(255,255,255,0)');sh.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=sh;g.fillRect(0,0,w,h)});
+ t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=8;return GT.strand=t}
+function denimTex(){if(GT.denim)return GT.denim;const t=cTex(256,256,(g,w,h)=>{g.fillStyle='#5b80b8';g.fillRect(0,0,w,h);let sd=9;const rn=()=>(sd=(sd*16807)%2147483647)/2147483647;
+  for(let i=0;i<2600;i++){const x=rn()*w,y=rn()*h;g.fillStyle=rn()<.5?'rgba(255,255,255,.12)':'rgba(10,20,50,.16)';g.fillRect(x,y,1+rn()*3,1)}
+  g.strokeStyle='rgba(240,200,120,.7)';g.lineWidth=1.5;g.setLineDash([4,3]);for(const y of[18,140]){g.beginPath();g.moveTo(0,y);g.lineTo(w,y);g.stroke()}});t.wrapS=t.wrapT=THREE.RepeatWrapping;return GT.denim=t}
+/* UV по положению вершины (поза покоя) — под старые холщовые текстуры игры */
+function girlUV(geo,how){if(geo.userData.uv===how)return;const p=geo.attributes.position,n=p.count,uv=new Float32Array(n*2),TAU=Math.PI*2;
+ for(let i=0;i<n;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i);let u=0,v=0;
+  if(how==='face'){const a=x/.9,b=(y-1.58)/1.06,c=z/.97,r=Math.hypot(a,b,c)||1;let ph=Math.atan2(c,-a);if(ph<0)ph+=TAU;u=ph/TAU;v=1-Math.acos(Math.max(-1,Math.min(1,b/r)))/Math.PI}
+  else if(how==='tee'){u=.5+Math.atan2(x,z)/TAU;v=(y-1.0)/.42}
+  else if(how==='plaid'){u=(.5+Math.atan2(x,z)/TAU)*1.3;v=(1.0-y)/.36}
+  else if(how==='net'){const cx=Math.abs(x)>.02?Math.sign(x)*.09:0;u=(.5+Math.atan2(x-cx,z)/TAU)*1.25;v=y*2.6}
+  else if(how==='denim'){u=(.5+Math.atan2(x,z)/TAU)*2.2;v=y*3}
+  uv[i*2]=u;uv[i*2+1]=v}
+ geo.setAttribute('uv',new THREE.BufferAttribute(uv,2));geo.userData.uv=how}
+function buildGirl(o){const T_=GIRL_T[o.kind];return T_&&T_!=='load'?buildGirlM(o,T_):buildGirlP(o)}
+function buildGirlM(o,TP){const S=o.scale||1,root=new THREE.Group(),J={},mats=[],alt=o.kind==='alt';const ENVO={envMap:ENV,envMapIntensity:.35};
+ // суставы — по костям шаблона, без поворотов: позы из GPOSE ложатся как раньше
+ const bones={};TP.traverse(b=>{if(b.isBone)bones[b.name]=b});const wp=n=>bones[n].getWorldPosition(new V3());
+ const mk=n=>{if(J[n])return J[n];const b=bones[n],pn=b.parent&&b.parent.isBone?b.parent.name:null,par=pn?mk(pn):root,g=new THREE.Group();g.name='g_'+n;const p=wp(n);if(pn)p.sub(wp(pn));g.position.copy(p);par.add(g);return J[n]=g};
+ for(const n in bones)mk(n);J.root=root;J.locks=[J.lockL,J.lockR];
+ const MC={};const skinC=new THREE.Color(o.skin);
+ const mdef=(n)=>{switch(n){
+  case'skin':return{color:skinC,roughness:.5,emissive:skinC.clone().multiplyScalar(.2)};
+  case'face':{const t=faceTex(o.kind,alt?'smirk':'scared');return{color:0xffffff,map:t,roughness:.55,emissive:0xffffff,emissiveMap:t,emissiveIntensity:.12}}
+  case'tee':return{color:0xffffff,map:teeTex('band'),roughness:.8,uv:'tee'};
+  case'leather':return{color:0x17141a,roughness:.3,metalness:.2,...ENVO,envMapIntensity:.7};
+  case'plaid':return{color:0xffffff,map:plaidTex(),roughness:.75,side:THREE.DoubleSide,uv:'plaid'};
+  case'tights':{const t=netTex(o.skin).clone();t.needsUpdate=true;t.repeat.set(1,1);return{color:0xffffff,map:t,roughness:.55,emissive:skinC.clone().multiplyScalar(.1),uv:'net'}}
+  case'boot':return{color:0x151318,roughness:.28,metalness:.1,...ENVO,envMapIntensity:.6};
+  case'sole':return{color:0x0b0b0d,roughness:.85};
+  case'silver':return{color:0xd8dee6,metalness:1,roughness:.2,envMap:ENV};
+  case'gold':return{color:0xf2c45a,metalness:1,roughness:.22,envMap:ENV};
+  case'pinkGlow':return{color:0xff3fa4,roughness:.4,emissive:0xff3fa4,emissiveIntensity:.3};
+  case'nail':return{color:0x0c0a10,roughness:.15,...ENVO};
+  case'hair':return{color:0xffffff,vertexColors:true,map:strandTex(),roughness:.42,...ENVO,envMapIntensity:.3,side:THREE.DoubleSide};
+  case'bando':return{color:0xff4f9a,roughness:.35,...ENVO,envMapIntensity:.5};
+  case'denim':return{color:0xffffff,map:denimTex(),roughness:.85,uv:'denim'};
+  case'white':return{color:0xf4f1ea,roughness:.5};
+  case'strap':return{color:0xe8d2b0,roughness:.6};
+  case'lens':return{color:0x1a1a22,roughness:.05,metalness:.6,envMap:ENV};
+  default:return{color:0xcccccc,roughness:.6}}};
+ const mget=(src,skinned)=>{const n=src.name||'x',key=n+(skinned?'#s':'');if(MC[key])return MC[key];const d=mdef(n),uv=d.uv;delete d.uv;const m=new THREE.MeshStandardMaterial(d);if(skinned)m.skinning=true;m.userData.uv=uv||(n==='face'?'face':null);mats.push(m);if(n==='face')J.faceM=m;return MC[key]=m};
+ const sms=[],BN=Object.keys(bones);
+ TP.traverse(m=>{if(!m.isMesh)return;const nm=(m.name||'')+'|'+(m.parent&&m.parent.name||'');
+  const ga=m.geometry.attributes;if(ga.color_1&&!m.geometry.userData.c1){const c=ga.color_1,A=c.array,sc=A instanceof Uint16Array?65535:A instanceof Uint8Array?255:1,f=new Float32Array(c.count*3);for(let i=0;i<c.count;i++)for(let q=0;q<3;q++)f[i*3+q]=Math.pow(A[i*c.itemSize+q]/sc,1/2.2);m.geometry.setAttribute('color',new THREE.BufferAttribute(f,3));m.geometry.deleteAttribute('color_1');m.geometry.userData.c1=1}
+  if(m.isSkinnedMesh){const mt=mget(m.material,true);if(mt.userData.uv)girlUV(m.geometry,mt.userData.uv);
+   // единый скелет на все части: индексы костей переводим в общий порядок
+   const geo=m.geometry;if(!geo.userData.remap){const own=m.skeleton.bones.map(b=>BN.indexOf(b.name)),si=geo.attributes.skinIndex;for(let i=0;i<si.array.length;i++)si.array[i]=Math.max(0,own[si.array[i]]);si.needsUpdate=true;geo.userData.remap=1}
+   const sm=new THREE.SkinnedMesh(geo,mt);sm.castShadow=true;sm.frustumCulled=false;root.add(sm);sms.push(sm);return}
+  const r=/R_([A-Za-z]+)_/.exec(nm);if(!r||!J[r[1]])return;const mt=mget(m.material,false);if(mt.userData.uv)girlUV(m.geometry,mt.userData.uv);
+  const c=new THREE.Mesh(m.geometry,mt);c.castShadow=true;m.updateMatrixWorld(true);c.applyMatrix4(m.matrixWorld);c.position.sub(wp(r[1]));J[r[1]].add(c)});
+ // пальцы: шаблоны T_finger/T_thumb на суставы пальцев
+ const tf=TP.getObjectByName('T_finger'),tt=TP.getObjectByName('T_thumb');
+ const fclone=t=>{const g=new THREE.Group();t.traverse(m=>{if(m.isMesh){const c=new THREE.Mesh(m.geometry,mget(m.material,false));c.castShadow=true;g.add(c)}});return g};
+ for(const [s,n] of[[1,'l'],[-1,'r']]){const wr=J[n+'Wr'],F=J[n+'F']=[];const gp=(x,y,z)=>{const g=new THREE.Group();g.position.set(x,y,z);wr.add(g);return g};
+  for(let k=0;k<4;k++){const f=gp((k-1.5)*.017*s,-.082,0);if(tf){const c=fclone(tf);c.scale.setScalar(k===3?.82:k===0?.94:1);f.add(c)}F.push(f)}
+  const th=gp(s*.036,-.028,.014);th.rotation.z=s*.5;if(tt)th.add(fclone(tt));F.push(th)}
+ root.scale.setScalar(S);root.updateMatrixWorld(true);
+ const SK=new THREE.Skeleton(BN.map(n=>J[n]));for(const sm of sms)sm.bind(SK,sm.matrixWorld)
+ const G={g:root,J,mats,kind:o.kind,pose:'stand',ex:null,blinkT:2+Math.random()*3,bubble:null,bubT:0,t:Math.random()*9,model:1};setFace(G,alt?'smirk':'scared');return G}
 const BEACH_O={kind:'beach',skin:'#f2c8a6',hair:'#e9c158',streak:null,soft:'#fff2c0',scale:1.08};
 function setFace(G,ex){if(G.ex===ex)return;G.ex=ex;const t=faceTex(G.kind,ex);G.J.faceM.map=t;G.J.faceM.emissiveMap=t;G.J.faceM.needsUpdate=true}
 /* плавное приведение к позе; extra — добавки поверх (качание, взмахи) */
-function girlPose(G,name,dt,extra){const P_=GPOSE[name]||GPOSE.stand,k=Math.min(1,dt*9),J=G.J;G.t+=dt;
- const set=(j,v)=>{if(!j)return;const r=j.rotation;r.x+=(v[0]-r.x)*k;r.y+=(v[1]-r.y)*k;r.z+=(v[2]-r.z)*k};
- for(const n of['Sh','El','Hip','Kn']){const L=P_['l'+n]||GPOSE.stand['l'+n]||[0,0,0],R=P_['r'+n]||[L[0],-L[1],-L[2]];const ex=extra||{};
-  set(J['l'+n],ex['l'+n]?L.map((v,i)=>v+ex['l'+n][i]):L);set(J['r'+n],ex['r'+n]?R.map((v,i)=>v+ex['r'+n][i]):R)}
- for(const n of['spine','neck','head']){const v=P_[n]||[0,0,0],e=extra&&extra[n];set(J[n],e?v.map((x,i)=>x+e[i]):v)}
+/* анимация: пружины к позе + дыхание/перенос веса + взгляд на камеру + волосы с инерцией */
+const LOOKW={stand:1,taunt:.8,point:.6,laugh:.5,cheer:.5,hold:.8,tread:.6,sulk:.35,throw:.3,aim:.2,ride:.6,rideTaunt:.7,rideAim:.2,climb:.4,jump:.2,chute:.45,dazed:0};
+const IDLEW={stand:1,taunt:.7,point:.5,laugh:.6,cheer:.6,hold:.5,sulk:.8,ride:.5,rideTaunt:.5,tread:.3,aim:.3,rideAim:.3,chute:.4,climb:.2,throw:.2};
+const LEGW={stand:1,taunt:1,point:1,laugh:1,cheer:.7,aim:.6,throw:.4};
+const _hgq=new THREE.Quaternion(),_hgv=new V3(),_hgv2=new V3(),_hgv3=new V3();
+function jspring(j,t,dt,om,ze){if(!j)return;const r=j.rotation,v=j.userData.av||(j.userData.av=new V3());
+ if(dt>=.25){r.set(t[0],t[1],t[2]);v.set(0,0,0);return}if(dt<=0)return;
+ const n=Math.ceil(dt/.034),h=dt/n,w2=om*om,c=2*ze*om;
+ for(let i=0;i<n;i++){v.x+=(w2*(t[0]-r.x)-c*v.x)*h;v.y+=(w2*(t[1]-r.y)-c*v.y)*h;v.z+=(w2*(t[2]-r.z)-c*v.z)*h;r.x+=v.x*h;r.y+=v.y*h;r.z+=v.z*h}}
+function girlPose(G,name,dt,extra){const P_=GPOSE[name]||GPOSE.stand,k=Math.min(1,dt*9),J=G.J;G.t+=dt;G.pose=name;const ex=extra||{},t=G.t;
+ if(!G.model){const set=(j,v)=>{if(!j)return;const r=j.rotation;r.x+=(v[0]-r.x)*k;r.y+=(v[1]-r.y)*k;r.z+=(v[2]-r.z)*k};
+  for(const n of['Sh','El','Hip','Kn']){const L=P_['l'+n]||GPOSE.stand['l'+n]||[0,0,0],R=P_['r'+n]||[L[0],-L[1],-L[2]];
+   set(J['l'+n],ex['l'+n]?L.map((v,i)=>v+ex['l'+n][i]):L);set(J['r'+n],ex['r'+n]?R.map((v,i)=>v+ex['r'+n][i]):R)}
+  for(const n of['spine','neck','head']){const v=P_[n]||[0,0,0],e=ex[n];set(J[n],e?v.map((x,i)=>x+e[i]):v)}
+  J.back.rotation.x=Math.sin(t*1.7)*.05+(ex.hair||0);J.locks.forEach((l,i)=>{l.rotation.x=Math.sin(t*2.1+i)*.08+(ex.hair||0)*.6;l.rotation.z=Math.sin(t*1.3+i*2)*.05})}
+ else{const iw=IDLEW[name]??.3,lw=LEGW[name]||0,br=Math.sin(t*2.3),sw=Math.sin(t*.8),T={};
+  const add=(n,v)=>{const a=T[n];a[0]+=v[0];a[1]+=v[1];a[2]+=v[2]};
+  for(const n of['Sh','El','Hip','Kn']){const L=P_['l'+n]||GPOSE.stand['l'+n]||[0,0,0],R=P_['r'+n]||[L[0],-L[1],-L[2]];T['l'+n]=L.slice();T['r'+n]=R.slice();
+   if(ex['l'+n])add('l'+n,ex['l'+n]);if(ex['r'+n])add('r'+n,ex['r'+n])}
+  for(const n of['spine','neck','head']){T[n]=(P_[n]||[0,0,0]).slice();if(ex[n])add(n,ex[n])}
+  // дыхание, покачивание, перенос веса
+  add('spine',[br*.02*iw,sw*.05*iw,sw*.025*iw]);add('neck',[-br*.012*iw,0,-sw*.015*iw]);add('head',[Math.sin(t*1.1)*.025*iw,Math.sin(t*.55)*.07*iw,Math.sin(t*.7+1)*.05*iw]);
+  add('lSh',[Math.sin(t*1.3)*.02*iw,0,br*.025*iw]);add('rSh',[Math.sin(t*1.3+2)*.02*iw,0,-br*.025*iw]);add('lEl',[-Math.max(0,br)*.04*iw,0,0]);add('rEl',[-Math.max(0,br)*.04*iw,0,0]);
+  if(lw){add('lHip',[0,0,sw*.035*lw]);add('rHip',[0,0,sw*.035*lw]);add('lKn',[Math.max(0,sw)*.14*lw,0,0]);add('rKn',[Math.max(0,-sw)*.14*lw,0,0]);add('lHip',[-Math.max(0,sw)*.06*lw,0,0]);add('rHip',[-Math.max(0,-sw)*.06*lw,0,0])}
+  // взгляд: голова поворачивается к камере (или к G.look)
+  let lw2=(LOOKW[name]??.3)*(G.lookW??1);if(dt<.25&&lw2>0&&J.spine.parent){_hgv.copy(G.look||camera.position);J.spine.worldToLocal(_hgv);_hgv.sub(J.neck.position);_hgv.y-=.17;
+   let yaw=Math.atan2(_hgv.x,_hgv.z),pit=-Math.atan2(_hgv.y,Math.hypot(_hgv.x,_hgv.z));lw2*=Math.max(0,Math.min(1,(2.5-Math.abs(yaw))/.5));
+   yaw=Math.max(-1.1,Math.min(1.1,yaw))*lw2;pit=Math.max(-.45,Math.min(.45,pit))*lw2;const lk=G.lk||(G.lk=[0,0]),f=Math.min(1,dt*3.5);lk[0]+=(yaw-lk[0])*f;lk[1]+=(pit-lk[1])*f}
+  else if(G.lk){const f=Math.min(1,dt*3.5);G.lk[0]-=G.lk[0]*f;G.lk[1]-=G.lk[1]*f}
+  if(G.lk){add('neck',[G.lk[1]*.4,G.lk[0]*.4,0]);add('head',[G.lk[1]*.6,G.lk[0]*.6,0])}
+  for(const n of['lSh','rSh','lEl','rEl','lHip','rHip','lKn','rKn'])jspring(J[n],T[n],dt,12,.78);
+  for(const n of['spine','neck','head'])jspring(J[n],T[n],dt,9,.82);
+  hairDyn(G,dt,ex)}
  for(const [side,key] of[['l','fl'],['r','fr']]){const f=FING[P_[key]||'relax'];J[side+'F'].forEach((j,i)=>{if(i<4)j.rotation.x+=(f[i]-j.rotation.x)*k;else j.rotation.x+=(f[4]*.6-j.rotation.x)*k})}
- // волосы чуть живут
- J.back.rotation.x=Math.sin(G.t*1.7)*.05+(extra&&extra.hair||0);J.locks.forEach((l,i)=>{l.rotation.x=Math.sin(G.t*2.1+i)*.08+(extra&&extra.hair||0)*.6;l.rotation.z=Math.sin(G.t*1.3+i*2)*.05});
  // моргание
  if(G.ex==='smirk'||G.ex==='scared'||G.ex==='angry'||G.ex==='blink'||G.ex==='determined'){G.blinkT-=dt;if(G.blinkT<0&&G.ex!=='blink'){G.preB=G.ex;setFace(G,'blink')}if(G.blinkT<-.12){G.blinkT=2+Math.random()*3.5;if(G.preB)setFace(G,G.preB);G.preB=null}}
  if(G.bubble){G.bubT-=dt;G.bubble.visible=G.bubT>0;if(G.bubT>0){const s=Math.min(1,(3-G.bubT)*8,G.bubT*4);G.bubble.material.opacity=Math.min(1,s);G.bubble.scale.set(G.bw*s,G.bh*s,1)}}}
+function hairDyn(G,dt,ex){const J=G.J;if(dt<=0)return;
+ J.hairC.getWorldPosition(_hgv);const hv=G.hv||(G.hv=new V3()),hp=G.hp||(G.hp=_hgv.clone());
+ if(dt<.2){_hgv2.copy(_hgv).sub(hp).divideScalar(dt);if(_hgv2.lengthSq()>900)_hgv2.setLength(30);hv.lerp(_hgv2,Math.min(1,dt*8))}else hv.set(0,0,0);hp.copy(_hgv);
+ const air=_hgv3.set(-hv.x*.1,-1-hv.y*.1,-hv.z*.1);if(ex.wind)air.add(ex.wind);const gust=Math.sin(G.t*1.9)*.04+Math.sin(G.t*3.3)*.02;
+ const H=[[J.back,-.1,1.3,-.6,.6,1],[J.back2,-.2,.9,-.5,.5,.7],[J.lockL,-.9,.25,-.12,.8,.8],[J.lockR,-.9,.25,-.8,.12,.8]];
+ for(const [j,x0,x1,z0,z1,gn] of H){if(!j)continue;j.parent.getWorldQuaternion(_hgq).invert();_hgv2.copy(air).applyQuaternion(_hgq).normalize();
+  const tx=Math.max(x0,Math.min(x1,Math.atan2(-_hgv2.z,-_hgv2.y)*gn+gust+(ex.hair||0))),tz=Math.max(z0,Math.min(z1,Math.atan2(_hgv2.x,-_hgv2.y)*gn+gust*.5));
+  jspring(j,[tx,0,tz],dt,6.5,.32)}}
 function say(G,txt,dur){if(!G.bubble){G.bubble=new THREE.Sprite(new THREE.SpriteMaterial({transparent:true,depthWrite:false}));G.bubble.position.y=2.15;G.g.add(G.bubble)}
  const c=document.createElement('canvas');c.width=640;c.height=180;const g=c.getContext('2d');g.font='900 52px "Russo One",Arial';const w=Math.min(620,g.measureText(txt).width+60);
  g.fillStyle=G.kind==='alt'?'#17151b':'#fffaf0';g.strokeStyle=G.kind==='alt'?'#ff3fa4':'#ff4f9a';g.lineWidth=8;const x0=(640-w)/2;g.beginPath();g.roundRect?g.roundRect(x0,14,w,110,30):g.rect(x0,14,w,110);g.fill();g.stroke();
@@ -2307,7 +2408,8 @@ function ringDrop(R){if(R.m.parent)R.m.parent.remove(R.m);if(R.rope&&R.rope.pare
 function questReward(){addStyle('СПАСЕНИЕ НА ВОДАХ',400);sfx('frag');if(!prog.l3save){prog.l3save=1;saveProg();bankAdd(2000);setTimeout(()=>banner('+2000 ★ — ГРЯЗНУЛЬКА БЛАГОДАРИТ'),1900)}banner('ГРЯЗНУЛЬКА СПАСЕНА!')}
 function questSync(st){const q=L3&&L3.q;if(!q)return;if(st===4&&q.st<3){questToHelper()}else if(st===5&&q.st===0){q.st=5;q.t=0}}
 function questToHelper(){const q=L3.q;if(q.ring){ringDrop(q.ring);q.ring=null;const r=L3.rings[q.sta];if(r){r.has=true;r.rg.visible=true}}q.st=4;q.t=0;q.placed=false}
-function updQuest(dt){const q=L3.q;if(!q)return;const G=q.G,S=story,t=lvT;q.t+=dt;
+function girlSwap(G,o){const T_=GIRL_T[o.kind];if(G.model||!T_||T_==='load'||!G.g.parent)return G;const N=buildGirl(o);N.g.position.copy(G.g.position);N.g.quaternion.copy(G.g.quaternion);G.g.parent.add(N.g);G.g.parent.remove(G.g);setFace(N,G.ex||'scared');return N}
+function updQuest(dt){const q=L3.q;if(!q)return;if(!q.G.model&&q.st===0&&!q.held)q.G=girlSwap(q.G,BEACH_O);const G=q.G,S=story,t=lvT;q.t+=dt;
  if(q.ring&&!updRing(q.ring,dt)){ringDrop(q.ring);q.ring=null}
  for(const R of L3.ghostR||[])if(!updRing(R,dt)){ringDrop(R);R.dead=1}if(L3.ghostR)L3.ghostR=L3.ghostR.filter(R=>!R.dead);
  if(S&&S.room===1&&q.st===0){q.annT=(q.annT||0)+dt;if(q.annT>2.6&&!q.ann){q.ann=1;banner('ЗА ПРАВЫМ БОРТОМ КТО-ТО ТОНЕТ!');say(G,'ПОМОГИТЕ! Я ТУТ!',3)}}
@@ -2367,7 +2469,7 @@ function altFx(n){const s2=n[0];if(s2===8){bambBoom(new V3(n[1],n[2],n[3]),false
 /* ================= мобы моря пива ================= */
 /* Бамбун — моряк-великан с веслом и бочкой пива. Модель — из Blender (models/bambun.json), части собираются в риг. */
 let BAMB_T=null;
-function loadBambun(){if(BAMB_T||!THREE.GLTFLoader)return;BAMB_T='load';new THREE.GLTFLoader().load('models/bambun.json',gl=>{BAMB_T=gl.scene;BAMB_T.updateMatrixWorld(true)},undefined,()=>{BAMB_T=null})}
+function loadBambun(){loadGirls();if(BAMB_T||!THREE.GLTFLoader)return;BAMB_T='load';new THREE.GLTFLoader().load('models/bambun.json',gl=>{BAMB_T=gl.scene;BAMB_T.updateMatrixWorld(true)},undefined,()=>{BAMB_T=null})}
 function buildBambun(g,mm,mats){const J={},cl=new Map(),part=n=>{const o=BAMB_T&&BAMB_T!=='load'?BAMB_T.getObjectByName(n):null;if(!o)return null;const c=o.clone();c.position.set(0,0,0);c.rotation.set(0,0,0);
   c.traverse(m=>{if(m.isMesh){m.castShadow=true;let k=cl.get(m.material);if(!k){k=m.material.clone();k.envMap=ENV;k.envMapIntensity=.35;cl.set(m.material,k);mats.push(k)}m.material=k}});return c};
  const gp=(par,x,y,z)=>{const o=new THREE.Group();o.position.set(x,y,z);par.add(o);return o};
@@ -2450,6 +2552,14 @@ LEVELS.push({id:'l3',n:3,name:'ПИВНОЕ МОРЕ',sub:'Яхта «Пенна
    sp:[[-6,0,-60],[10,0,-60],[-11,0,-77],[11,0,-77],[-9,0,-92],[8.5,0,-92.5],[0,0,-60],[-4,5,-70],[4,5,-84]],waves:[{alt:1}],
    rein:[{at:.8,w:{can:4,vend:2}},{at:.5,w:{bambun:1,drone:2,jelly:2}},{at:.25,w:{can:4,vend:2,drone:2}}]}]});
 /*BEER-END*/
+
+
+
+
+
+
+
+
 
 
 
