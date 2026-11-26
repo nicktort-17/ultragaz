@@ -5847,8 +5847,8 @@ function pepAssemble(g){const M=pepMats(),R={M,g};const F=(r,n)=>r.getObjectByNa
  const H=n=>F(R.host,'H_'+n);R.hd=H('head');R.jaw=H('jaw');R.neck=H('neck');R.tor=H('torso');R.hips=H('hips');
  R.harm={L:H('armL'),R:H('armR')};R.hfore={L:H('foreL'),R:H('foreR')};R.hhand={L:H('handL'),R:H('handR')};
  for(const k of['hd','jaw','neck','tor'])R[k+'q']=R[k].quaternion.clone();
- // фаза II: на длинную шею гуманоида садится только голова (запрокинута); дом — исходное место на шее хоста
- R.hdHome={par:R.hd.parent,pos:R.hd.position.clone(),s:R.hd.scale.clone()};R.hdq2=new THREE.Quaternion().setFromEuler(new THREE.Euler(-.7,0,0));R.hdBase=R.hdq;R.neck2=P2('neck');
+ // фаза II: на длинную шею гуманоида садится только голова (смотрит прямо); дом — исходное место на шее хоста
+ R.hdHome={par:R.hd.parent,pos:R.hd.position.clone(),s:R.hd.scale.clone()};R.hdq2=new THREE.Quaternion().setFromEuler(new THREE.Euler(.05,0,0));R.hdBase=R.hdq;R.neck2=P2('neck');
  // попадания — лучом по настоящим мешам фазы; метка слабого места на меше
  const tag=(o,w)=>o.traverse(m=>{if(m.isMesh)m.userData.pw=w});tag(R.host,'host');tag(R.core,'core');tag(R.dome,'dome');
  const ms=o=>{const a=[];o.traverse(m=>{if(m.isMesh)a.push(m)});return a},mh=ms(R.host),mhd=ms(R.hd);

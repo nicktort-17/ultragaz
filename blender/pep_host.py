@@ -2,8 +2,8 @@
 # Голова, шея, кисти и стопы — метаболы с прореживанием (гранёный «скульпт» как на референсе),
 # мантия — лофт-кольца и листы ткани с полосами (крем, синий, красный, золотой кант).
 
-ROBE_BANDS = [(21, 'cream'), (23, 'gold'), (31, 'red'), (33, 'gold'), (68, 'navy'), (70, 'gold'), (108, 'cream'), (110, 'gold'),
-              (160, 'navy'), (162, 'gold'), (180, 'red')]
+ROBE_BANDS = [(25, 'cream'), (27, 'gold'), (37, 'red'), (39, 'gold'), (82, 'navy'), (84, 'gold'), (146, 'cream'), (148, 'gold'),
+              (166, 'navy'), (168, 'gold'), (180, 'red')]
 
 
 def host_head_geo():
@@ -56,22 +56,33 @@ def host_head_geo():
     # космы: объёмная шапка волос на висках и затылке (лысая макушка открыта) + гранёные пряди-«шипы» назад и в стороны
     HM = MB(res=.003)
     for sd in (-1, 1):
-        HM.ell((sd * .058, .03, .036), (.024, .05, .048))
-        HM.ell((sd * .05, .072, .03), (.03, .04, .05))
-    HM.ell((0, .1, .02), (.05, .03, .05)); HM.ell((0, .085, -.02), (.045, .035, .04))
-    parts.append(('head', HM.mesh(.08), 'hair'))
-    def spike(b, d, L, w):
+        HM.ell((sd * .06, .03, .045), (.026, .058, .055))
+        HM.ell((sd * .052, .075, .035), (.034, .045, .06))
+        HM.ell((sd * .064, -.005, .03), (.018, .03, .04))
+    HM.ell((0, .102, .035), (.058, .034, .06)); HM.ell((0, .088, -.015), (.05, .036, .042)); HM.ell((0, .07, .085), (.05, .04, .03))
+    parts.append(('head', HM.mesh(.1), 'hair'))
+    def lock(b, d, L, w):
+        """Плоская прядь-клин: широкое основание, кончик загнут к затылку."""
         d = V(d).normalized(); up = V((0, 0, 1)) if abs(d.z) < .9 else V((1, 0, 0)); u = d.cross(up).normalized(); v = u.cross(d).normalized()
-        b = V(b); tip = b + d * L + v * L * .18
-        P_ = [b + u * w, b + v * w * .6, b - u * w, b - v * w * .6]
-        return [tuple(p) for p in P_] + [tuple(tip)], [(3, 2, 1, 0), (0, 1, 4), (1, 2, 4), (2, 3, 4), (3, 0, 4)]
-    for k in range(64):
-        sd = -1 if k % 2 else 1; t = random.random()
-        az = math.radians(60 + t * 115) * sd; z = random.uniform(-.03, .075) - (.02 if t > .8 else 0)
-        base = V((math.sin(az) * .062, math.cos(az) * .078 + .03, z))
-        out = V((math.sin(az), math.cos(az) * .9 + .55, random.uniform(-.2, .55))).normalized()
-        L = random.uniform(.05, .11) * (1.2 if .2 < t < .7 else 1)
-        parts.append(('head', spike(base, out, L, random.uniform(.013, .022)), 'hair'))
+        b = V(b); mid = b + d * L * .55 + v * L * .06; tip = b + d * L + v * L * .14
+        P_ = [b + u * w, b + v * w * .45, b - u * w, b - v * w * .45, mid + u * w * .45, mid - u * w * .45]
+        vv = [tuple(p) for p in P_] + [tuple(tip)]
+        return vv, [(3, 2, 1, 0), (0, 1, 4), (1, 2, 5, 4), (2, 3, 5), (3, 0, 4, 5), (4, 6, 5), (1, 6, 4), (1, 5, 6)]
+    for k in range(84):
+        sd = -1 if k % 2 else 1; t = random.random(); tier = k % 3
+        az = math.radians(78 + t * 100) * sd
+        z = (.0, .042, .08)[tier] + random.uniform(-.014, .014)
+        rr = (.066, .072, .062)[tier]
+        base = V((math.sin(az) * rr, math.cos(az) * (rr + .025) + .035, z))
+        side = abs(math.sin(az))
+        d = V((sd * (.35 + .5 * side) * random.uniform(.7, 1.1), 1.0, (-.28, .06, .32)[tier] + random.uniform(-.12, .12)))
+        L = random.uniform(.06, .11) * (1.2 if tier == 1 else 1) * (1.15 if .3 < t < .8 else 1)
+        parts.append(('head', lock(base, d, L, random.uniform(.016, .026)), 'hair'))
+    for k in range(52):
+        x = random.uniform(-.056, .056); z = random.uniform(-.025, .095); q = 1 - (x / .06) ** 2 - ((z - .035) / .064) ** 2
+        y = .1 + .036 * math.sqrt(max(0.0, q)) - .004
+        d = V((x * 6 + random.uniform(-.2, .2), 1.0, (z - .035) * 5 - .15 + random.uniform(-.2, .2)))
+        parts.append(('head', lock((x, y, z), d, random.uniform(.05, .1), random.uniform(.016, .024)), 'hair'))
     return parts
 
 
@@ -128,26 +139,54 @@ def build_host():
     v, f, fm = sheet(G, .014, lambda i, j: 'gold' if i in (0, 3) else 'cream')
     tor.addm(v, f, fm)
     # ящик с камнем на груди, кольцо на шее, кабели, позвоночник
-    tor.add(box(.07, .05, .07), 'metal', TRS((0, -.158, .5)), bev=.007)
-    tor.add(box(.05, .012, .05), 'dark', TRS((0, -.184, .5)))
-    tor.add(hull([(0, 0, .02), (0, 0, -.02), (.02, 0, 0), (-.02, 0, 0), (0, -.014, 0), (0, .01, 0)]), 'gem', TRS((0, -.19, .5)))
-    tor.add(torus(.047, .009, 14, 5), 'metal', TRS((0, -.095, .645), (.35, 0, 0)))
-    for s, m, o in ((-1, 'cableR', 0), (1, 'cableR', 0), (-1, 'cableB', .016), (1, 'cableB', .016)):
-        tor.add(tube([(s * .03, -.16, .52), (s * (.075 + o), -.13, .6), (s * (.095 + o), -.05, .68), (s * (.07 + o), .07, .69), (s * (.04 + o), .15, .6), (s * (.055 + o), .16, .38), (s * (.06 + o), .15, .16)], .0105, 5, 3), m)
-    for i in range(8):
-        z = .6 - i * .06; y = .13 + .018 * math.sin(min(1, i / 4) * PI / 2)
-        tor.add(box(.056, .045, .042), 'metal', TRS((0, y, z)), bev=.005)
-        tor.add(box(.015, .012, .015), 'glow', TRS((0, y + .025, z)))
-        if i < 7: tor.add(cyl(.012, .012, .03, 6), 'dark', TRS((0, y, z - .035)))
+    tor.add(box(.105, .062, .1), 'metal', TRS((0, -.162, .5)), bev=.01)
+    tor.add(box(.074, .014, .07), 'dark', TRS((0, -.196, .5)))
+    for x in (-.048, .048): tor.add(box(.012, .07, .11), 'gun', TRS((x, -.165, .5)))
+    tor.add(box(.12, .07, .012), 'gun', TRS((0, -.165, .553)))
+    tor.add(hull([(0, 0, .028), (0, 0, -.028), (.026, 0, 0), (-.026, 0, 0), (0, -.018, 0), (0, .01, 0)]), 'gem', TRS((0, -.205, .5)))
+    tor.add(torus(.054, .015, 18, 6), 'metal', TRS((0, -.095, .64), (.35, 0, 0)))
+    for k in range(10):
+        a = k * 2 * PI / 10; tor.add(box(.026, .03, .036), 'gun', TRS((0, -.095, .64), (.35, 0, 0)) @ TRS((.067 * math.cos(a), .067 * math.sin(a), 0), (0, 0, a)))
+    tor.add(box(.03, .03, .1), 'gun', TRS((0, -.15, .575), (.3, 0, 0)))
+    for s, m, o, r in ((-1, 'cableR', 0, .017), (1, 'cableR', 0, .017), (-1, 'cableB', .03, .014), (1, 'cableB', .03, .014), (-1, 'cableR', .058, .011), (1, 'cableR', .058, .011)):
+        tor.add(tube([(s * .035, -.17, .53), (s * (.075 + o), -.16, .62), (s * (.11 + o), -.11, .73), (s * (.125 + o), -.01, .77), (s * (.1 + o), .09, .71),
+                      (s * (.06 + o * .5), .15, .6), (s * (.045 + o * .5), .165, .42), (s * (.05 + o * .5), .16, .2)], r, 6, 4), m)
+    for i in range(9):
+        z = .62 - i * .058; y = .14 + .02 * math.sin(min(1, i / 4) * PI / 2)
+        tor.add(box(.074, .056, .044), 'metal', TRS((0, y, z)), bev=.006)
+        tor.add(box(.05, .02, .026), 'gun', TRS((0, y + .03, z)))
+        tor.add(box(.022, .016, .018), 'glow', TRS((0, y + .042, z)))
+        if i < 8: tor.add(cyl(.016, .016, .03, 6), 'dark', TRS((0, y, z - .035)))
+        for sx in (-1, 1): tor.add(box(.012, .03, .03), 'gun', TRS((sx * .045, y, z)))
+    # позвонки на загривке (поверх шеи) и обруч-фиксатор
+    for i in range(5):
+        u = i / 4; pz = .6 + .15 * u; py = -.03 - .095 * u + .04
+        neck.add(box(.04, .03, .03), 'metal', TRS((0, py, pz), (-.45, 0, 0)), bev=.004)
+        neck.add(box(.014, .012, .012), 'glow', TRS((0, py + .018, pz), (-.45, 0, 0)))
+    neck.add(torus(.04, .008, 14, 5), 'gun', TRS((0, -.12, .69), (.45, 0, 0)))
     # --- руки: рукава (верхний синий, нижний — широкий кремовый колокол), кисти с перстнями
     for s, L in ((1, 'L'), (-1, 'R')):
         sh = (s * .18, -.01, .52); el = (s * .245, .02, .26); wr = (s * .29, -.27, .2)
         arm = Acc('H_arm' + L, 'H_torso', loc=sh); fore = Acc('H_fore' + L, 'H_arm' + L, loc=el); hand = Acc('H_hand' + L, 'H_fore' + L, loc=wr)
-        v, f, fm = tube_loft([(s * .18, -.01, .55), (s * .222, 0, .41), (s * .245, .02, .25)], [.062, .07, .08], ['navy', 'navy', 'navy', 'red', 'gold'], n=10)
+        v, f, fm = tube_loft([(s * .18, -.01, .55), (s * .222, 0, .41), (s * .245, .02, .25)], [.066, .074, .084], ['cream', 'cream', 'navy', 'navy', 'red', 'gold'], n=12)
         arm.addm(v, f, fm)
-        v, f, fm = tube_loft([(s * .245, .03, .27), (s * .265, -.07, .25), (s * .28, -.14, .17), (s * .285, -.165, .04)], [.08, .108, .138, .16], ['cream', 'cream', 'cream', 'cream', 'cream', 'navy', 'red', 'gold'], n=12)
+        v, f, fm = tube_loft([(s * .245, .035, .27), (s * .258, -.04, .248), (s * .272, -.12, .232), (s * .284, -.2, .224)], [.082, .088, .094, .1],
+                             ['cream', 'cream', 'cream', 'cream', 'cream', 'navy', 'red', 'gold'], n=14, droop=[0, .015, .03, .04])
         fore.addm(v, f, fm)
-        Fm = MB(res=.0028); Fm.cap((s * .282, -.12, .225), (s * .29, -.268, .2), .021); fore.add(Fm.mesh(.2), 'skin')
+        # широкое полотнище рукава свисает из-под предплечья до колен (как на референсе)
+        G3 = []
+        for j in range(6):
+            u = j / 5; row = []
+            for i in range(8):
+                w_ = i / 7; y = .03 - .245 * w_; ztop = .2 - .02 * w_
+                z = ztop + (-.16 - .12 * w_ * w_ - ztop) * u
+                x = s * (.3 + .035 * u + .008 * math.sin(i * 1.7 + j))
+                row.append((x, y + .02 * u * math.sin(i * 2.1), z))
+            G3.append(row)
+        v, f, fm = sheet(G3, .012, lambda i, j: 'gold' if j == 4 else 'red' if j == 3 else 'navy' if j == 2 else 'cream')
+        fore.addm(v, f, fm)
+        Fm = MB(res=.0028); Fm.cap((s * .282, -.14, .222), (s * .29, -.268, .2), .019); fore.add(Fm.mesh(.2), 'skin')
+        fore.add(torus(.024, .006, 12, 4), 'gold', TRS((s * .287, -.225, .212), (PI / 2, 0, 0)))
         (hv, hf), rings_ = host_hand(s, wr, 1.4); hand.add((hv, hf), 'skin')
         for c, d, gem in rings_:
             q = V((0, 0, 1)).rotation_difference(d).to_matrix().to_4x4()
@@ -155,10 +194,10 @@ def build_host():
             if gem: hand.add(hull([(0, 0, .0045), (.004, 0, 0), (-.004, 0, 0), (0, .004, 0), (0, -.004, 0), (0, 0, -.001)]), 'gem', Matrix.Translation(c + V((0, 0, .009))))
     # --- колени и спадающий перед мантии, боковые полы, босые стопы
     path = [(.05, .12), (-.1, .165), (-.27, .17), (-.41, .14), (-.49, .04), (-.52, -.14), (-.54, -.31), (-.548, -.43), (-.55, -.46)]
-    ws = [.17, .19, .2, .21, .215, .222, .232, .238, .24]
-    xb = [0, .03, .06, .067, .09, .097, .13, .16]
+    ws = [.232, .24, .245, .25, .254, .258, .262, .266, .27]
+    xb = [0, .035, .065, .072, .1, .107, .14, .178, .186, .22]
     def mat_x(ax):
-        return 'cream' if ax < .06 else 'gold' if ax < .067 else 'red' if ax < .09 else 'gold' if ax < .097 else 'navy'
+        return 'cream' if ax < .065 else 'gold' if ax < .072 else 'red' if ax < .1 else 'gold' if ax < .107 else 'navy' if ax < .178 else 'gold' if ax < .186 else 'cream'
     G = []; cols = None
     for j, ((y, z), w) in enumerate(zip(path, ws)):
         xs = sorted(set([-w] + [-b for b in xb[1:]] + xb + [w]))
@@ -180,10 +219,10 @@ def build_host():
             row = []
             for t in range(7):
                 y = .06 - t * .08; jz = .13 - .1 - (.03 if y < -.3 else 0)
-                z = jz + (-.46 - jz) * k / 4; x = s * (.18 + .03 * k / 4 + .01 * math.sin(y / .05 + k))
+                z = jz + (-.46 - jz) * k / 4; x = s * (.23 + .035 * k / 4 + .01 * math.sin(y / .05 + k))
                 row.append((x, y, z))
             G2.append(row)
-        v, f, fm = sheet(G2, .014, lambda i, j: 'gold' if j == 3 else 'navy'); hips.addm(v, f, fm)
+        v, f, fm = sheet(G2, .014, lambda i, j: 'gold' if j == 3 else 'cream'); hips.addm(v, f, fm)
     for s in (-1, 1):
         Ft = MB(res=.0028); c = V((s * .09, -.6, -.455))
         Ft.ell(tuple(c), (.026, .055, .016)); Ft.cap(tuple(c + V((0, .05, .005))), tuple(c + V((0, .07, .05))), .014)

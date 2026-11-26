@@ -1020,7 +1020,7 @@ if VIEWS:
         jw.parent = hd; jw.matrix_parent_inverse = Matrix(); jw.matrix_basis = ACC['H_head'].W.inverted() @ ACC['H_jaw'].W; jw.rotation_euler = (.3, 0, 0)
         return [hd, jw]
 
-    extra = {'1': host_copy('P1_seat', sc=1.5), '2': head_copy('P2_seat', 4.0, -.7), '3': host_copy('P3_seat', sc=1.9)}
+    extra = {'1': host_copy('P1_seat', sc=1.5), '2': head_copy('P2_seat', 4.0, 0.0), '3': host_copy('P3_seat', sc=1.9)}
     ACC['H_jaw'].obj.rotation_euler = (.25, 0, 0)
 
     def roots_of(tag):
