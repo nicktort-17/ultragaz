@@ -5847,12 +5847,12 @@ function pepAssemble(g){const M=pepMats(),R={M,g};const F=(r,n)=>r.getObjectByNa
  const H=n=>F(R.host,'H_'+n);R.hd=H('head');R.jaw=H('jaw');R.neck=H('neck');R.tor=H('torso');R.hips=H('hips');
  R.harm={L:H('armL'),R:H('armR')};R.hfore={L:H('foreL'),R:H('foreR')};R.hhand={L:H('handL'),R:H('handR')};
  for(const k of['hd','jaw','neck','tor'])R[k+'q']=R[k].quaternion.clone();
- // фаза II: на длинную шею гуманоида садится только голова (смотрит прямо); дом — исходное место на шее хоста
+ // голова всегда на своей шее (R.hdHome) — запасной возврат
  R.hdHome={par:R.hd.parent,pos:R.hd.position.clone(),s:R.hd.scale.clone()};R.hdq2=new THREE.Quaternion().setFromEuler(new THREE.Euler(.05,0,0));R.hdBase=R.hdq;R.neck2=P2('neck');
  // попадания — лучом по настоящим мешам фазы; метка слабого места на меше
  const tag=(o,w)=>o.traverse(m=>{if(m.isMesh)m.userData.pw=w});tag(R.host,'host');tag(R.core,'core');tag(R.dome,'dome');
  const ms=o=>{const a=[];o.traverse(m=>{if(m.isMesh)a.push(m)});return a},mh=ms(R.host),mhd=ms(R.hd);
- R.hl={1:ms(R.p1).concat(mh),2:ms(R.p2).concat(mhd),3:ms(R.p3).concat(mh),61:mh};R.hph=1;
+ R.hl={1:ms(R.p1).concat(mh),2:ms(R.p2).concat(mh),3:ms(R.p3).concat(mh),61:mh};R.hph=1;
  // свечения: ядро, глаза, шит привилегии, лучи
  R.coreG=pepGlow(0xff3a20,5.5);R.core.add(R.coreG);
  R.eyeG=pepGlow(0xff4020,.55);R.hd.add(R.eyeG);R.eyeG.position.set(0,.11,.12);
@@ -5868,9 +5868,9 @@ function pepAssemble(g){const M=pepMats(),R={M,g};const F=(r,n)=>r.getObjectByNa
  R.ventG=pepGlow(0xff3020,2.8);R.chest.add(R.ventG);R.ventG.position.set(0,1.07,.86);R.ventG.visible=false;
  R.hostAt=0;pepHostTo(R,1);return R}
 function pepHostTo(R,ph){if(R.hostAt===ph||R.wreck)return;R.hostAt=ph;const H=R.hdHome;
- if(ph===2){if(R.host.parent)R.host.parent.remove(R.host);R.seat2.add(R.hd);R.hd.position.set(0,0,0);R.hd.scale.setScalar(4);R.hd.quaternion.copy(R.hdq2);R.hdBase=R.hdq2;R.eyeG.scale.setScalar(.3);return}
  if(R.hd.parent!==H.par){H.par.add(R.hd);R.hd.position.copy(H.pos);R.hd.scale.copy(H.s);R.hd.quaternion.copy(R.hdq)}R.hdBase=R.hdq;R.eyeG.scale.setScalar(.55);
- const seat=ph===1?R.seat1:R.seat3;seat.add(R.host);R.host.position.set(0,0,0);R.host.quaternion.identity();R.host.scale.setScalar(ph===1?1.5:1.9);R.host.visible=R.hips.visible=true}
+ // фаза II: старик того же размера, что в I, просто залезает в «кабину» в груди робота (ноги внутри — скрыты)
+ const seat=ph===1?R.seat1:ph===2?R.seat2:R.seat3;seat.add(R.host);R.host.position.set(0,0,0);R.host.quaternion.identity();R.host.scale.setScalar(ph===3?1.9:1.5);R.host.visible=true;R.hips.visible=ph!==2}
 function pepDispose(R){if(!R)return;for(const m of[R.beam2,...R.beams3,...R.aim3,R.cable])if(m&&m.parent)m.parent.remove(m);
  if(!R.final){if(R.host&&R.host.parent===scene)scene.remove(R.host);if(R.wreck&&R.wreck.parent===scene)scene.remove(R.wreck)}}
 
