@@ -5472,19 +5472,19 @@ const GZ_HY=4.8,GZ_CUT_T=6.4;
 function gzLevelMode(){return story?(story.lv.id==='l1'?0:story.lv.id==='l2'?1:2):2}
 function gzBegin(){GZ.ped=null;GZ.cut=null;GZ.cutDone=false;GZ.hintT=0;for(const r of GZ.rain){if(r.m)scene.remove(r.m);if(r.c)scene.remove(r.c)}GZ.rain=[];DL.lz=null;if(DL.beam)DL.beam.visible=false;gzBars(false);gzSet(gzLevelMode())}
 function gzSet(m){GZ.mode=m;gzHud();gzLook(m===1?1:0);if(m===0&&cur===3)switchW(0,true)}
-function gzHud(){const w=$('w3');if(!w)return;w.style.display=GZ.mode===0?'none':'';w.textContent='4 · '+(GZ.mode===1?'Безгазява':'Газява');const g=document.querySelector('.hud .gas');if(g)g.style.display=GZ.mode===2?'':'none'}
+function gzHud(){const w=$('w3');if(!w)return;w.style.display=GZ.mode===0?'none':'';w.textContent='4 · '+(GZ.mode===1?'Безгазява':'Газява');const g=document.querySelector('.hud .gas');if(g){g.style.display=GZ.mode===0?'none':'';const s=g.querySelector('span');if(s)s.textContent=GZ.mode===1?'ВОДА':'ДАВЛЕНИЕ';g.classList.toggle('gzw',GZ.mode===1)}}
 function gzExitOk(){if(!story||story.lv.id!=='l1'||GZ.mode>=1||mode!=='solo')return true;if(T-GZ.hintT>4){GZ.hintT=T;banner('СНАЧАЛА ЗАБЕРИ ПРОТОТИП — ОН НА ПОСТАМЕНТЕ У ВЫХОДА')}return false}
 
 /* --- облик сифона: вода (k=1) или кола (k=0) --- */
 const _gzc=new THREE.Color();
 function gzMats(){const u=guns[3]&&guns[3].userData;if(!u||!u.glb)return null;if(u.gzM)return u.gzM;const R={liq:[],lab:[],bub:[],foam:[]};const list=[];u.model.traverse(o=>{if(o.isMesh)list.push(o)});
  for(const o of list){const n=o.name;
-  if(/^Кола[ _]внутри/.test(n)){o.material=o.material.clone();o.material.transparent=true;R.liq.push({m:o.material,c:o.material.color.clone(),e:o.material.emissive.clone()})}
+  if(/^Кола[ _]внутри/.test(n)){o.material=o.material.clone();o.material.transparent=true;R.liq.push({m:o.material,c:new THREE.Color(0x4a1a0a),e:new THREE.Color(0x1a0600)})}
   else if(/^(Красный[ _]пояс|Эмблема\.)/.test(n)){o.material=o.material.clone();R.lab.push({m:o.material,c:o.material.color.clone()})}
   else if(/^Пузырёк/.test(n))R.bub.push(o);else if(/^Пена[ _]на[ _]носике/.test(n))R.foam.push(o)}
  return u.gzM=R}
 function gzLook(k){GZ.look=k;const R=gzMats();if(!R)return;
- for(const L of R.liq){L.m.color.copy(L.c).lerp(_gzc.setHex(0x86ccf5),k);L.m.emissive.copy(L.e).lerp(_gzc.setHex(0x0b2a40),k);L.m.opacity=1-.5*k;L.m.roughness=.05}
+ for(const L of R.liq){L.m.color.copy(L.c).lerp(_gzc.setHex(0x3f9ae0),k);L.m.emissive.copy(L.e).lerp(_gzc.setHex(0x0b2a40),k);L.m.opacity=1-.28*k;L.m.roughness=.05;const tr=k>.02;if(L.m.transparent!==tr){L.m.transparent=tr;L.m.needsUpdate=true}L.m.depthWrite=!tr}
  for(const L of R.lab)L.m.color.copy(L.c).lerp(_gzc.setHex(0x1f6fc6),k);
  for(const b of R.bub)b.visible=k<.5;for(const f of R.foam)f.visible=k<.5}
 /* стекло и пластик оружий: видимые края (френель) и блики */
@@ -5495,7 +5495,7 @@ function gzOpenTube(o,inner){const g=o.geometry,p=g.attributes.position;let y0=1
  const eps=(y1-y0)*.03,cap=i=>{const y=p.getY(i);return y>y1-eps?1:y<y0+eps?-1:0},idx=g.index?Array.from(g.index.array):[...Array(p.count).keys()],out=[];
  for(let t=0;t<idx.length;t+=3){const a=cap(idx[t]),b=cap(idx[t+1]),c=cap(idx[t+2]);if(a&&a===b&&b===c)continue;out.push(idx[t],idx[t+1],idx[t+2])}
  const ng=g.clone();ng.setIndex(out);o.geometry=ng;if(inner){const im=new THREE.MeshStandardMaterial({color:0xefe4cf,roughness:.85,side:THREE.BackSide});const m=new THREE.Mesh(ng,im);o.add(m)}}
-function gzSetupGun(i,m){if(i!==3)return;const list=[];m.traverse(o=>{if(o.isMesh&&/^(Красный[ _]пояс|Волна[ _]на[ _]поясе)/.test(o.name))list.push(o)});list.forEach(o=>gzOpenTube(o,/^Красный/.test(o.name)));guns[3].userData.gzM=null;if(GZ.look>=0)gzLook(GZ.look)}
+function gzSetupGun(i,m){m.traverse(o=>{if(!o.isMesh)return;if(/^Кола[ _]внутри/.test(o.name))o.renderOrder=1;else if(o.material&&/стекло|ПЭТ|Лёд/i.test(o.material.name||'')){o.renderOrder=2;o.material.depthWrite=false}});if(i!==3)return;const list=[];m.traverse(o=>{if(o.isMesh&&/^(Красный[ _]пояс|Волна[ _]на[ _]поясе)/.test(o.name))list.push(o)});list.forEach(o=>gzOpenTube(o,/^Красный/.test(o.name)));guns[3].userData.gzM=null;if(GZ.look>=0)gzLook(GZ.look)}
 
 /* --- струя воды --- */
 function gzWater(alt){if(!alt){if(gas<2){fl0();return}gas-=1.8;gasIdle=.45;vmShot(3,false);const mz=muzzle(),d=spread(aim,.02);sodaEmit(mz,d,true);spray(mz,d,1);sprayFx-=1;if(sprayFx<=0){sprayFx=3;sfx('spray',.6)}
@@ -5514,6 +5514,7 @@ const GZA=(()=>{const st=document.createElement('style');st.textContent=`
 #phA b{font:400 clamp(64px,14vh,160px)/1 Anton,Oswald,sans-serif;color:#fff;letter-spacing:.04em;transform:skewX(-8deg);text-shadow:0 0 34px var(--pg,#ff2a3a),.06em .06em 0 var(--ps,#c8102e)}
 #phA small{font:600 clamp(12px,1.9vh,19px)/1.2 Rubik,sans-serif;letter-spacing:.2em;color:#fff;background:var(--ps,#c8102e);padding:.5em 1.3em;clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);text-transform:uppercase}
 @keyframes phA{0%{opacity:0;transform:scale(1.4)}9%{opacity:1;transform:scale(1)}78%{opacity:1;transform:scale(.985)}100%{opacity:0;transform:scale(.96)}}
+.hud .gas.gzw i b,.hud .gas.gzw i>*{background:linear-gradient(90deg,#2a7fd0,#8fd8ff)!important}
 .gzbar{position:absolute;left:0;right:0;height:0;background:#000;z-index:27;pointer-events:none;transition:height .5s ease}.gzbar.t{top:0}.gzbar.b{bottom:0}.gzbar.on{height:11vh}
 .hud.gzcut>*:not(#phA):not(.gzbar):not(#banner){opacity:0!important;transition:opacity .3s}`;document.head.appendChild(st);
  const host=document.querySelector('.hud')||document.body,d=document.createElement('div');d.id='phA';d.innerHTML='<i></i><b></b><small></small>';host.appendChild(d);
@@ -5579,7 +5580,7 @@ function gzCutUpd(dt){const C=GZ.cut;C.t+=dt;const t=C.t;
   if(k2>=1){C.st=3;scene.remove(C.cube);C.vc=gzCube(true);gunScene.add(C.vc);C.vc.position.set(.02,-.05,-.36);C.v0=C.vc.position.clone()}}
  if(t>GZ_CUT_T){if(C.vc)gunScene.remove(C.vc);if(C.cube)scene.remove(C.cube);GZ.cut=null;GZ.cutDone=true;gzBars(false);P.iT=1.2;if(GZ.mode!==2)gzSet(2)}}
 function gzVm(dt){try{gzVm_(dt)}catch(e){if(!gzVm.err){gzVm.err=1;console.error(e)}}}
-function gzVm_(dt){if(cur!==3)return;const g=guns[3],u=g.userData,P_=u.parts||{},C=GZ.cut;
+function gzVm_(dt){if(cur!==3)return;const g=guns[3],u=g.userData,P_=u.parts||{},C=GZ.cut;if(P_.liquid){P_.liquid.scale.y=Math.min(P_.liquid.scale.y,1)*.96;P_.liquid.scale.x=P_.liquid.scale.z=.95}
  if(GZ.mode===1&&!C){if(P_.needle)P_.needle.rotation.z=1.8}
  if(!C)return;const t=C.t,sm=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
  const b=t<2.1?0:t<5.5?sm((t-2.1)/.5):1-sm((t-5.5)/.6);
