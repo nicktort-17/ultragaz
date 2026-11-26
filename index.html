@@ -790,7 +790,7 @@ function buildPlaza(){
 
 function loadMap(id){if(curMap===id)return;scene.remove(mapGroup);mapGroup.traverse(o=>{if(o.geometry&&o!==fountainPts)o.geometry.dispose()});
  mapGroup=new THREE.Group();scene.add(mapGroup);level.length=0;boxes.length=0;mapAnims.length=0;resetMapExtras();for(let i=0;i<FN;i++){fl[i]=0;fp[i*3+1]=-999}
- pads.length=0;if(id==='plaza')buildPlaza();else if(id==='l1')buildL1();else if(id==='l2')buildL2();else if(id==='l3')buildL3();else buildFactory();optimizeMap();applyShadows();curMap=id}
+ pads.length=0;if(id==='plaza')buildPlaza();else if(id==='l1')buildL1();else if(id==='l2')buildL2();else if(id==='l3')buildL3();else if(id==='l4')buildL4();else buildFactory();optimizeMap();applyShadows();curMap=id}
 /*STORY-BEGIN*/
 /* ================= СЮЖЕТ: состояние уровня ================= */
 let story=null,storyId=null,lvT=0,drainT=0,surgeT=0,tideK=0,wetK=1,carousel=null;
@@ -798,7 +798,7 @@ const doors=[],belts=[],presses=[],pools=[],valves=[],beacons=[];
 let goo=[],quakes=[],wrings=[],mapB={x0:-34,x1:34,z0:-34,z1:34};
 let prog={};try{prog=JSON.parse(localStorage.getItem('ug-story')||'{}')||{}}catch(e){prog={}}
 const saveProg=()=>save('ug-story',JSON.stringify(prog));
-function resetMapExtras(){for(const a of[doors,belts,presses,pools,valves,beacons])a.length=0;vLights=[];carousel=null;mapB={x0:-34,x1:34,z0:-34,z1:34};if(L3)clearL3();L3=null}
+function resetMapExtras(){for(const a of[doors,belts,presses,pools,valves,beacons])a.length=0;vLights=[];carousel=null;mapB={x0:-34,x1:34,z0:-34,z1:34};if(L3)clearL3();L3=null;if(typeof L4!=='undefined'&&L4)clearL4();L4=null}
 const inR=(p,r)=>p.x>r[0]&&p.x<r[1]&&p.z>r[2]&&p.z<r[3];
 const smk=k=>k*k*(3-2*k);
 function groundAt(x,z,maxY=8){let y=0;for(const b of boxes)if(x>b.min.x&&x<b.max.x&&z>b.min.z&&z<b.max.z&&b.max.y<=maxY&&b.max.y>y)y=b.max.y;return y}
@@ -1433,7 +1433,7 @@ function updLevel(dt){const S=story;if(!S)return;lvT+=dt;drainT=Math.max(0,drain
  updPresses();updCarousel(dt);updTide(dt);
  for(const v of valves){v.wheel.rotation.z+=v.spin*dt*5;v.spin=Math.max(0,v.spin-dt*.5);const on=drainT<=0;v.glowM.color.setHex(on?0xff2a3a:0x5fe0c8);v.glowM.opacity=on?.35+.3*Math.sin(lvT*5):.55;v.wm.emissive.setHex(on?0x550000:0x003322)}
  const R=S.room>=0?S.lv.rooms[S.room]:null;
- updBeacons(dt,S,R);objMark(S,R);if(L3)updL3(dt);
+ updBeacons(dt,S,R);objMark(S,R);if(L3)updL3(dt);if(L4)updL4(dt);
  for(const p of proj)if(p.mark){p.mark.material.opacity=.45+.4*Math.abs(Math.sin(T*14));p.mark.rotation.y+=dt*2}
  updGoo(dt);updQuakes(dt);updWrings(dt);updQS(dt);
  if(P.alive&&P.syr>.45&&state==='play'&&!(poolAt(P.pos)||{}).safe){P.hp-=6*dt;if((S.syrT=(S.syrT||0)-dt)<=0){S.syrT=1.2;sfx('gloop',.5);feed.unshift({label:'− ВЯЗНЕШЬ В СИРОПЕ',t:1.4})}if(P.hp<=0)die()}
@@ -1883,18 +1883,19 @@ let UW=null;
 function uwFx(inMenu){const c=camera.position;let lq=null;
  if(!inMenu&&(state==='play'||state==='pause')){
   if(L3&&!onHull(c.x,c.z)){if(c.y<seaH(c.x,c.z,lvT)-.03)lq='beer'}
+  else if(typeof L4!=='undefined'&&L4&&!onIsland(c.x,c.z)){if(c.y<sea4H(c.x,c.z,lvT)-.03)lq='water'}
   else if(pools.length){const q=poolAt(c);if(q&&q.m.visible&&c.y<q.y-.03)lq='syrup'}}
  if(!UW){const d=document.createElement('div');d.id='uwfx';d.style.cssText='position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .15s';const cv=document.getElementById('c');if(cv)cv.after(d);else document.body.appendChild(d);UW={el:d,lq:null}}
  if(lq!==UW.lq){
-  if(UW.lq&&scene.fog&&scene.fog===UW.fo){scene.fog.color.copy(UW.fc);scene.fog.near=UW.fn;scene.fog.far=UW.ff;scene.background=UW.bg;if(L3&&L3.seaM){const u=L3.seaM.uniforms;u.uFog.value.copy(UW.sf);u.uFn.value=UW.sn;u.uFf.value=UW.sff}if(L3&&L3.sky)L3.sky.visible=true}
-  if(lq&&scene.fog){const beer=lq==='beer',col=new THREE.Color(beer?0xa85a0a:0x6e2e06);UW.fo=scene.fog;UW.fc=scene.fog.color.clone();UW.fn=scene.fog.near;UW.ff=scene.fog.far;UW.bg=scene.background;
-   scene.fog.color.copy(col);scene.fog.near=.2;scene.fog.far=beer?18:5.5;scene.background=col;
-   if(L3&&L3.seaM){const u=L3.seaM.uniforms;UW.sf=u.uFog.value.clone();UW.sn=u.uFn.value;UW.sff=u.uFf.value;u.uFog.value.copy(col);u.uFn.value=.2;u.uFf.value=18}if(L3&&L3.sky)L3.sky.visible=false;
-   UW.el.style.background=beer?'radial-gradient(ellipse at 50% -10%,rgba(255,214,120,.32),rgba(190,100,15,.28) 45%,rgba(70,28,2,.72) 100%)':'radial-gradient(ellipse at 50% -10%,rgba(255,170,70,.3),rgba(140,60,8,.55) 45%,rgba(45,16,0,.88) 100%)';
+  if(UW.lq&&scene.fog&&scene.fog===UW.fo){scene.fog.color.copy(UW.fc);scene.fog.near=UW.fn;scene.fog.far=UW.ff;scene.background=UW.bg;if(L3&&L3.seaM){const u=L3.seaM.uniforms;u.uFog.value.copy(UW.sf);u.uFn.value=UW.sn;u.uFf.value=UW.sff}if(L3&&L3.sky)L3.sky.visible=true;if(typeof L4!=='undefined'&&L4){if(L4.sky)L4.sky.visible=true;if(L4.seaM&&UW.sf4){const u=L4.seaM.uniforms;u.uFog.value.copy(UW.sf4);u.uFn.value=UW.sn4;u.uFf.value=UW.sff4}}}
+  if(lq&&scene.fog){const beer=lq==='beer',wat=lq==='water',col=new THREE.Color(beer?0xa85a0a:wat?0x1a7aa8:0x6e2e06);UW.fo=scene.fog;UW.fc=scene.fog.color.clone();UW.fn=scene.fog.near;UW.ff=scene.fog.far;UW.bg=scene.background;
+   scene.fog.color.copy(col);scene.fog.near=.2;scene.fog.far=beer?18:wat?26:5.5;scene.background=col;
+   if(L3&&L3.seaM){const u=L3.seaM.uniforms;UW.sf=u.uFog.value.clone();UW.sn=u.uFn.value;UW.sff=u.uFf.value;u.uFog.value.copy(col);u.uFn.value=.2;u.uFf.value=18}if(L3&&L3.sky)L3.sky.visible=false;if(typeof L4!=='undefined'&&L4&&L4.sky){L4.sky.visible=false;UW.l4=1}if(typeof L4!=='undefined'&&L4&&L4.seaM){const u=L4.seaM.uniforms;UW.sf4=u.uFog.value.clone();UW.sn4=u.uFn.value;UW.sff4=u.uFf.value;u.uFog.value.copy(col);u.uFn.value=.2;u.uFf.value=26}
+   UW.el.style.background=wat?'radial-gradient(ellipse at 50% -10%,rgba(160,240,255,.3),rgba(20,120,170,.25) 45%,rgba(0,40,70,.65) 100%)':beer?'radial-gradient(ellipse at 50% -10%,rgba(255,214,120,.32),rgba(190,100,15,.28) 45%,rgba(70,28,2,.72) 100%)':'radial-gradient(ellipse at 50% -10%,rgba(255,170,70,.3),rgba(140,60,8,.55) 45%,rgba(45,16,0,.88) 100%)';
    sfx('gloop',.7)}
   UW.el.style.opacity=lq?1:0;UW.lq=lq}
  if(lq){const t=performance.now()/1000;UW.el.style.backdropFilter='blur('+(lq==='beer'?1.2:2.5)+'px)';
-  if(Math.random()<(lq==='beer'?.5:.2)){camera.getWorldDirection(_uwd);const p=new V3(c.x+_uwd.x*1.6+rnd(-1,1),c.y-.6+rnd(-.4,.4),c.z+_uwd.z*1.6+rnd(-1,1));puff(p,1,lq==='beer'?0xfff0c0:0xffc070,.4,1.2,-3)}}}
+  if(Math.random()<(lq==='beer'?.5:.2)){camera.getWorldDirection(_uwd);const p=new V3(c.x+_uwd.x*1.6+rnd(-1,1),c.y-.6+rnd(-.4,.4),c.z+_uwd.z*1.6+rnd(-1,1));puff(p,1,lq==='beer'?0xfff0c0:lq==='water'?0xe8fbff:0xffc070,.4,1.2,-3)}}}
 const _uwd=new V3();
 /* ---------- струя Газявы: капли летят по баллистической дуге, между ними — сплошная лента жидкости ---------- */
 const SODA={d:[],seq:0,sid:0,lastT:-9,mesh:null,N:220};
@@ -2769,6 +2770,200 @@ LEVELS.push({id:'l3',n:3,name:'ПИВНОЕ МОРЕ',sub:'Яхта «Пенна
    sp:[[-6,0,-60],[10,0,-60],[-11,0,-77],[11,0,-77],[-9,0,-92],[8.5,0,-92.5],[0,0,-60],[-4,5,-70],[4,5,-84]],waves:[{alt:1}],
    rein:[{at:.8,w:{can:4,vend:2}},{at:.5,w:{bambun:1,drone:2,jelly:2}},{at:.25,w:{can:4,vend:2,drone:2}}]}]});
 /*BEER-END*/
+
+/*ISLE-BEGIN*/
+/* ================= УРОВЕНЬ 4: ОСТРОВ ПЕПСШТЕЙНА — летний полдень, обычное голубое море ================= */
+let L4=null;const SEA4_Y=-1.1;
+const SEA4_W=[[.3,1,.16,19,1.0,0],[1,.4,.1,9,1.5,1.2],[-.7,.7,.06,5,2.2,2.1],[.9,-.4,.035,2.6,3.1,4]];
+function sea4H(x,z,t){let h=0;for(const [dx,dz,a,l,s,ph] of SEA4_W){const k=6.2832/l;h+=a*Math.sin((dx*x+dz*z)*k+t*s+ph)}return SEA4_Y+h}
+// контур острова (x,z): пляж спереди, холм с храмом сзади
+const ISLE=[[0,47],[20,44],[36,34],[45,12],[44,-20],[40,-52],[42,-84],[36,-118],[24,-150],[0,-160],[-24,-150],[-36,-118],[-42,-84],[-40,-52],[-44,-20],[-45,12],[-36,34],[-20,44]];
+function inIsle(x,z){let c=false;for(let i=0,j=ISLE.length-1;i<ISLE.length;j=i++){const [xi,zi]=ISLE[i],[xj,zj]=ISLE[j];if((zi>z)!==(zj>z)&&x<(xj-xi)*(z-zi)/(zj-zi)+xi)c=!c}return c}
+function onIsland(x,z){return inIsle(x,z)||(Math.abs(x)<2.8&&z>40&&z<98)}
+const SEA4_VS=`uniform float uT;varying vec3 vW;varying vec3 vN;varying float vH;
+void main(){vec3 p=(modelMatrix*vec4(position,1.)).xyz;float h=0.,hx=0.,hz=0.;
+${SEA4_W.map(([dx,dz,a,l,s,ph])=>{const k=(6.2832/l).toFixed(4);return `{float q=(${dx.toFixed(3)}*p.x+${dz.toFixed(3)}*p.z)*${k}+uT*${s.toFixed(2)}+${ph.toFixed(2)};h+=${a.toFixed(3)}*sin(q);float c=${a.toFixed(3)}*${k}*cos(q);hx+=c*${dx.toFixed(3)};hz+=c*${dz.toFixed(3)};}`}).join('')}
+ p.y+=h;vH=h;vN=normalize(vec3(-hx,1.,-hz));vW=p;gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);}`;
+const SEA4_FS=`uniform float uT,uFn,uFf;uniform vec3 uSun,uFog;varying vec3 vW;varying vec3 vN;varying float vH;
+float h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h21(i),h21(i+vec2(1,0)),f.x),mix(h21(i+vec2(0,1)),h21(i+vec2(1,1)),f.x),f.y);}
+void main(){vec3 V=normalize(cameraPosition-vW);float dist=length(vW-cameraPosition);
+ vec2 w=vec2(vn(vW.xz*.7+uT*.5),vn(vW.xz*.7-uT*.4+7.))-.5;vec3 N=normalize(vN+vec3(w.x*.25,0.,w.y*.25));
+ // мелководье у острова: эллипс вокруг центра
+ vec2 q=(vW.xz-vec2(0.,-56.))/vec2(47.,108.);float d=length(q);float shallow=1.-smoothstep(1.,1.45,d);
+ vec3 deep=vec3(.02,.2,.42),mid=vec3(.03,.42,.62),sh=vec3(.2,.78,.78);
+ vec3 c=mix(deep,mid,.5+.5*N.y);c=mix(c,sh,shallow*.85);
+ // каустики на мели
+ float ca=vn(vW.xz*1.3+uT*.6)*vn(vW.xz*1.7-uT*.5);c+=vec3(.6,.9,.85)*smoothstep(.25,.5,ca)*shallow*.35;
+ float NV=max(dot(N,V),0.),F=.02+.98*pow(1.-NV,5.);vec3 sky=vec3(.55,.78,.98);c=mix(c,sky,F*.55);
+ vec3 Ls=normalize(uSun);vec3 R=reflect(-Ls,N);float sp=max(dot(R,V),0.);c+=vec3(1.,.97,.9)*(pow(sp,240.)*3.+pow(sp,24.)*.15);
+ // пена у берега и белые барашки
+ float foam=(1.-smoothstep(.0,.06,abs(d-1.03-vn(vW.xz*.4+uT*.3)*.05)))*.9+smoothstep(.13,.17,vH+vn(vW.xz*.5+uT)*.08)*.5;
+ c=mix(c,vec3(.96,.98,1.),clamp(foam,0.,1.)*.85);
+ float sparkle=step(.996,h21(floor(vW.xz*6.)+floor(uT*8.)))*pow(sp,4.);c+=vec3(1.)*sparkle*1.2;
+ c=mix(c,uFog,smoothstep(uFn,uFf,dist));gl_FragColor=vec4(c,1.);}`;
+function isleMats(){if(L4&&L4.M)return L4.M;const T=(w,h,f,rx,ry)=>{const c=document.createElement('canvas');c.width=w;c.height=h;f(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=8;if(rx)t.repeat.set(rx,ry);return t};
+ let sd=17;const rr=()=>(sd=(sd*16807)%2147483647)/2147483647;
+ const sand=T(512,512,(g,w,h)=>{g.fillStyle='#e2cc98';g.fillRect(0,0,w,h);for(let i=0;i<9000;i++){const v=200+rr()*55|0;g.fillStyle=`rgba(${v},${v*.86|0},${v*.62|0},.5)`;g.fillRect(rr()*w,rr()*h,1+rr()*2,1+rr()*2)}
+  for(let i=0;i<40;i++){g.strokeStyle='rgba(180,150,100,.12)';g.lineWidth=3;g.beginPath();const y=rr()*h;g.moveTo(0,y);g.bezierCurveTo(w*.3,y+rr()*30-15,w*.6,y+rr()*30-15,w,y);g.stroke()}},1/6,1/6);
+ const grass=T(512,512,(g,w,h)=>{g.fillStyle='#55883a';g.fillRect(0,0,w,h);for(let i=0;i<7000;i++){g.fillStyle=rr()<.5?'rgba(40,90,25,.35)':'rgba(150,200,80,.3)';g.fillRect(rr()*w,rr()*h,1,2+rr()*4)}},1/5,1/5);
+ const stone=T(512,512,(g,w,h)=>{g.fillStyle='#d9d2c2';g.fillRect(0,0,w,h);for(let y=0;y<h;y+=64)for(let x=(y/64)%2*48;x<w;x+=96){g.fillStyle=`rgb(${200+rr()*30|0},${192+rr()*28|0},${175+rr()*25|0})`;g.fillRect(x+2,y+2,92,60)}},1/3,1/3);
+ const stripe=T(64,512,(g,w,h)=>{for(let i=0;i<8;i++){g.fillStyle=i%2?'#f6f4ee':'#2c62c8';g.fillRect(0,i*h/8,w,h/8)}},1,1);
+ const plank=T(512,128,(g,w,h)=>{for(let i=0;i<4;i++){const v=150+rr()*30|0;g.fillStyle=`rgb(${v},${v*.7|0},${v*.45|0})`;g.fillRect(0,i*32,w,30);g.fillStyle='#4a3020';g.fillRect(0,i*32+30,w,2)}},1,1);
+ const thatch=T(256,256,(g,w,h)=>{g.fillStyle='#b8903e';g.fillRect(0,0,w,h);for(let i=0;i<900;i++){g.strokeStyle=rr()<.5?'rgba(90,60,20,.4)':'rgba(240,210,120,.4)';g.beginPath();const x=rr()*w,y=rr()*h;g.moveTo(x,y);g.lineTo(x+rr()*4-2,y+10+rr()*14);g.stroke()}},1,1);
+ const M=(o)=>new THREE.MeshStandardMaterial(Object.assign({roughness:.7},o));
+ return {sand:M({map:sand,roughness:.95,color:0xe8dcc4}),grass:M({map:grass,roughness:.95,color:0xa9bf98}),stone:M({map:stone,roughness:.8}),stripe:M({map:stripe,roughness:.5}),plank:M({map:plank,roughness:.8}),thatch:M({map:thatch,roughness:.95,side:THREE.DoubleSide}),
+  white:M({color:0xf6f3ec,roughness:.5}),gold:M({color:0xf2c14b,metalness:1,roughness:.22,envMap:ENV}),glass:M({color:0x8fd8ff,roughness:.05,metalness:.3,transparent:true,opacity:.45,envMap:ENV}),
+  bark:M({color:0x8a6a44,roughness:.95}),leaf:M({color:0x3f9a3a,roughness:.7,side:THREE.DoubleSide}),leaf2:M({color:0x2f7d34,roughness:.7,side:THREE.DoubleSide}),rock:M({color:0x8c8478,roughness:.95,flatShading:true}),
+  blue:M({color:0x2c62c8,roughness:.4}),red:M({color:0xe23a3a,roughness:.5}),dark:M({color:0x23262c,roughness:.5,metalness:.4}),chrome:M({color:0xdfe6ee,metalness:1,roughness:.18,envMap:ENV}),
+  pool:new THREE.MeshStandardMaterial({color:0x3fc6e0,roughness:.05,metalness:.1,transparent:true,opacity:.82,envMap:ENV,emissive:0x0a4a5a}),tile:M({color:0xe6f3f6,roughness:.4}),towel:[M({color:0xff6fb0}),M({color:0x5fe0c8}),M({color:0xf2b84b}),M({color:0x6f8cff})]}}
+
+/* ---------- мелкие строители ---------- */
+function i4Palm(x,y,z,h,lean){const M=L4.M,g=new THREE.Group();g.position.set(x,y,z);g.rotation.y=Math.random()*6.28;mapGroup.add(g);solid(x,y,z,.7,h,.7);
+ const n=8;let px=0,py=0;for(let i=0;i<n;i++){const k=i/n,s=new THREE.Mesh(new THREE.CylinderGeometry(.2-k*.07,.24-k*.07,h/n+.05,8),M.bark);px=Math.pow(k,1.6)*lean;s.position.set(px,py+h/n/2,0);s.rotation.z=-lean*.12;g.add(s);py+=h/n}
+ for(let i=0;i<9;i++){const lf=new THREE.Mesh(new THREE.PlaneGeometry(.7,3.4,1,6),i%2?M.leaf:M.leaf2);lf.geometry.translate(0,1.7,0);const p=lf.geometry.attributes.position;for(let k=0;k<p.count;k++){const yy=p.getY(k);p.setZ(k,-yy*yy*.13);p.setX(k,p.getX(k)*(1-yy/3.6))}lf.geometry.computeVertexNormals();
+  lf.position.set(px,py,0);lf.rotation.set(1.25+Math.random()*.25,i/9*6.283,0,'YXZ');g.add(lf)}
+ for(let i=0;i<3;i++){const c=new THREE.Mesh(new THREE.SphereGeometry(.22,8,6),M.bark);c.position.set(px+Math.cos(i*2)*.25,py-.25,Math.sin(i*2)*.25);g.add(c)}mergeKids(g);return g}
+function i4Rock(x,y,z,s,col=true){const m=deco(new THREE.DodecahedronGeometry(s,0),L4.M.rock,x,y+s*.45,z);m.rotation.set(Math.random(),Math.random()*6,Math.random());m.scale.set(1,.7,1.1);level.push(m);if(col)solid(x,y,z,s*1.5,s*1.2,s*1.5);return m}
+function i4Bush(x,y,z,s){const M=L4.M;for(let i=0;i<4;i++){const b=deco(new THREE.IcosahedronGeometry(s*(.6+Math.random()*.4),1),i%2?M.leaf:M.leaf2,x+Math.sin(i*2.1)*s*.6,y+s*.5,z+Math.cos(i*2.1)*s*.6);b.scale.y=.75}}
+function i4Lounger(x,y,z,ry,ci){const M=L4.M,g=new THREE.Group();g.position.set(x,y,z);g.rotation.y=ry;mapGroup.add(g);const a=(geo,m,px,py,pz,rx)=>{const o=new THREE.Mesh(geo,m);o.position.set(px,py,pz);if(rx)o.rotation.x=rx;o.castShadow=true;g.add(o)};
+ a(new THREE.BoxGeometry(.75,.08,1.5),M.white,0,.35,.2);a(new THREE.BoxGeometry(.75,.08,.8),M.white,0,.62,-.75,-.75);a(new THREE.BoxGeometry(.66,.03,1.4),M.towel[ci%4],0,.4,.2);for(const s of[-1,1])for(const zz of[-.4,.85])a(new THREE.BoxGeometry(.05,.35,.05),M.chrome,s*.33,.17,zz);mergeKids(g)}
+function i4Umbrella(x,y,z,ci){const M=L4.M;deco(new THREE.CylinderGeometry(.05,.05,2.7,8),M.chrome,x,y+1.35,z);const u=deco(new THREE.ConeGeometry(2.1,.75,10,1,true),M.towel[ci%4],x,y+2.85,z);u.material=u.material.clone();u.material.side=THREE.DoubleSide}
+function i4Cabana(x,z,ry){const M=L4.M,g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=ry;mapGroup.add(g);for(const [px,pz] of[[-1.6,-1.6],[1.6,-1.6],[-1.6,1.6],[1.6,1.6]]){const p=new THREE.Mesh(new THREE.CylinderGeometry(.1,.12,3,8),M.bark);p.position.set(px,1.5,pz);g.add(p)}
+ const r=new THREE.Mesh(new THREE.ConeGeometry(3,1.4,4,1,true),M.thatch);r.position.y=3.6;r.rotation.y=Math.PI/4;g.add(r);const bed=new THREE.Mesh(new THREE.BoxGeometry(2.6,.45,2.2),M.white);bed.position.y=.25;g.add(bed);
+ for(const s of[-1,1]){const c=new THREE.Mesh(new THREE.PlaneGeometry(1.2,2.8),new THREE.MeshStandardMaterial({color:0xfaf6ee,transparent:true,opacity:.75,side:THREE.DoubleSide}));c.position.set(s*1.65,1.6,-1.1);c.rotation.y=Math.PI/2;g.add(c)}mergeKids(g);
+ const w=new V3(x,0,z);solid(w.x,0,w.z,2.8,.5,2.4)}
+/* ---------- карта ---------- */
+function buildL4(){const M0=storyMats();L4={t:0,intro:{t:0,done:false},M:null,birds:[]};L4.M=isleMats();const M=L4.M;
+ scene.background=new THREE.Color(0x9fd2f6);scene.fog=new THREE.Fog(0xbfe4fb,80,320);mapB={x0:-70,x1:70,z0:-175,z1:170};
+ const sun=new V3(.25,.92,-.3).normalize();L4.sun=sun;
+ const hemi=new THREE.HemisphereLight(0xcfe8ff,0xd8c08a,.62),dl=shadowLight(new THREE.DirectionalLight(0xfff4e0,.95),48,140);addLights([hemi,dl]);followSun(dl,sun.x*70,sun.y*70,sun.z*70);
+ // небо: градиент + облака
+ const sky=new THREE.Mesh(new THREE.SphereGeometry(300,32,16),new THREE.ShaderMaterial({uniforms:{uSun:{value:sun},uT:{value:0}},side:THREE.BackSide,depthWrite:false,
+  vertexShader:'varying vec3 vD;void main(){vD=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:`uniform vec3 uSun;uniform float uT;varying vec3 vD;float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
+   float fb(vec2 p){float s=0.,a=.5;for(int i=0;i<5;i++){s+=n(p)*a;p*=2.03;a*=.5;}return s;}
+   void main(){vec3 d=normalize(vD);float el=max(d.y,0.);vec3 c=mix(vec3(.75,.88,.98),vec3(.24,.52,.9),pow(el,.55));float sd=max(dot(d,normalize(uSun)),0.);c+=vec3(1.,.95,.8)*pow(sd,400.)*3.+vec3(1.,.9,.7)*pow(sd,12.)*.25;
+    if(d.y>0.){vec2 uv=d.xz/(d.y+.12)*1.4+vec2(uT*.006,0.);float cl=smoothstep(.55,.78,fb(uv));c=mix(c,vec3(1.),cl*.85*smoothstep(0.,.15,d.y));}
+    c=mix(c,vec3(.8,.9,.98),smoothstep(.12,-.05,d.y));gl_FragColor=vec4(c,1.);}`}));sky.renderOrder=-10;sky.frustumCulled=false;mapGroup.add(sky);L4.sky=sky;
+ // море
+ const seaM=new THREE.ShaderMaterial({uniforms:{uT:{value:0},uSun:{value:sun},uFog:{value:new THREE.Color(0xbfe4fb)},uFn:{value:80},uFf:{value:320}},vertexShader:SEA4_VS,fragmentShader:SEA4_FS,side:THREE.DoubleSide});
+ const sea=new THREE.Mesh(new THREE.PlaneGeometry(640,640,160,160).rotateX(-Math.PI/2),seaM);sea.position.set(0,0,-20);sea.frustumCulled=false;sea.userData.dyn=1;mapGroup.add(sea);L4.seaM=seaM;
+ // остров: ровный песок + пологий край, уходящий под воду
+ {const pts=[];for(let i=0;i<ISLE.length;i++){const [x0,z0]=ISLE[i],[x1,z1]=ISLE[(i+1)%ISLE.length];const n=Math.ceil(Math.hypot(x1-x0,z1-z0)/3);for(let k=0;k<n;k++){const t=k/n;pts.push([x0+(x1-x0)*t,z0+(z1-z0)*t])}}
+  const sh=new THREE.Shape();pts.forEach(([x,z],i)=>i?sh.lineTo(x,-z):sh.moveTo(x,-z));const top=new THREE.ShapeGeometry(sh,1);top.rotateX(-Math.PI/2);const uv=top.attributes.uv;for(let i=0;i<uv.count;i++)uv.setXY(i,uv.getX(i),uv.getY(i));
+  const isl=new THREE.Mesh(top,M.sand);isl.position.y=.005;isl.receiveShadow=true;mapGroup.add(isl);level.push(isl);
+  const P_=[],UV=[],I=[],cx=0,cz=-56,n=pts.length;for(let i=0;i<n;i++){const [x,z]=pts[i];const dx=x-cx,dz=(z-cz)*.45,L=Math.hypot(dx,dz)||1;const ox=x+dx/L*9,oz=z+dz/L*9;P_.push(x,.005,z,ox,-3.2,oz);UV.push(x,z,ox,oz)}
+  for(let i=0;i<n;i++){const a=i*2,b=((i+1)%n)*2;I.push(a,b,a+1,b,b+1,a+1)}const sk=new THREE.BufferGeometry();sk.setAttribute('position',new THREE.Float32BufferAttribute(P_,3));sk.setAttribute('uv',new THREE.Float32BufferAttribute(UV,2));sk.setIndex(I);sk.computeVertexNormals();
+  const skm=new THREE.Mesh(sk,M.sand);skm.material=M.sand.clone();skm.material.side=THREE.DoubleSide;mapGroup.add(skm)}
+ solid(0,-3,-56,96,3,220);
+ // невидимые стены по контуру (кроме причала)
+ for(let i=0;i<ISLE.length;i++){const [x0,z0]=ISLE[i],[x1,z1]=ISLE[(i+1)%ISLE.length],L=Math.hypot(x1-x0,z1-z0),n=Math.ceil(L/1.5);for(let k=0;k<n;k++){const t=(k+.5)/n,x=x0+(x1-x0)*t,z=z0+(z1-z0)*t;if(z>38&&Math.abs(x)<3.2)continue;solid(x,0,z,1.7,8,1.7)}}
+ // ---------- ПРИЧАЛ ----------
+ addBoxW(0,-.4,69,5,.4,56,M.plank,2);for(let z=44;z<=96;z+=4)for(const s of[-1,1])deco(new THREE.CylinderGeometry(.16,.18,2.4,8),M.bark,s*2.3,-1,z);
+ for(const s of[-1,1]){solid(s*2.75,0,69,.4,1.3,56);decoW(s*2.45,1,69,.1,.1,56,M.bark);for(let z=42;z<=96;z+=3)decoW(s*2.45,.5,z,.12,1,.12,M.bark)}solid(0,0,97.3,5,1.3,.4);decoW(0,1,97.2,5,.1,.1,M.bark);
+ for(const z of[52,74,92]){const lm=deco(new THREE.CylinderGeometry(.06,.06,2.6,8),M.dark,2.3,1.3,z);deco(new THREE.SphereGeometry(.2,10,8),new THREE.MeshBasicMaterial({color:0xfff2c8}),2.3,2.7,z)}
+ wsign('ОСТРОВ ПЕПСШТЕЙНА · ЧАСТНАЯ ТЕРРИТОРИЯ',0,2.9,40.6,0,7.6,.8,'#f6f4ee','#2c62c8');for(const s of[-1,1])addBoxW(s*3.4,0,41,.6,3.4,.6,M.bark,2);decoW(0,3.3,41,7.4,.35,.5,M.bark);
+ addDoor(0,0,40.6,6,3.2,true,M.plank);
+ // ---------- ПЛЯЖ ----------
+ for(const [x,z,h,l] of[[-30,36,8,1.4],[-24,20,9,1.8],[30,34,7.5,1.2],[25,16,9.5,2],[-12,30,8,1.3],[14,28,7,1.5],[-32,8,8.5,2.2],[33,6,8,1.8],[-5,10,9,1.6],[8,4,7.5,1.2]])i4Palm(x,0,z,h,l);
+ for(const [x,z,ry] of[[-20,28,.3],[19,24,-.4]])i4Cabana(x,z,ry);
+ for(let i=0;i<5;i++){i4Lounger(-14+i*2.2,0,14,Math.PI,i);if(i%2===0)i4Umbrella(-13+i*2.2,0,15.6,i)}for(let i=0;i<4;i++){i4Lounger(9+i*2.2,0,12,Math.PI,i+1);if(i%2)i4Umbrella(10+i*2.2,0,13.6,i)}
+ // тики-бар
+ addBoxW(22,0,4,7,1.15,1.6,M.plank,2);decoW(22,1.15,4,7.4,.1,2,M.bark);for(const x of[18.8,25.2])for(const z of[3.4,6.4])deco(new THREE.CylinderGeometry(.09,.1,3.2,8),M.bark,x,1.6,z);
+ {const r=deco(new THREE.BoxGeometry(8,.35,4.2),M.thatch,22,3.35,4.8);r.rotation.x=.08}wsign('TIKI · КОКОСЫ · ГАЗИРОВКА',22,2.75,2.8,0,5.2,.55,'#3a2010','#f2c14b');
+ for(let i=0;i<4;i++){deco(new THREE.CylinderGeometry(.25,.25,.08,12),M.red,19.5+i*1.7,.78,2.4);deco(new THREE.CylinderGeometry(.04,.04,.75,6),M.chrome,19.5+i*1.7,.38,2.4)}
+ // волейбольная сетка, сёрфы, каяк
+ for(const s of[-1,1])deco(new THREE.CylinderGeometry(.06,.06,2.5,8),M.white,-22+s*4,1.25,6);deco(new THREE.PlaneGeometry(8,.9,16,2),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.6,side:THREE.DoubleSide,wireframe:true}),-22,2,6);
+ for(let i=0;i<3;i++){const b=deco(THREE.CapsuleGeometry?new THREE.CapsuleGeometry(.28,1.8,4,10):new THREE.CylinderGeometry(.28,.28,2.2,10),M.towel[i],-32+i*.8,1.2,22-i*.2);b.rotation.set(-.15,0,.08*i);b.scale.z=.25}
+ {const k=deco(new THREE.CylinderGeometry(.35,.35,3.6,10),M.red,28,.3,22);k.rotation.z=Math.PI/2;k.scale.set(1,1,.5)}
+ for(const [x,z,s] of[[-38,26,1.6],[38,20,1.4],[-40,-2,2],[40,-6,1.8],[-6,40,.9],[7,41,.8]])i4Rock(x,0,z,s);
+ for(let x=-34;x<=34;x+=2.2)if(Math.abs(x)>5)for(const zz of[-.6,1])i4Bush(x+Math.random(),0,zz+Math.random()*.6,1.1+Math.random()*.4);
+ for(const s of[-1,1])for(const [a,b] of[[3,9],[9,17],[17,25],[25,36],[36,47]])addBoxW(s*(a+b)/2,0,.3,b-a,3.4,1.2,M.rock,2);
+ addDoor(0,0,.3,6,3.4,false,M.plank);wsign('ДЖУНГЛИ ▸',0,3.9,.95,0,3,.6,'#f6f4ee','#3f7a2a');
+ // ---------- ДЖУНГЛИ ----------
+ for(const s of[-1,1]){addBoxW(s*17,0,-24,2,6,48,M.rock,2);for(let z=-2;z>-47;z-=3.2){i4Palm(s*(14+Math.random()*1.5),0,z,8+Math.random()*3,s*-1.5);i4Bush(s*(12.5+Math.random()),0,z-1.6,1.4)}}
+ for(const [x,z,s] of[[-6,-12,1.5],[7,-20,1.8],[-8,-30,1.3],[5,-34,1.2],[0,-26,1],[-10,-41,1.4],[10,-41,1.5]])i4Rock(x,0,z,s);
+ for(const [x,z] of[[-3,-8],[4,-15],[-4,-22],[3,-38]])i4Bush(x,0,z,1);
+ // тропа из досок и лианы
+ for(let z=-1;z>-40;z-=1.2)decoW(Math.sin(z*.15)*2.5,.02,z,2.2,.04,1,M.plank,1);
+ const lianaM=new THREE.MeshStandardMaterial({color:0x2f6f2a,roughness:.8});for(let i=0;i<14;i++){const x=rnd(-12,12),z=rnd(-44,-4);const pts=[new V3(x,9,z),new V3(x+rnd(-1,1),6,z+rnd(-1,1)),new V3(x+rnd(-.5,.5),3.5+rnd(0,1.5),z)];mapGroup.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),10,.05,5,false),lianaM))}
+ stairs(0,-40,0,-1,8,4,2);addBoxW(-8.5,0,-44,9,2,8,M.stone,2);addBoxW(8.5,0,-44,9,2,8,M.stone,2);
+ // ---------- ВИЛЛА: плато y=2 ----------
+ addBoxW(0,0,-74,64,2,52,M.grass,2);trim(-32,32,-100,-48,2);
+ for(const s of[-1,1])for(const [a,b] of[[3,10],[10,20],[20,32]])addBoxW(s*(a+b)/2,2,-48.3,b-a,3,1,M.white,2);addDoor(0,2,-48.3,6,3,false,M.white);
+ // дом: белый куб с панорамными окнами и террасой
+ addBoxW(-18,2,-80,22,6,14,M.white,2);addBoxW(-18,8,-80,24,.5,16,M.white,2);addBoxW(-21,8.5,-82,12,4,9,M.white,2);addBoxW(-21,12.5,-82,13,.4,10,M.white,2);
+ for(const [x,w] of[[-25,5],[-17,6],[-10,4]]){deco(new THREE.PlaneGeometry(w,4),M.glass,x,5,-72.98)}deco(new THREE.PlaneGeometry(10,3),M.glass,-21,10.5,-77.48);
+ for(let i=0;i<6;i++)deco(new THREE.CylinderGeometry(.18,.18,6,10),M.white,-28+i*4,5,-72.2);
+ // бассейн-инфинити: дно ниже, вода на уровне плато
+ addBoxW(8,0,-80,16,1,10,M.tile,2);for(const [x,z,w,d] of[[8,-74.6,16,.8],[8,-85.4,16,.8],[-.4,-80,.8,10],[16.4,-80,.8,10]])addBoxW(x,0,z,w,2.05,d,M.tile,2);
+ {const pw=deco(new THREE.PlaneGeometry(15.2,10).rotateX(-Math.PI/2),M.pool,8,1.85,-80);pw.renderOrder=2;L4.pool=pw}
+ for(let i=0;i<4;i++)i4Lounger(1+i*2.6,2,-89,0,i);for(let i=0;i<3;i++)i4Umbrella(2.3+i*5,2,-90.6,i+1);
+ // бар у бассейна, гольф-кар, вертолётная площадка
+ addBoxW(24,2,-62,6,1.15,1.6,M.white,2);decoW(24,3.15,-62,6.4,.1,2,M.gold);for(const s of[-1,1])deco(new THREE.CylinderGeometry(.08,.08,3,8),M.chrome,24+s*2.8,3.5,-62.6);deco(new THREE.BoxGeometry(7,.2,3),M.white,24,5.05,-62.4);
+ {const c=new THREE.Group();c.position.set(-6,2,-60);mapGroup.add(c);const b=new THREE.Mesh(new THREE.BoxGeometry(1.4,.6,2.4),M.white);b.position.y=.6;c.add(b);const r=new THREE.Mesh(new THREE.BoxGeometry(1.5,.08,2.2),M.blue);r.position.y=2;c.add(r);for(const s of[-1,1])for(const zz of[-.8,.8]){const w=new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,.2,12),M.dark);w.rotation.z=Math.PI/2;w.position.set(s*.72,.3,zz);c.add(w)}
+  for(const s of[-1,1])for(const zz of[-1,1]){const p=new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,1.1,6),M.chrome);p.position.set(s*.65,1.45,zz*1);c.add(p)}mergeKids(c);solid(-6,2,-60,1.6,1.5,2.6)}
+ {const hp=deco(new THREE.CylinderGeometry(6,6,.12,40),M.dark,20,2.06,-86);const H=deco(new THREE.PlaneGeometry(4,5).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({map:signTex('H','#f6f4ee','rgba(0,0,0,0)',256,320,'bold 300px Arial'),transparent:true}),20,2.14,-86);
+  const ring=deco(new THREE.TorusGeometry(5.4,.12,6,48),M.gold,20,2.14,-86);ring.rotation.x=Math.PI/2;
+  const heli=new THREE.Group();heli.position.set(20,2.12,-86);mapGroup.add(heli);const bd=new THREE.Mesh(new THREE.SphereGeometry(1.5,20,14),M.blue);bd.scale.set(1,.9,1.8);bd.position.y=1.6;heli.add(bd);const gl=new THREE.Mesh(new THREE.SphereGeometry(1.2,16,10,0,Math.PI*2,0,Math.PI/2),M.glass);gl.position.set(0,1.8,1.3);gl.rotation.x=.6;heli.add(gl);
+  const tl=new THREE.Mesh(new THREE.CylinderGeometry(.25,.45,4.5,10),M.white);tl.rotation.x=Math.PI/2;tl.position.set(0,2,-3.6);heli.add(tl);for(const s of[-1,1]){const sk=new THREE.Mesh(new THREE.CylinderGeometry(.08,.08,3.6,8),M.dark);sk.rotation.x=Math.PI/2;sk.position.set(s*1,.1,0);heli.add(sk)}
+  const rot=new THREE.Group();rot.position.y=3.2;heli.add(rot);for(let i=0;i<4;i++){const bl=new THREE.Mesh(new THREE.BoxGeometry(.3,.05,7),M.dark);bl.rotation.y=i*Math.PI/4*2;rot.add(bl)}L4.rotor=rot;rot.userData.dyn=1;solid(20,2,-86,3,3.6,6)}
+ for(const [x,z,h] of[[-30,-52,9],[30,-52,8],[-30,-96,8.5],[30,-96,9],[0,-64,8],[13,-66,7.5],[-4,-94,9]])i4Palm(x,2,z,h,1.2);
+ for(const [x,z] of[[-28,-62],[28,-70],[-28,-98],[27,-98]])i4Bush(x,2,z,1.3);
+ // ---------- ХРАМ: холм y=6 ----------
+ stairs(0,-100,0,-1,10,5,6);addBoxW(-16,0,-103,22,6,6,M.stone,2);addBoxW(16,0,-103,22,6,6,M.stone,2);
+ addBoxW(0,0,-130,60,6,48,M.stone,2);decoW(0,6.01,-130,56,.02,44,M.grass,2);trim(-28,28,-154,-106,6);
+ for(const s of[-1,1])for(const [a,b] of[[3,12],[12,30]])addBoxW(s*(a+b)/2,6,-106.3,b-a,3.2,1,M.stone,2);addDoor(0,6,-106.3,6,3.2,false,M.stone);
+ // полосатый храм с золотым куполом (дверь — выход с уровня)
+ const TZ=-145;addBoxW(0,6,TZ,16,7,12,M.stripe,2);for(const s of[-1,1])addBoxW(s*5.5,6,TZ+6.3,5,7,.6,M.stripe,2);decoW(0,13.2,TZ,17,.5,13,M.white,2);
+ {const dome=deco(new THREE.SphereGeometry(5,32,16,0,Math.PI*2,0,Math.PI/2),M.gold,0,13.4,TZ);const sp=deco(new THREE.ConeGeometry(.5,3,12),M.gold,0,19.8,TZ);const ball=deco(new THREE.SphereGeometry(.55,16,12),M.gold,0,18.6,TZ)}
+ for(let i=0;i<4;i++){const x=-6+i*4;deco(new THREE.CylinderGeometry(.35,.4,6.8,14),M.white,x,9.4,TZ+7.4)}decoW(0,12.9,TZ+7.4,14,.5,1.2,M.white,2);
+ addDoor(0,6,TZ+6.3,6,4.2,false,M.gold);wsign('ХРАМ',0,11.6,TZ+6.65,0,3.4,.8,'#f2c14b','#1f3f8a');
+ // статуи-фонтаны и колонны вокруг площади
+ for(const [x,z] of[[-14,-118],[14,-118],[-14,-134],[14,-134]]){addBoxW(x,6,z,2,1.2,2,M.white,2);const st=deco(latheG([[.0,0],[.7,0],[.8,.4],[.5,1.2],[.6,2.2],[.25,3],[.3,3.6],[0,3.7]],16),M.gold,x,7.2,z)}
+ for(const x of[-22,-8,8,22]){deco(new THREE.CylinderGeometry(.4,.45,5,12),M.white,x,8.5,-110);solid(x,6,-110,.9,5,.9)}
+ for(const [x,z,h] of[[-25,-112,8],[25,-112,8.5],[-25,-150,9],[25,-150,8],[-18,-150,7.5],[18,-150,7]])i4Palm(x,6,z,h,1);
+ dust([[-30,30,0,40,.5,8],[-30,30,-100,-48,2.5,10],[-26,26,-150,-106,6.5,14]],500,0xfff8d0);
+ // чайки над островом
+ const gullM=new THREE.MeshStandardMaterial({color:0xfafafa,side:THREE.DoubleSide,roughness:.8});for(let i=0;i<10;i++){const g=new THREE.Group(),wg=new THREE.BufferGeometry();wg.setAttribute('position',new THREE.Float32BufferAttribute([0,0,-.25,0,0,.25,1.1,.1,0],3));wg.computeVertexNormals();const L=new THREE.Mesh(wg,gullM),R=new THREE.Mesh(wg,gullM);R.scale.x=-1;g.add(L,R);
+  g.userData={L,R,r:rnd(20,55),h:rnd(18,32),sp:rnd(.1,.25)*(Math.random()<.5?1:-1),ph:Math.random()*6,cz:rnd(-110,20)};g.userData.dyn=1;mapGroup.add(g);L4.birds.push(g)}
+ // далёкие острова
+ for(const [x,z,r] of[[-210,-80,40],[230,20,46],[-170,190,28],[160,-240,34]]){deco(new THREE.ConeGeometry(r,r*.5,24),new THREE.MeshStandardMaterial({color:0x5f8f3c,roughness:.9}),x,SEA4_Y+r*.24,z).scale.z=.8;deco(new THREE.CylinderGeometry(r*1.1,r*1.2,2,24),M.sand,x,SEA4_Y-.6,z)}
+ // машина Альтушки для заставки
+ L4.car=buildMoneyCar();L4.car.position.set(3.4,SEA4_Y-.2,150);mapGroup.add(L4.car);L4.car.userData.dynamic=1;
+ {const G=buildGirl(ALT_O);L4.car.userData.seat.add(G.g);G.g.position.set(0,-.93*1.3+.15,0);L4.girl=G;girlPose(G,'ride',1);setFace(G,'smirk')}
+ mapAnims.push(dt=>{const t=lvT;seaM.uniforms.uT.value=t;sky.material.uniforms.uT.value=t;sky.position.copy(camera.position);if(L4.rotor)L4.rotor.rotation.y+=dt*.6;
+  for(const g of L4.birds){const u=g.userData,a=t*u.sp+u.ph;g.position.set(Math.cos(a)*u.r,u.h+Math.sin(t*.7+u.ph)*1.5,u.cz+Math.sin(a)*u.r*.8);g.rotation.y=-a+(u.sp>0?0:Math.PI);const fl=Math.sin(t*9+u.ph)*.5;u.L.rotation.z=fl;u.R.rotation.z=-fl}
+  if(L4.pool)L4.pool.position.y=1.85+Math.sin(t*1.3)*.015});
+ plight(22,3,4,0xffd090,.4,14);plight(24,4.5,-62,0xffd090,.35,12);
+ for(let i=0;i<5;i++)addBeacon(i)}
+/* ---------- заставка: Альтушка довозит героя и уплывает ---------- */
+function updL4(dt){if(!L4)return;if(typeof updKmarks==='function')updKmarks(dt);const I=L4.intro,car=L4.car,G=L4.girl;if(!car)return;I.t+=dt;const t=I.t;const S=story;
+ if(G)girlPose(G,t<4.4||t>6?'ride':'rideTaunt',dt,{wind:new V3(0,0,car.userData.v||0)});
+ if(t<4.2){const k=Math.min(1,t/4.2),e=1-Math.pow(1-k,3),z=150-(150-99.5)*e;car.position.set(3.4,sea4H(3.4,z,lvT)-.25,z);car.rotation.set(Math.sin(lvT*2)*.03,0,Math.sin(lvT*1.6)*.03);car.userData.v=(1-k)*30;
+  if(Math.random()<dt*40){car.userData.inner.localToWorld(_hgv.set(rnd(-1,1),.2,-2.6));puff(_hgv,3,0xffffff,4,.7,8)}
+  // герой сидит на пассажирском месте
+  if(P.alive&&state==='play'&&S&&S.room<0){car.updateMatrixWorld(true);car.userData.inner.localToWorld(_hgv.set(-.45,.25,-.35));P.pos.copy(_hgv);P.vel.set(0,0,0);P.grounded=true}
+  if(t>.6&&!I.s1){I.s1=1;say(G,'ПРИЕХАЛИ. ОСТРОВ ПЕПСШТЕЙНА!',2.6)}}
+ else if(!I.hop){I.hop=1;if(P.alive&&state==='play'&&S&&S.room<0){P.pos.set(.4,.6,93);P.vel.set(-1,5,-3)}say(G,'ДАЛЬШЕ САМ, НЕУДАЧНИК! ЦМОК!',3);setFace(G,'wink');sfx('throw');banner('ОСТРОВ ПЕПСШТЕЙНА')}
+ else if(t>5.2&&car.visible){const k=t-5.2;car.rotation.y=Math.min(Math.PI*.85,k*.9);const sp=Math.min(26,k*7);car.userData.v=sp;const fx=-Math.sin(car.rotation.y),fz=-Math.cos(car.rotation.y);car.position.x+=fx*sp*dt;car.position.z+=fz*sp*dt;car.position.y=sea4H(car.position.x,car.position.z,lvT)-.25;
+  if(Math.random()<dt*60){car.userData.inner.localToWorld(_hgv.set(rnd(-1,1),.2,-2.6));puff(_hgv,3,0xffffff,5,.8,8)}if(k>12)car.visible=false}
+ // падение в море: подводный вид, выносит обратно на берег
+ if(P.alive&&state==='play'&&!onIsland(P.pos.x,P.pos.z)&&P.pos.y<SEA4_Y-.2){L4.wetT=(L4.wetT||0)+dt;P.vel.y+=(sea4H(P.pos.x,P.pos.z,lvT)-1.3-P.pos.y)*14*dt;P.vel.multiplyScalar(1-Math.min(1,dt*3));if(L4.wetT>2.5){L4.wetT=0;P.pos.copy(S.cp).setY(S.cp.y+.05);P.vel.set(0,0,0);banner('ВЫНЕСЛО НА БЕРЕГ')}}else L4.wetT=0}
+function clearL4(){L4=null}
+LEVELS.push({id:'l4',n:4,name:'ОСТРОВ ПЕПСШТЕЙНА',sub:'Частный остров магната синей газировки. Пляж, джунгли, вилла с бассейном и полосатый храм на холме.',
+ desc:'Альтушка высаживает тебя на причале. Пробейся через пляж, джунгли и виллу к храму с золотым куполом.',boss:'Пепсштейн (скоро)',diff:7,par:540,build:buildL4,start:[.4,.6,93],open:[0],exitTrig:[-3,3,-138.4,-135.6,6],
+ rooms:[{name:'ПЛЯЖ',trig:[-30,30,2,38],bounds:[-34,34,.5,41],cp:[0,0,37],entry:0,exit:1,
+   sp:[[-26,0,10],[26,0,10],[-18,0,24],[18,0,20],[0,0,22],[-8,0,6],[8,0,8],[-30,0,30],[30,0,28],[0,0,32]],waves:[{vend:4,can:3},{vend:3,can:3,drone:3},{golem:1,vend:3,keto:2}]},
+  {name:'ДЖУНГЛИ',trig:[-14,14,-38,-2],bounds:[-15.5,15.5,-48,.2],cp:[0,0,-3],entry:1,exit:2,
+   sp:[[-10,0,-8],[10,0,-10],[-9,0,-24],[9,0,-28],[0,0,-18],[-6,0,-36],[6,0,-34],[0,0,-30]],waves:[{can:5,drone:2},{golem:1,keto:2,drone:3},{golem:2,vend:3,can:3}]},
+  {name:'ВИЛЛА',trig:[-30,30,-98,-50],bounds:[-32,32,-100,-48.3],cp:[0,2,-51],entry:2,exit:3,
+   sp:[[-26,2,-56],[26,2,-56],[0,2,-62],[-26,2,-94],[26,2,-94],[0,2,-95],[-4,2,-70],[28,2,-78],[-18,8.5,-80],[-21,12.9,-82]],waves:[{vend:5,drone:3,keto:2},{golem:2,can:4,drone:3},{golem:2,keto:3,vend:3,drone:2}]},
+  {name:'ХРАМ',trig:[-24,24,-136,-108],bounds:[-26,26,-139,-106.3],cp:[0,6,-108],entry:3,exit:4,
+   sp:[[-20,6,-114],[20,6,-114],[-20,6,-132],[20,6,-132],[0,6,-122],[-8,6,-128],[8,6,-128],[0,6,-136]],waves:[{golem:3,vend:3,drone:3},{golem:3,keto:3,can:4,drone:3}]}]});
+
+/*ISLE-END*/
 
 
 
