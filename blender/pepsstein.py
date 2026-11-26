@@ -4,7 +4,7 @@
 # имена узлов (H_*, P1_*, P2_*, P3_*) читает игра (parts/pep.js). Ноги — канонические: бедро вдоль +X,
 # голень вдоль −Z от колена, поэтому одну и ту же 2-звенную IK можно применять к любой ноге.
 import bpy, bmesh, math, os, sys, random
-from mathutils import Vector as V, Matrix, Euler
+from mathutils import Vector as V, Matrix, Euler, Quaternion
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else '/tmp/pep'
 VIEWS = sys.argv[2] if len(sys.argv) > 2 else ''
@@ -49,11 +49,11 @@ def mat(name, hexc, metal=0.0, rough=.6, emit=0.0, alpha=1.0):
         nt.links.new(_sock(mx.outputs, 'Result_Color'), b.inputs['Base Color'])
     MATS[name] = m; return m
 
-mat('navy', '#23338a', .1, .55); mat('red', '#b8162d', .05, .5); mat('cream', '#e8dfcd', 0, .62)
-mat('gold', '#d9a53b', .95, .3); mat('metal', '#9a9ca6', .8, .35); mat('gun', '#4b4d57', .75, .4)
-mat('dark', '#24242b', .5, .55); mat('skin', '#c79c86', 0, .7); mat('hair', '#bdbac6', 0, .8)
+mat('navy', '#2b2f72', .1, .55); mat('red', '#b8162d', .05, .5); mat('cream', '#dcc6ae', 0, .62)
+mat('gold', '#d9a53b', .95, .3); mat('metal', '#9a9ca6', .8, .35); mat('gun', '#55545f', .75, .4)
+mat('dark', '#2c2b36', .5, .55); mat('skin', '#c79c86', 0, .7); mat('hair', '#c8c2d2', 0, .8)
 mat('velvet', '#7a1223', 0, .85); mat('banner', '#8e1628', 0, .8); mat('glow', '#ff2a1c', 0, .4, emit=7)
-mat('eye', '#ff3a22', 0, .3, emit=10); mat('gem', '#ff1636', .2, .15, emit=3); mat('glass', '#ff3434', 0, .05, alpha=.32)
+mat('eye', '#ff3a22', 0, .3, emit=3); mat('gem', '#ff1636', .2, .15, emit=3); mat('glass', '#ff3434', 0, .05, alpha=.32)
 mat('screen', '#ff2a1c', 0, .5, emit=4); mat('mouth', '#2a0909', 0, .9); mat('cableR', '#c41a2c', .1, .45)
 mat('cableB', '#2a4cc0', .1, .45)
 
@@ -193,6 +193,127 @@ def bevel(vf, w):
     v = [tuple(x.co) for x in bm.verts]; f = [tuple(x.index for x in fc.verts) for fc in bm.faces]; bm.free(); return v, f
 
 
+# ---------------------------------------------------------------- метаболы → гранёный «скульпт» (как на референсах)
+MBK = 1 / 0.575
+_mbn = [0]
+class MB:
+    def __init__(s, res=.004, thr=.6):
+        _mbn[0] += 1; s.name = 'mbx%d' % _mbn[0]; s.mb = bpy.data.metaballs.new(s.name); s.mb.resolution = res; s.mb.render_resolution = res; s.mb.threshold = thr
+        s.ob = bpy.data.objects.new(s.name, s.mb); bpy.context.scene.collection.objects.link(s.ob)
+    def ball(s, c, R, neg=False, st=2.0):
+        e = s.mb.elements.new(type='BALL'); e.co = c; e.radius = R * MBK; e.stiffness = st; e.use_negative = neg; return e
+    def ell(s, c, R3, neg=False, st=2.0, rot=None):
+        e = s.mb.elements.new(type='ELLIPSOID'); e.co = c; m = max(R3); e.radius = m * MBK; e.size_x = R3[0] / m; e.size_y = R3[1] / m; e.size_z = R3[2] / m; e.stiffness = st; e.use_negative = neg
+        if rot is not None: e.rotation = rot
+        return e
+    def cap(s, a, b, R, neg=False, st=2.0):
+        a = V(a); b = V(b); d = b - a; L = d.length; e = s.mb.elements.new(type='CAPSULE'); e.co = (a + b) / 2; e.radius = R * MBK; e.size_x = max(1e-4, L / 2); e.stiffness = st; e.use_negative = neg
+        e.rotation = V((1, 0, 0)).rotation_difference(d.normalized()) if L > 1e-6 else Quaternion(); return e
+    def mesh(s, ratio=.08):
+        dg = bpy.context.evaluated_depsgraph_get(); me = bpy.data.meshes.new_from_object(s.ob.evaluated_get(dg))
+        bpy.data.objects.remove(s.ob); bpy.data.metaballs.remove(s.mb)
+        if ratio < 1:
+            o = bpy.data.objects.new('tmpdec', me); bpy.context.scene.collection.objects.link(o)
+            md = o.modifiers.new('d', 'DECIMATE'); md.decimate_type = 'COLLAPSE'; md.ratio = ratio; md.use_collapse_triangulate = True
+            dg = bpy.context.evaluated_depsgraph_get(); me2 = bpy.data.meshes.new_from_object(o.evaluated_get(dg))
+            bpy.data.objects.remove(o); bpy.data.meshes.remove(me); me = me2
+        v = [tuple(x.co) for x in me.vertices]; f = [tuple(p.vertices) for p in me.polygons]; bpy.data.meshes.remove(me); return v, f
+
+def decimate(vf, ratio):
+    v, f = vf; me = bpy.data.meshes.new('dec'); me.from_pydata(v, [], f); me.update()
+    o = bpy.data.objects.new('tmpdec', me); bpy.context.scene.collection.objects.link(o)
+    md = o.modifiers.new('d', 'DECIMATE'); md.decimate_type = 'COLLAPSE'; md.ratio = ratio; md.use_collapse_triangulate = True
+    dg = bpy.context.evaluated_depsgraph_get(); me2 = bpy.data.meshes.new_from_object(o.evaluated_get(dg))
+    bpy.data.objects.remove(o); bpy.data.meshes.remove(me)
+    v = [tuple(x.co) for x in me2.vertices]; f = [tuple(p.vertices) for p in me2.polygons]; bpy.data.meshes.remove(me2); return v, f
+
+def band_mat(bands, a):
+    for edge, m in bands:
+        if a <= edge + 1e-6: return m
+    return bands[-1][1]
+
+def band_angles(bands, step=11.0):
+    pos = [0.0]
+    for edge, _ in bands:
+        prev = pos[-1]; n = max(1, int(math.ceil((edge - prev) / step)))
+        for i in range(1, n + 1): pos.append(prev + (edge - prev) * i / n)
+    return pos
+
+def ring_loft(rings, bands, cap_bottom=True, cap_top=False, step=11.0):
+    """Мантия-лофт: rings=[(z, cy, rx, ryf, ryb, ex)], углы φ от переда (−Y) к спине (+Y) по обе стороны; материал по |φ|."""
+    pos = band_angles(bands, step)
+    full = [-a for a in reversed(pos) if 0 < a < 180] + [a for a in pos if a < 180]
+    full = [-180.0] + full if full[0] != -180 else full
+    N = len(full); v = []; f = []; fm = []
+    for (z, cy, rx, ryf, ryb, ex) in rings:
+        for p in full:
+            t = math.radians(p); sx = math.sin(t); cz = math.cos(t)
+            ax = math.copysign(abs(sx) ** (2 / ex), sx); ay = math.copysign(abs(cz) ** (2 / ex), cz)
+            ry = ryf if ay > 0 else ryb
+            v.append((rx * ax, cy - ry * ay, z))
+    for r in range(len(rings) - 1):
+        for i in range(N):
+            j = (i + 1) % N; mid = full[i] + ((full[j] if j else 180.0) - full[i]) / 2
+            f.append((r * N + i, r * N + j, (r + 1) * N + j, (r + 1) * N + i)); fm.append(band_mat(bands, abs(mid)))
+    if cap_bottom: f.append(tuple(range(N))[::-1]); fm.append(bands[0][1])
+    if cap_top: b = (len(rings) - 1) * N; f.append(tuple(b + i for i in range(N))); fm.append(bands[0][1])
+    return v, f, fm
+
+def sheet(G, t, matf):
+    """Лист ткани с толщиной: G[j][i] — точки (j вдоль, i поперёк); matf(i,j) — материал квада."""
+    nj, ni = len(G), len(G[0]); P = [[V(p) for p in row] for row in G]; Nn = []
+    for j in range(nj):
+        row = []
+        for i in range(ni):
+            du = P[j][min(i + 1, ni - 1)] - P[j][max(i - 1, 0)]; dv = P[min(j + 1, nj - 1)][i] - P[max(j - 1, 0)][i]
+            n = du.cross(dv); row.append(n.normalized() if n.length > 1e-9 else V((0, 0, 1)))
+        Nn.append(row)
+    v = []; f = []; fm = []
+    for j in range(nj):
+        for i in range(ni): v.append(tuple(P[j][i] + Nn[j][i] * t / 2))
+    for j in range(nj):
+        for i in range(ni): v.append(tuple(P[j][i] - Nn[j][i] * t / 2))
+    off = nj * ni; idx = lambda j, i: j * ni + i
+    for j in range(nj - 1):
+        for i in range(ni - 1):
+            m = matf(i, j); f.append((idx(j, i), idx(j, i + 1), idx(j + 1, i + 1), idx(j + 1, i))); fm.append(m)
+            f.append((off + idx(j, i), off + idx(j + 1, i), off + idx(j + 1, i + 1), off + idx(j, i + 1))); fm.append(m)
+    for j in range(nj - 1):
+        for i in (0, ni - 1):
+            a, b = idx(j, i), idx(j + 1, i); f.append((a, b, off + b, off + a) if i == 0 else (a, off + a, off + b, b)); fm.append(matf(min(i, ni - 2), j))
+    for i in range(ni - 1):
+        for j in (0, nj - 1):
+            a, b = idx(j, i), idx(j, i + 1); f.append((a, off + a, off + b, b) if j == 0 else (a, b, off + b, off + a)); fm.append(matf(i, min(j, nj - 2)))
+    return v, f, fm
+
+def tube_loft(path, radii, mats, n=10, droop=None, k=3):
+    """Рукав: кольца вдоль пути, радиусы, провисание нижней половины (droop) и материал по кольцу."""
+    P = catmull(path, k) if len(path) > 2 else [V(p) for p in path]; m = len(P)
+    rr = [radii[0] + (radii[-1] - radii[0]) * 0 for _ in range(m)]
+    def lerp_list(L, u):
+        x = u * (len(L) - 1); i = min(int(x), len(L) - 2); t = x - i; return L[i] * (1 - t) + L[i + 1] * t
+    v = []; f = []; fm = []; prev = None
+    for i, p in enumerate(P):
+        u = i / (m - 1); t = (P[min(i + 1, m - 1)] - P[max(i - 1, 0)]).normalized()
+        if prev is None:
+            ref = V((0, 0, 1)) if abs(t.z) < .9 else V((1, 0, 0)); nn = t.cross(ref).normalized()
+        else: nn = (prev - t * prev.dot(t)).normalized()
+        prev = nn; bb = t.cross(nn); r = lerp_list(radii, u); dr = lerp_list(droop, u) if droop else 0
+        for j in range(n):
+            a = 2 * PI * j / n; q = p + (nn * math.cos(a) + bb * math.sin(a)) * r
+            if dr and q.z < p.z: q = q + V((0, 0, -dr * (p.z - q.z) / max(r, 1e-6)))
+            v.append(tuple(q))
+    for i in range(m - 1):
+        u = (i + .5) / (m - 1); mt = mats[min(len(mats) - 1, int(u * len(mats)))]
+        for j in range(n): f.append((i * n + j, i * n + (j + 1) % n, (i + 1) * n + (j + 1) % n, (i + 1) * n + j)); fm.append(mt)
+    f.append(tuple(range(n))[::-1]); fm.append(mats[0])
+    # тёмная подкладка, утопленная внутрь рукава
+    c = P[-1] - (P[-1] - P[-2]).normalized() * .035; base = len(v); last = v[(m - 1) * n:(m) * n]
+    for q in last: v.append(tuple(c + (V(q) - P[-1]) * .82))
+    f.append(tuple(base + j for j in range(n))); fm.append('dark')
+    for j in range(n): f.append(((m - 1) * n + j, (m - 1) * n + (j + 1) % n, base + (j + 1) % n, base + j)); fm.append('navy')
+    return v, f, fm
+
 # ---------------------------------------------------------------- детали-объекты (накопители геометрии)
 ACC = {}; ORDER = []
 
@@ -216,6 +337,15 @@ class Acc:
         for p in v: s.V.append(tuple(Mw @ V(p)))
         for i, fc in enumerate(f):
             s.F.append(tuple(base + k for k in fc)); s.FM.append(mi); s.UV.append(uv[i] if uv else None)
+        return s
+
+    def addm(s, v, f, fm, M=None, local=False, uv=None):
+        M = M if M is not None else Matrix()
+        Mw = M if local else s.W.inverted() @ M
+        base = len(s.V)
+        for p in v: s.V.append(tuple(Mw @ V(p)))
+        for i, fc in enumerate(f):
+            s.F.append(tuple(base + k for k in fc)); s.FM.append(s.mi(fm[i])); s.UV.append(uv[i] if uv else None)
         return s
 
     def world(s, p):
@@ -249,6 +379,31 @@ def emblem(a, O, u, vv, n, sc, mt='gold', d=None):
             t = V((-sg * math.sin(ph), math.cos(ph))); nr = V((sg * math.cos(ph), math.sin(ph)))
             dd = (t + nr * .45).normalized(); pp = V((-dd.y, dd.x)); L, W = .085, .03
             flat([(cx - dd.x * L, cy - dd.y * L), (cx + pp.x * W, cy + pp.y * W), (cx + dd.x * L, cy + dd.y * L), (cx - pp.x * W, cy - pp.y * W)], 0, d)
+
+
+def chunk(sz, cut=.2, jit=.03, top=(1, 1), seed=None, taper_y=1.0):
+    """Гранёная плита-«скол» как на референсах: выпуклая оболочка коробки со срезанными углами и лёгким разбросом вершин."""
+    if seed is not None: random.seed(seed)
+    hx, hy, hz = sz[0] / 2, sz[1] / 2, sz[2] / 2; P = []
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            for sz_ in (-1, 1):
+                kx, ky = (top[0], top[1]) if sz_ > 0 else (1, 1)
+                cx, cy_, cz = sx * hx * kx, sy * hy * ky * (taper_y if sy < 0 else 1), sz_ * hz
+                for ax in range(3):
+                    q = [cx, cy_, cz]; q[ax] -= [sx, sy, sz_][ax] * [hx, hy, hz][ax] * cut
+                    q = [q[0] + random.uniform(-1, 1) * jit * hx, q[1] + random.uniform(-1, 1) * jit * hy, q[2] + random.uniform(-1, 1) * jit * hz]
+                    P.append(tuple(q))
+    return hull(P)
+
+
+def wedge(pts, d, front_k=1.0, chamfer=.0):
+    """Плита по 2D-контуру (x,z) толщиной d по Y; лицевая сторона уменьшена front_k (скос к краям)."""
+    P = []
+    cx = sum(x for x, z in pts) / len(pts); cz = sum(z for x, z in pts) / len(pts)
+    for x, z in pts:
+        P.append((x, d / 2, z)); P.append((cx + (x - cx) * front_k, -d / 2, cz + (z - cz) * front_k))
+    return hull(P)
 
 
 def hexpts(r, a0=0):
@@ -422,6 +577,11 @@ def build_host():
             if fi == 1:
                 hand.add(box(.016, .016, .01), 'gem', TRS((fx, -.37, .289), (-.25, 0, 0)))
         hand.add(box(.013, .045, .013), 'skin', TRS((s * .215 - s * .038, -.33, .275), (0, 0, s * .6)))
+
+
+exec(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pep_host.py')).read())
+PH2_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pep_ph2.py')
+PH3_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pep_ph3.py')
 
 
 # ================================================================= ФАЗА I — трон-паук «ПРИВИЛЕГИЯ» (~5.5 м)
@@ -776,6 +936,8 @@ def build_ph3():
             i += 1
 
 
+if os.path.exists(PH2_FILE): exec(open(PH2_FILE).read())
+if os.path.exists(PH3_FILE): exec(open(PH3_FILE).read())
 build_host(); build_ph1(); build_ph2(); build_ph3()
 
 
@@ -850,7 +1012,15 @@ if VIEWS:
         cp['H_jaw'].rotation_euler = (.25, 0, 0)
         return list(cp.values())
 
-    extra = {'1': host_copy('P1_seat', sc=1.5), '2': host_copy('P2_seat', True, 1.8), '3': host_copy('P3_seat', sc=1.25)}
+    def head_copy(seat, sc, tilt=-.35):
+        """Фаза II: на длинную шею фазы садится только голова хоста (с челюстью)."""
+        hd = ACC['H_head'].obj.copy(); jw = ACC['H_jaw'].obj.copy()
+        for o in (hd, jw): scene.collection.objects.link(o)
+        hd.parent = ACC[seat].obj; hd.matrix_parent_inverse = Matrix(); hd.matrix_basis = Euler((tilt, 0, 0)).to_matrix().to_4x4() @ Matrix.Scale(sc, 4)
+        jw.parent = hd; jw.matrix_parent_inverse = Matrix(); jw.matrix_basis = ACC['H_head'].W.inverted() @ ACC['H_jaw'].W; jw.rotation_euler = (.3, 0, 0)
+        return [hd, jw]
+
+    extra = {'1': host_copy('P1_seat', sc=1.5), '2': head_copy('P2_seat', 4.0, -.7), '3': host_copy('P3_seat', sc=1.9)}
     ACC['H_jaw'].obj.rotation_euler = (.25, 0, 0)
 
     def roots_of(tag):
@@ -872,7 +1042,7 @@ if VIEWS:
     except Exception: pass
     scene.render.film_transparent = False
     bpy.ops.object.camera_add(); cam = bpy.context.active_object; scene.camera = cam; cam.data.lens = 50
-    SPEC = {'h': (V((0, -.2, .28)), 3.0, 1.65), '1': (V((0, 0, 3.0)), 11.5, 8.0), '2': (V((0, 0, 4.0)), 14.5, 8.2), '3': (V((0, -.5, 7.6)), 30.0, 19.5)}
+    SPEC = {'h': (V((0, -.2, .28)), 3.0, 1.65), '1': (V((0, 0, 3.0)), 11.5, 8.0), '2': (V((0, 0, 4.05)), 16.0, 8.7), '3': (V((0, -.5, 7.4)), 30.0, 25.0)}
     from PIL import Image
     for tag in VIEWS:
         vis = set(roots_of(tag))
