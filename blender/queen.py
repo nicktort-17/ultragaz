@@ -192,6 +192,8 @@ for name, p in piv.items():
     if not o: continue
     act(o); bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
     scene.cursor.location = B(*p); bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
+# руки в игре строятся плавной трубкой между суставами — отрезки плеча и предплечья не экспортируем
+for o in [o for o in bpy.data.objects if o.name.startswith(('q_up', 'q_fa'))]: bpy.data.objects.remove(o, do_unlink=True)
 tris = sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in bpy.data.objects if o.type == 'MESH')
 print('tris', tris, [o.name for o in bpy.data.objects if o.type == 'MESH'])
 bpy.ops.object.select_all(action='SELECT')

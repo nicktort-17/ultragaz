@@ -798,7 +798,7 @@ const doors=[],belts=[],presses=[],pools=[],valves=[],beacons=[];
 let goo=[],quakes=[],wrings=[],mapB={x0:-34,x1:34,z0:-34,z1:34};
 let prog={};try{prog=JSON.parse(localStorage.getItem('ug-story')||'{}')||{}}catch(e){prog={}}
 const saveProg=()=>save('ug-story',JSON.stringify(prog));
-function resetMapExtras(){for(const a of[doors,belts,presses,pools,valves,beacons])a.length=0;vLights=[];carousel=null;mapB={x0:-34,x1:34,z0:-34,z1:34};if(L3)clearL3();L3=null;if(typeof L4!=='undefined'&&L4)clearL4();L4=null}
+function resetMapExtras(){for(const a of[doors,belts,presses,pools,valves,beacons])a.length=0;vLights=[];carousel=null;mapB={x0:-34,x1:34,z0:-34,z1:34};if(L3)clearL3();L3=null}
 const inR=(p,r)=>p.x>r[0]&&p.x<r[1]&&p.z>r[2]&&p.z<r[3];
 const smk=k=>k*k*(3-2*k);
 function groundAt(x,z,maxY=8){let y=0;for(const b of boxes)if(x>b.min.x&&x<b.max.x&&z>b.min.z&&z<b.max.z&&b.max.y<=maxY&&b.max.y>y)y=b.max.y;return y}
@@ -1133,7 +1133,7 @@ function updWrings(dt){for(const w of wrings){w.R+=14*dt;const yl=syrupLvl(w.x,w
    if(Math.abs(d-w.R)<1.1&&c.pos.y<w.y+1.3){w.hit.add(key);hitTarget(c,26,new V3(c.pos.x-w.x,0,c.pos.z-w.z).normalize().multiplyScalar(15).setY(9))}}}
  wrings=wrings.filter(w=>{const end=w.R>36;if(end)scene.remove(w.m);return!end})}
 function qfx(sub,...a){if(mp()&&isHost)pushFx(['q',0,sub,...a.map(r1)])}
-function clearStoryFx(){queenSyrupReset();for(const k of kmarks){scene.remove(k.m);scene.remove(k.f)}kmarks=[];goo.forEach(g=>scene.remove(g.m));goo=[];quakes.forEach(q=>{if(q.m)scene.remove(q.m);if(q.c)scene.remove(q.c)});quakes=[];wrings.forEach(w=>scene.remove(w.m));wrings=[];
+function clearStoryFx(){for(const k of kmarks){scene.remove(k.m);scene.remove(k.f)}kmarks=[];goo.forEach(g=>scene.remove(g.m));goo=[];quakes.forEach(q=>{if(q.m)scene.remove(q.m);if(q.c)scene.remove(q.c)});quakes=[];wrings.forEach(w=>scene.remove(w.m));wrings=[];
  for(const p of proj)if(p.mark){scene.remove(p.mark);p.mark=null}$('syr').style.opacity=0}
 
 /* ================= новые враги ================= */
@@ -1204,7 +1204,7 @@ function jellyAnim(e,dt){const u=e.g.userData.j;if(!u)return;const t=T*3.2+e.see
  u.arms.forEach((a,i)=>a.rotation.x=Math.sin(t*.8+i*2)*.25)}
 
 /* Карамельная Царица: босс второго уровня */
-function buildQueen(g,mm){const E={envMap:ENV,envMapIntensity:1.1},car=mm(0xd8801f,{roughness:.1,metalness:.05,transparent:true,opacity:.86,...E}),car2=mm(0xa8500e,{roughness:.14,metalness:.05,transparent:true,opacity:.92,...E}),gold=mm(0xf2c14b,{metalness:1,roughness:.2,...E});
+/*v9*/function buildQueen(g,mm){if(typeof QUEEN_T!=='undefined'&&QUEEN_T&&QUEEN_T!=='load')return buildQueenM(g,mm);const E={envMap:ENV,envMapIntensity:1.1},car=mm(0xd8801f,{roughness:.1,metalness:.05,transparent:true,opacity:.86,...E}),car2=mm(0xa8500e,{roughness:.14,metalness:.05,transparent:true,opacity:.92,...E}),gold=mm(0xf2c14b,{metalness:1,roughness:.2,...E});
  const lathe=(pts,mat,par=g)=>{const m=new THREE.Mesh(new THREE.LatheGeometry(pts.map(([r,y])=>new THREE.Vector2(r,y)),40),mat);par.add(m);return m};
  lathe([[5.6,-1.2],[4.9,.3],[3.9,1.5],[2.9,2.7],[2.05,3.9],[1.62,4.6]],car2);
  lathe([[1.62,4.45],[1.44,5.1],[1.82,6.1],[2.36,7.2],[2.56,7.9],[2.12,8.6],[1.02,9.1],[.62,9.32],[.001,9.34]],car);
@@ -1228,17 +1228,14 @@ function buildQueen(g,mm){const E={envMap:ENV,envMapIntensity:1.1},car=mm(0xd880
   const bowl=new THREE.Mesh(new THREE.SphereGeometry(.9,18,10,0,Math.PI*2,Math.PI/2,Math.PI/2),car2);bowl.material.side=THREE.DoubleSide;hand.add(bowl);const rr=new THREE.Mesh(new THREE.TorusGeometry(.9,.08,8,28),gold);rr.rotation.x=Math.PI/2;hand.add(rr);
   arms.push({sh,el,hand,s})}
  g.userData.q={arms,head,hg,heart,glow,heartM,hairs};return eyeM}
-/*v8*/function queenAI(e,t,to,dist,dt,tg){const ph2=e.hp<e.maxHp*.5,str=drainT>0;e.stT=(e.stT||0)+dt;queenSyrup(e,dt);
+function queenAI(e,t,to,dist,dt,tg){const ph2=e.hp<e.maxHp*.5,str=drainT>0;e.stT=(e.stT||0)+dt;
  if(!e.st){e.st='rise';e.stT=0;e.lastDive=T;e.ph=1;sfx('roar')}
  if(ph2&&e.ph===1){e.ph=2;banner('ЦАРИЦА В ЯРОСТИ');sfx('roar');qfx(5,0,0);shake=Math.max(shake,.4)}
  const want=Math.atan2(t.pos.x-e.pos.x,t.pos.z-e.pos.z);let dy=want-e.g.rotation.y;dy=Math.atan2(Math.sin(dy),Math.cos(dy));e.g.rotation.y+=dy*Math.min(1,dt*(e.st==='idle'?2:1));
  const sink=str?-1.2:0;e.vel.set(0,0,0);
  if(e.st==='rise'){e.inv=true;e.ac=6;const k=Math.min(1,e.stT/2.4);e.pos.y=-13+13*(1-Math.pow(1-k,3))+sink*k;if(Math.random()<dt*30)puff(new V3(e.pos.x+rnd(-3,3),Math.max(0,syrupLvl(e.pos.x,e.pos.z)),e.pos.z+rnd(-3,3)),3,0xd8801f,6,.7,10);if(k>=1){e.st='idle';e.stT=0;e.cd=1.2;e.inv=false}}
  else if(e.st==='idle'){e.ac=0;e.pos.y+=(sink-e.pos.y)*Math.min(1,dt*2);e.cd-=dt*(ph2?1.45:1)*(str?.6:1);
-  if(e.cd<=0){if(ph2&&T-e.lastDive>13){e.st='dive';e.stT=0;sfx('gloop',1)}else{let s=queenPick(e);e.last=s;e.st=s;e.stT=0;e.done=0;if(s==='wave'){sfx('roar',.8);qfx(5,0,0)}}}}
- else if(e.st==='stranded'){e.ac=7;e.pos.y+=(-2.4-e.pos.y)*Math.min(1,dt*2.5);if(Math.random()<dt*10)puff(new V3(e.pos.x+rnd(-3,3),Math.max(0,syrupLvl(e.pos.x,e.pos.z))+.2,e.pos.z+rnd(-3,3)),3,0xd8801f,4,.6,10);if(e.stT>3.2){e.st='idle';e.stT=0;e.cd=.9}}
- else if(e.st==='swirl'){e.ac=8;if(e.stT>3.8){e.st='idle';e.cd=rnd(1.4,2);e.stT=0}}
- else if(e.st==='spout'){e.ac=9;if(!e.done&&e.stT>.45){e.done=1;for(const c of tg){const x=c.pos.x+c.vel.x*.6,z=c.pos.z+c.vel.z*.6;spout(x,z,true);qfx(6,x,z)}if(ph2)for(let i=0;i<3;i++){const a=Math.random()*6.28,r=rnd(6,15),x=e.pos.x+Math.sin(a)*r,z=e.pos.z+Math.cos(a)*r;spout(x,z,true);qfx(6,x,z)}sfx('roar',.6)}if(e.stT>1.7){e.st='idle';e.cd=rnd(1.3,2);e.stT=0}}
+  if(e.cd<=0){if(ph2&&T-e.lastDive>13){e.st='dive';e.stT=0;sfx('gloop',1)}else{const r=Math.random();let s=r<.36?'hail':r<.7?'spike':'wave';if(s===e.last&&Math.random()<.65)s=s==='wave'?'hail':'wave';e.last=s;e.st=s;e.stT=0;e.done=0;if(s==='wave'){sfx('roar',.8);qfx(5,0,0)}}}}
  else if(e.st==='hail'){e.ac=1;if(!e.done&&e.stT>.75){e.done=1;queenHail(e,tg,ph2)}if(e.stT>1.5){e.st='idle';e.cd=rnd(1.5,2.3);e.stT=0}}
  else if(e.st==='wave'){e.ac=e.stT<1.15?2:3;if(!e.done&&e.stT>1.15){e.done=1;const y=Math.max(0,syrupLvl(e.pos.x,e.pos.z));waveRing(e.pos.x,y,e.pos.z,true);qfx(1,e.pos.x,e.pos.z);surgeT=3.4;shake=Math.max(shake,.45);sfx('slam');puff(new V3(e.pos.x,y+.5,e.pos.z),80,0xd8801f,14,.9,10)}if(e.stT>2.1){e.st='idle';e.cd=rnd(1.8,2.6);e.stT=0}}
  else if(e.st==='spike'){e.ac=4;if(!e.done&&e.stT>.55){e.done=1;for(const c of tg){const a=Math.atan2(c.pos.x-e.pos.x,c.pos.z-e.pos.z);spikeLine(e.pos.x,e.pos.z,a,12,true);qfx(2,e.pos.x,e.pos.z,a)}if(ph2){spikeRing(e.pos.x,e.pos.z,6.5,true);qfx(3,e.pos.x,e.pos.z,6.5)}sfx('crack',1)}if(e.stT>1.5){e.st='idle';e.cd=rnd(1.4,2.2);e.stT=0}}
@@ -1247,11 +1244,11 @@ function buildQueen(g,mm){const E={envMap:ENV,envMapIntensity:1.1},car=mm(0xd880
 function queenHail(e,tg,ph2){const from=new V3();e.g.userData.q.arms[1].hand.getWorldPosition(from);const n=ph2?3:2;
  for(const c of tg)for(let i=0;i<n;i++){const tf=rnd(1.25,1.7),lead=i===0?.85:rnd(0,.5),a=Math.random()*6.28,rr=i===0?rnd(0,1):rnd(2,4.5),x=c.pos.x+c.vel.x*tf*lead+Math.sin(a)*rr,z=c.pos.z+c.vel.z*tf*lead+Math.cos(a)*rr;lobShot(from,new V3(x,surfY(x,z),z),tf,16,.55,0xc8661a,'bomb')}
  for(let i=0;i<(ph2?3:1);i++){const a=Math.random()*6.28,r=rnd(6,16),x=e.pos.x+Math.sin(a)*r,z=e.pos.z+Math.cos(a)*r;lobShot(from,new V3(x,surfY(x,z),z),rnd(1.3,1.8),16,.55,0xc8661a,'bomb')}sfx('throw')}
-function queenAnim(e,dt){const q=e.g.userData.q;if(!q)return;queenSyrupFx(e,dt);const t=T+e.seed,k=Math.min(1,dt*7),a=e.ac||0;
+function queenAnim(e,dt){const q=e.g.userData.q;if(!q)return;const t=T+e.seed,k=Math.min(1,dt*7),a=e.ac||0;
  for(const A of q.arms){const s=A.s;let z=s*(.55+Math.sin(t*1.1+s)*.08),x=Math.sin(t*.9+s)*.15,el=-.55;
-  if(a===1&&s>0){x=-2.5;z=s*.4;el=-.9}else if(a===2){z=s*2.65;x=-.2;el=-.25}else if(a===3){z=s*.4;x=-1.25;el=-.2}else if(a===4&&s>0){x=-1.45;z=s*.25;el=-.05}else if(a===5){z=s*2.2;x=0;el=-.3}else if(a===6){z=s*1.6;x=-.3;el=-.6}else if(a===7){z=s*(1.9+Math.sin(t*9+s)*.25);x=.4;el=-1.3}else if(a===8){z=s*(1.5+Math.sin(t*5+s*1.5)*.35);x=-.5+Math.sin(t*5)*.4;el=-.35}else if(a===9){z=s*.7;x=-2.3+Math.abs(Math.sin(t*3))*.6;el=-.15}
+  if(a===1&&s>0){x=-2.5;z=s*.4;el=-.9}else if(a===2){z=s*2.65;x=-.2;el=-.25}else if(a===3){z=s*.4;x=-1.25;el=-.2}else if(a===4&&s>0){x=-1.45;z=s*.25;el=-.05}else if(a===5){z=s*2.2;x=0;el=-.3}else if(a===6){z=s*1.6;x=-.3;el=-.6}
   A.sh.rotation.z+=(z-A.sh.rotation.z)*k;A.sh.rotation.x+=(x-A.sh.rotation.x)*k;A.el.rotation.x+=(el-A.el.rotation.x)*k}
- q.head.rotation.z=Math.sin(t*.8)*.06;q.head.rotation.x=(a===2?-.25:a===3?.2:0)+Math.sin(t*.6)*.04;const hp=1+.14*Math.sin(t*5);q.heart.scale.setScalar(hp);q.heart.rotation.y+=dt;q.glow.material.opacity=.7+.3*Math.sin(t*5);
+ if(q.model)queenArms(e,q,t);q.head.rotation.z=Math.sin(t*.8)*.06;q.head.rotation.x=(a===2?-.25:a===3?.2:0)+Math.sin(t*.6)*.04;const hp=1+.14*Math.sin(t*5);q.heart.scale.setScalar(hp);q.heart.rotation.y+=dt;q.glow.material.opacity=.7+.3*Math.sin(t*5);
  q.heartM.color.setHex(drainT>0?0xffffff:0xfff2c8);q.hairs.forEach((h,i)=>h.rotation.z=Math.sin(t*1.3+i)*.12);
  if(Math.random()<dt*8){const an=Math.random()*6.28,r=rnd(2,3.5);puff(new V3(e.pos.x+Math.sin(an)*r,e.pos.y+rnd(2,6),e.pos.z+Math.cos(an)*r),1,0xd8801f,.5,1,10)}}
 const _wh=new V3();
@@ -1433,9 +1430,9 @@ function updLevel(dt){const S=story;if(!S)return;lvT+=dt;drainT=Math.max(0,drain
  updPresses();updCarousel(dt);updTide(dt);
  for(const v of valves){v.wheel.rotation.z+=v.spin*dt*5;v.spin=Math.max(0,v.spin-dt*.5);const on=drainT<=0;v.glowM.color.setHex(on?0xff2a3a:0x5fe0c8);v.glowM.opacity=on?.35+.3*Math.sin(lvT*5):.55;v.wm.emissive.setHex(on?0x550000:0x003322)}
  const R=S.room>=0?S.lv.rooms[S.room]:null;
- updBeacons(dt,S,R);objMark(S,R);if(L3)updL3(dt);if(L4)updL4(dt);
+ updBeacons(dt,S,R);objMark(S,R);if(L3)updL3(dt);
  for(const p of proj)if(p.mark){p.mark.material.opacity=.45+.4*Math.abs(Math.sin(T*14));p.mark.rotation.y+=dt*2}
- updGoo(dt);updQuakes(dt);updWrings(dt);updQS(dt);
+ updGoo(dt);updQuakes(dt);updWrings(dt);
  if(P.alive&&P.syr>.45&&state==='play'&&!(poolAt(P.pos)||{}).safe){P.hp-=6*dt;if((S.syrT=(S.syrT||0)-dt)<=0){S.syrT=1.2;sfx('gloop',.5);feed.unshift({label:'− ВЯЗНЕШЬ В СИРОПЕ',t:1.4})}if(P.hp<=0)die()}
  {const cy=syrupLvl(camera.position.x,camera.position.z);$('syr').style.opacity=cy>camera.position.y?.62:0}
  S.maxR=Math.max(S.maxR,rank());ambTick(dt);
@@ -1516,6 +1513,42 @@ function updSpouts(dt){for(const s of QS.spouts){const pt=s.t;s.t+=dt;if(s.r)s.r
   if(s.c){const k=s.t<.2?s.t/.2:s.t>.75?Math.max(.01,1-(s.t-.75)/.4):1;s.c.scale.set(1.6*(.7+.3*k),7*k,1.6*(.7+.3*k));s.c.material.opacity=.88*k;if(Math.random()<dt*30)puff(new V3(s.x+rnd(-1,1),s.y+7*k,s.z+rnd(-1,1)),2,0xffc060,3,.5,10)}}
  QS.spouts=QS.spouts.filter(s=>{const end=s.t>1.2;if(end){if(s.r)scene.remove(s.r);if(s.c)scene.remove(s.c)}return!end})}
 function queenSyrupReset(){QS.fill=0;QS.feedT=0;QS.wasDrain=false;QS.told=false;for(const s of QS.spouts){if(s.r)scene.remove(s.r);if(s.c)scene.remove(s.c)}QS.spouts=[];if(QS.vortex){scene.remove(QS.vortex);QS.vortex=null}const p=qPool();if(p&&p.hi0!=null)p.hi=p.hi0}
+/* ---------- Карамельная Царица из Blender (queen.py): тело, голова с короной, кисти; руки — текучие трубки сиропа ---------- */
+let QUEEN_T=null;
+function loadQueen(){if(QUEEN_T||!THREE.GLTFLoader)return;QUEEN_T='load';new THREE.GLTFLoader().load('models/queen.json',gl=>{gl.scene.updateMatrixWorld(true);QUEEN_T=gl.scene},undefined,()=>{QUEEN_T=null})}
+function buildQueenM(g,mm){const E={envMap:ENV,envMapIntensity:1.1};
+ const MT={caramel:mm(0xd8801f,{roughness:.1,metalness:.05,transparent:true,opacity:.88,...E}),caramelDark:mm(0xa8500e,{roughness:.14,metalness:.05,transparent:true,opacity:.93,...E}),gold:mm(0xf2c14b,{metalness:1,roughness:.2,...E}),
+  gem:mm(0xff7ab8,{roughness:.05,emissive:0xff2a80,emissiveIntensity:.6,...E}),lip:mm(0x5a1604,{roughness:.2}),rockCandy:mm(0xffd9a0,{roughness:.05,transparent:true,opacity:.8,emissive:0x6a3000,...E})};
+ const eyeM=new THREE.MeshBasicMaterial({color:0xfff6c8}),heartM=new THREE.MeshBasicMaterial({color:0xfff2c8});MT.eye=eyeM;MT.heart=heartM;
+ const node=n=>QUEEN_T.getObjectByName(n),clone=(o,par,pv)=>{o.updateMatrixWorld(true);o.traverse(m=>{if(!m.isMesh)return;const c=new THREE.Mesh(m.geometry,MT[m.material.name]||MT.caramel);c.castShadow=true;m.updateMatrixWorld(true);c.applyMatrix4(m.matrixWorld);if(pv)c.position.sub(pv);par.add(c)})};
+ clone(node('q_body'),g);
+ const head=new THREE.Group();head.position.set(0,10.45,0);g.add(head);clone(node('q_head'),head,head.position);
+ const hg=new THREE.Group();hg.position.set(0,6.9,1.3);g.add(hg);
+ const hgeo=node('q_heart').isMesh?node('q_heart').geometry.clone():null;let heart;if(hgeo){hgeo.computeBoundingBox();const c=new V3();hgeo.boundingBox.getCenter(c);hgeo.translate(-c.x,-c.y,-c.z);heart=new THREE.Mesh(hgeo,heartM)}else heart=new THREE.Mesh(new THREE.IcosahedronGeometry(.55,1),heartM);hg.add(heart);
+ const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:softTex('rgba(255,210,130,1)','rgba(255,120,30,0)'),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));glow.scale.set(3.6,3.6,1);hg.add(glow);
+ const arms=[];for(const s of[-1,1]){const sh=new THREE.Group();sh.position.set(s*2.45,8.1,0);g.add(sh);const el=new THREE.Group();el.position.y=-3;sh.add(el);const hand=new THREE.Group();hand.position.y=-2.9;el.add(hand);
+  clone(node(s>0?'q_handL':'q_handR'),hand,new V3(s*2.45,2.2,0));
+  // трубка руки: кольца вдоль кривой плечо→локоть→кисть, перестраивается каждый кадр
+  const NS=26,NR=12,geo=new THREE.BufferGeometry(),pos=new Float32Array(NS*NR*3),idx=[];for(let i=0;i<NS-1;i++)for(let j=0;j<NR;j++){const a=i*NR+j,b=i*NR+(j+1)%NR;idx.push(a,b,a+NR,b,b+NR,a+NR)}
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setIndex(idx);const tube=new THREE.Mesh(geo,MT.caramel);tube.frustumCulled=false;tube.castShadow=true;g.add(tube);
+  const drips=[];for(let k=0;k<3;k++){const d=new THREE.Mesh(new THREE.SphereGeometry(.16,10,8),MT.caramel);g.add(d);drips.push({m:d,u:.25+k*.25,ph:Math.random()*6})}
+  arms.push({sh,el,hand,s,tube,NS,NR,drips})}
+ g.userData.q={arms,head,hg,heart,glow,heartM,hairs:[],model:1};return eyeM}
+const _qa=new V3(),_qb=new V3(),_qc=new V3(),_qd=new V3(),_qe=new V3(),_qt=new V3(),_qn=new V3(),_qm=new V3();
+function queenArms(e,q,t){const g=e.g;g.updateMatrixWorld(true);
+ for(const A of q.arms){if(!A.tube)continue;const s=A.s;
+  // точки в координатах королевы: корень в плече (чуть внутрь торса), локоть, кисть
+  const p0=_qa.set(s*1.75,8.25,0),p1=g.worldToLocal(A.sh.getWorldPosition(_qb)),p2=g.worldToLocal(A.el.getWorldPosition(_qc)),p3=g.worldToLocal(A.hand.getWorldPosition(_qd));
+  const curve=new THREE.CatmullRomCurve3([p0.clone(),p1.clone(),p2.clone(),p3.clone().add(_qe.set(0,.15,0))],false,'centripetal');
+  const pos=A.tube.geometry.attributes.position,NS=A.NS,NR=A.NR;let prevN=null;
+  for(let i=0;i<NS;i++){const u=i/(NS-1),c=curve.getPointAt(u);curve.getTangentAt(u,_qt);
+   // плавная толщина: толстое плечо → тонкое запястье, по руке бегут «волны» сиропа
+   const r=(.78-.46*u)*(1+.07*Math.sin(u*14-t*4.2+s))*(u<.08?1+.4*(1-u/.08):1);
+   let n=prevN?_qn.copy(prevN).sub(_qm.copy(_qt).multiplyScalar(prevN.dot(_qt))).normalize():_qn.set(0,0,1).cross(_qt).normalize();if(n.lengthSq()<.1)n.set(1,0,0);prevN=n.clone();const b=_qm.copy(_qt).cross(n).normalize();
+   for(let j=0;j<NR;j++){const a=j/NR*Math.PI*2,cs=Math.cos(a),sn=Math.sin(a),k=(i*NR+j)*3;pos.array[k]=c.x+(n.x*cs+b.x*sn)*r;pos.array[k+1]=c.y+(n.y*cs+b.y*sn)*r-(sn<0?0:0);pos.array[k+2]=c.z+(n.z*cs+b.z*sn)*r}}
+  pos.needsUpdate=true;A.tube.geometry.computeVertexNormals();
+  // капли висят под рукой и тянутся вниз
+  for(const d of A.drips){const c=curve.getPointAt(d.u),r=(.78-.46*d.u),st=1.6+.8*Math.sin(t*2+d.ph);d.m.position.set(c.x,c.y-r*.9-.16*st,c.z);d.m.scale.set(1,st,1)}}}
 /*STORY-END*/
 /*BEER-BEGIN*/
 /* ================= УРОВЕНЬ 3: ПИВНОЕ МОРЕ — мир ================= */
@@ -2687,7 +2720,7 @@ function altFx(n){const s2=n[0];if(s2===10){if(L3)waveReverse(n[1],n[2],n[3],fal
 /* ================= мобы моря пива ================= */
 /* Бамбун — моряк-великан с веслом и бочкой пива. Модель — из Blender (models/bambun.json), части собираются в риг. */
 let BAMB_T=null;
-function loadBambun(){loadGirls();if(BAMB_T||!THREE.GLTFLoader)return;BAMB_T='load';new THREE.GLTFLoader().load('models/bambun.json',gl=>{BAMB_T=gl.scene;BAMB_T.updateMatrixWorld(true)},undefined,()=>{BAMB_T=null})}
+function loadBambun(){loadGirls();if(typeof loadQueen==='function')loadQueen();if(BAMB_T||!THREE.GLTFLoader)return;BAMB_T='load';new THREE.GLTFLoader().load('models/bambun.json',gl=>{BAMB_T=gl.scene;BAMB_T.updateMatrixWorld(true)},undefined,()=>{BAMB_T=null})}
 function buildBambun(g,mm,mats){const J={},cl=new Map(),part=n=>{const o=BAMB_T&&BAMB_T!=='load'?BAMB_T.getObjectByName(n):null;if(!o)return null;const c=o.clone();c.position.set(0,0,0);c.rotation.set(0,0,0);
   c.traverse(m=>{if(m.isMesh){m.castShadow=true;let k=cl.get(m.material);if(!k){k=m.material.clone();k.envMap=ENV;k.envMapIntensity=.35;cl.set(m.material,k);mats.push(k)}m.material=k}});return c};
  const gp=(par,x,y,z)=>{const o=new THREE.Group();o.position.set(x,y,z);par.add(o);return o};
@@ -2770,6 +2803,7 @@ LEVELS.push({id:'l3',n:3,name:'ПИВНОЕ МОРЕ',sub:'Яхта «Пенна
    sp:[[-6,0,-60],[10,0,-60],[-11,0,-77],[11,0,-77],[-9,0,-92],[8.5,0,-92.5],[0,0,-60],[-4,5,-70],[4,5,-84]],waves:[{alt:1}],
    rein:[{at:.8,w:{can:4,vend:2}},{at:.5,w:{bambun:1,drone:2,jelly:2}},{at:.25,w:{can:4,vend:2,drone:2}}]}]});
 /*BEER-END*/
+
 
 /*ISLE-BEGIN*/
 /* ================= УРОВЕНЬ 4: ОСТРОВ ПЕПСШТЕЙНА — летний полдень, обычное голубое море ================= */
