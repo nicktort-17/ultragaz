@@ -5489,7 +5489,7 @@ function menuStage(now,dt){const h=selfHero,v=MM.view==='page'?MM.page:MM.view,w
 /*GZ-BEGIN*/
 /* ================= Безгазява → Газява, катсцена с кубиком сахара, уведомления о фазах, фаза 2 директора ================= */
 const GZ={puds:[],mode:2,ped:null,cut:null,cutDone:false,look:-1,rain:[],hintT:0,wflush:0};
-const GZ_HY=4.8,GZ_CUT_T=8.6,GZ_T0=1.3;
+const GZ_HY=4.8,GZ_CUT_T=8.9,GZ_T0=1.3;
 function gzLevelMode(){return story?(story.lv.id==='l1'?0:story.lv.id==='l2'?1:2):2}
 function gzBegin(){setTimeout(()=>{if(dbgOn()&&DBG.gz!=='auto')gzSet(+DBG.gz)},50);for(const m of GZ.puds)scene.remove(m);GZ.puds=[];gzStrands(null);GZ.ped=null;GZ.cut=null;GZ.cutDone=false;GZ.hintT=0;for(const r of GZ.rain){if(r.m)scene.remove(r.m);if(r.c)scene.remove(r.c)}GZ.rain=[];DL.lz=null;if(DL.beam)DL.beam.visible=false;gzBars(false);gzSet(gzLevelMode())}
 function gzSet(m){GZ.mode=m;gzHud();gzLook(m===1?1:0);if(m===0&&cur===3)switchW(0,true)}
@@ -5586,16 +5586,15 @@ function gzQueenAnim(e,q,a){if(a===10&&GZ.mode===1&&!GZ.cut&&!GZ.cutDone&&state=
  if(a!==10)return;
  // жалкий вид на берегу: сгорбилась, оплывает, дрожит, сердце еле бьётся, под ней лужа
  const coll=C&&C.coll?Math.min(1,(T-C.coll)/1.2):0,tr=Math.sin(T*19)*.016+Math.sin(T*31)*.008;
- e.g.rotation.x=.24+.4*coll+tr;e.g.rotation.z=(e.g.rotation.z||0)*.9+Math.sin(T*2.1)*.04;e.g.scale.y*=.84-.2*coll;e.g.scale.x*=1+.08*coll;e.g.scale.z*=1+.08*coll;
+ e.g.rotation.x=.2+.22*coll+tr;e.g.rotation.z=(e.g.rotation.z||0)*.9+Math.sin(T*2.1)*.04;e.g.scale.y*=.84-.2*coll;e.g.scale.x*=1+.08*coll;e.g.scale.z*=1+.08*coll;
  e.gzColl=coll;
- if(Math.random()<.18){const s=e.g.scale.x;puff(_gzq.set(e.pos.x+rnd(-.5,.5)*s*3,e.pos.y+rnd(.3,2.4)*s*6,e.pos.z+rnd(-.5,.5)*s*3),1,Math.random()<.5?0xd8801f:0xb05a10,.4,.9,14)}
+ if(Math.random()<.08&&camera.position.distanceTo(e.pos)>3.2){const s=e.g.scale.x;puff(_gzq.set(e.pos.x+rnd(-.5,.5)*s*3,e.pos.y+rnd(.3,2.4)*s*6,e.pos.z+rnd(-.5,.5)*s*3),1,Math.random()<.5?0xd8801f:0xb05a10,.4,.9,14)}
  if(!e.gzPud&&e.pos.y>2&&e.pos.y<3.2&&e.landed!==0){const m=new THREE.Mesh(new THREE.CircleGeometry(1,28).rotateX(-Math.PI/2),new THREE.MeshStandardMaterial({color:0xb8620f,roughness:.08,metalness:.1,transparent:true,opacity:.85,envMap:ENV,emissive:0x2a1200}));m.position.set(e.pos.x,2.815,e.pos.z);m.scale.setScalar(.2);scene.add(m);e.gzPud=m;GZ.puds.push(m)}
  if(e.gzPud){const s=e.gzPud.scale.x;e.gzPud.scale.setScalar(Math.min(1.1+1.2*coll,s+.004));e.gzPud.position.x=e.pos.x;e.gzPud.position.z=e.pos.z}
  if(T-(e.moanT||0)>2.4){e.moanT=T;sfx('roar',.16)}}
 const _gzq=new V3();
-function gzQueenPost(e,q){const coll=e.gzColl||0;if(q.head){q.head.rotation.z=.38+Math.sin(T*1.4)*.06;q.head.rotation.x=.6+.3*coll}
- const ph=(T*.9)%1,beat=Math.max(Math.exp(-ph*18),.6*Math.exp(-Math.abs(ph-.22)*18));q.heart.scale.setScalar(.85+.25*beat);if(q.heartM&&q.heartM.emissive)q.heartM.emissiveIntensity=.1+1.2*beat;if(q.glow&&q.glow.material)q.glow.material.opacity=.1+.45*beat;
- if(q.hairs)q.hairs.forEach((h,i)=>h.rotation.z=.35+Math.sin(T*.7+i)*.05)}
+function gzQueenPost(e,q){const coll=e.gzColl||0,busy=GZ.cut&&GZ.cut.t>1.4;if(q.head){q.head.rotation.z=.38+Math.sin(T*1.4)*.06;q.head.rotation.x=.6+.3*coll}
+ const ph=(T*.9)%1,beat=Math.max(Math.exp(-ph*18),.6*Math.exp(-Math.abs(ph-.22)*18));q.heart.scale.setScalar(.85+.25*beat);if(q.heartM&&q.heartM.emissive)q.heartM.emissiveIntensity=.1+1.2*beat;if(q.glow&&q.glow.material)q.glow.material.opacity=busy?.04:.1+.45*beat;if(busy&&q.heartM&&q.heartM.emissive)q.heartM.emissiveIntensity*=.35;}
 function gzDamageGuard(e,dmg){if(e.type!=='queen'||!story||story.lv.id!=='l2'||e.sugarDone||e.st==='sugar'||e.ac===10||e.inv||e.hp-dmg>0)return false;
  if(e.remote){e.hp=.01;queueDmg('e'+e.id,dmg,'water');return true}
  e.hp=.01;e.st='sugar';e.stT=0;e.inv=true;toSpawn=[];const R=story.room>=0&&story.lv.rooms[story.room];if(R&&R.rein)R.rein.forEach((_,i)=>story.rein.add(i));
@@ -5603,61 +5602,84 @@ function gzDamageGuard(e,dmg){if(e.type!=='queen'||!story||story.lv.id!=='l2'||e
 function gzKillGuard(e){if(e.type!=='queen'||e.remote||e.sugarDone||e.st==='sugar'||!story||story.lv.id!=='l2'||state!=='play'||story.phase!=='fight')return false;e.hp=1;return gzDamageGuard(e,5)}
 const _gzf=new V3(),_gzt=new V3();
 let GZ_ST=null;
+/* Раскадровка (t — от момента, когда Царица легла на берег):
+   0–1.4  шаги к ней, Безгазява убрана вниз
+   1.4–2.3 левая рука тянется к сердцу, 2.3 хватает, 2.3–3.7 тянет (нити сиропа), 3.7 рывок
+   3.8–4.5 кубик на раскрытой ладони, 4.0–4.7 правая рука достаёт Безгазяву и ставит вертикально
+   4.7–5.6 левая рука несёт кубик к головке сифона, 5.6 отпускает, 5.7–6.2 рука уходит
+   5.9–7.2 правая рука трясёт сифон, вода → кола, 7.2 Газява, 7.3–7.9 оружие к бою, 7.9–8.5 добивание */
+const GZC={S:.6,gp:new V3(0,-.055,-.27),sh:new V3(-.36,-.52,-.08),home:new V3(-.46,-.66,-.32),m4:new THREE.Matrix4(),qr:new THREE.Quaternion().setFromAxisAngle(new V3(0,0,1),Math.PI),v:new V3(),w:new V3(),d:new V3()};
+const gzSm=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+// точка мира → точка в пространстве вьюмодели на заданной глубине (у камер разный FOV)
+function gzToGun(p,depth,out){const n=GZC.v.copy(p).project(camera);out.set(n.x,n.y,.5).unproject(gunCam).normalize();return out.multiplyScalar(depth/Math.max(.05,-out.z))}
+function gzGunToWorld(p,dist,out){const n=GZC.w.copy(p).project(gunCam);out.set(n.x,n.y,.5).unproject(camera).sub(camera.position).normalize();return out.multiplyScalar(dist).add(camera.position)}
 function gzStrands(C){if(!C){if(GZ_ST)GZ_ST.forEach(m=>{m.visible=false});return}
- if(!GZ_ST){const mt=new THREE.MeshStandardMaterial({color:0xd8801f,roughness:.05,metalness:.1,transparent:true,opacity:.9,envMap:ENV,emissive:0x3a1800});GZ_ST=[];for(let i=0;i<5;i++){const m=new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,6).translate(0,.5,0),mt);m.visible=false;scene.add(m);GZ_ST.push(m)}}
- camera.getWorldDirection(_gzf);const B=_gzt.copy(camera.position).addScaledVector(_gzf,.55);B.y-=.08;
- GZ_ST.forEach((m,i)=>{const A=_gzq.copy(C.h);A.x+=Math.sin(i*2.1)*.08;A.y+=Math.cos(i*1.7)*.07;A.z+=Math.sin(i*1.3+1)*.08;const d=B.clone().sub(A),L=d.length();
-  m.visible=true;m.position.copy(A);m.quaternion.setFromUnitVectors(UPV,d.normalize());const w=(.012+.006*Math.sin(i))/Math.sqrt(Math.max(.3,L*(1+C.pull*2)));m.scale.set(w,L,w)})}
-function gzFist(f,dt){const C=GZ.cut;if(!C||!C.fo){return false}const t=C.t,sm=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};f.visible=true;
- const A=[-.44,-.52,-.45],R=[-.08,-.1,-.66],Y=[-.13,-.2,-.42],S=[-.03,-.11,-.4];let p,curl,rx=.3,ry=-.25,rz=1.3;
- if(t<2.3){const k=sm((t-1.5)/.8);p=A.map((v,i)=>v+(R[i]-v)*k);curl=.08}
- else if(t<3.7){const j=Math.min(1,(t-2.3)/1.4);p=[R[0]+Math.sin(t*41)*.012*j,R[1]+Math.sin(t*37)*.012*j,R[2]+.06*j*j];curl=Math.min(1,(t-2.3)/.18);rz+=Math.sin(t*29)*.06*j}
- else if(t<3.85){const k=sm((t-3.7)/.15);p=R.map((v,i)=>v+(Y[i]-v)*k);curl=1}
- else{const k=sm((t-3.95)/.6);p=Y.map((v,i)=>v+(S[i]-v)*k);curl=1;rx=.3-.35*k;rz=1.3-.5*k}
- f.position.set(p[0],p[1],p[2]);f.rotation.set(rx,ry,rz);poseFist(curl);
- if(C.vc&&C.st===2){C.vc.position.set(p[0]+.03,p[1]+.045,p[2]-.03);C.vc.rotation.y+=dt*1.5}return true}
-function gzCutUpd(dt){const C=GZ.cut;C.t+=dt;const t=C.t;P.vel.set(0,0,0);P.iT=1e9;toSpawn=[];
+ if(!GZ_ST){const mt=new THREE.MeshStandardMaterial({color:0xd8801f,roughness:.05,metalness:.1,transparent:true,opacity:.92,envMap:ENV,emissive:0x3a1800});GZ_ST=[];for(let i=0;i<6;i++){const m=new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,6).translate(0,.5,0),mt);m.visible=false;scene.add(m);GZ_ST.push(m)}}
+ if(!C.hw)return;const B=C.hw;
+ GZ_ST.forEach((m,i)=>{const A=_gzq.copy(C.h);A.x+=Math.sin(i*2.1)*.07;A.y+=Math.cos(i*1.7)*.06;A.z+=Math.sin(i*1.3+1)*.07;const d=GZC.d.copy(B).sub(A),L=d.length();
+  m.visible=true;m.position.copy(A);m.quaternion.setFromUnitVectors(UPV,d.normalize());const w=(.011+.005*Math.sin(i*1.9))/Math.sqrt(Math.max(.25,L*(1+C.pull*2.5)));m.scale.set(w,L,w)})}
+// левая рука: позиция точки хвата + направление пальцев + ладонь вверх/вниз
+function gzHand(f,grasp,dir,palmUp,curl){const S=GZC.S;GZC.m4.lookAt(GZC.v.set(0,0,0),GZC.w.copy(dir).normalize(),UPV);f.quaternion.setFromRotationMatrix(GZC.m4);if(palmUp)f.quaternion.multiply(GZC.qr);
+ f.scale.set(-S,S,S);const off=GZC.d.copy(GZC.gp).multiply(f.scale).applyQuaternion(f.quaternion);f.position.copy(grasp).sub(off);poseFist(curl)}
+function gzFist(f,dt){const C=GZ.cut;if(!C||!C.fo){if(f.userData.cutPose){f.userData.cutPose=0;f.scale.set(1,1,1);f.quaternion.identity()}return false}
+ f.userData.cutPose=1;f.visible=true;const t=C.t,V=(x,y,z)=>new V3(x,y,z);
+ const reach=gzToGun(C.h,.6,V(0,0,0)),dirTo=p=>p.clone().sub(GZC.sh);let grasp,dir,up=false,curl;
+ if(t<2.3){const k=gzSm((t-1.4)/.9);grasp=GZC.home.clone().lerp(reach,k);dir=dirTo(reach);curl=.05+.1*Math.sin(k*Math.PI)}
+ else if(t<3.7){const j=Math.min(1,(t-2.3)/1.4);C.pull=j;grasp=reach.clone().add(dirTo(reach).normalize().multiplyScalar(-.05*j*j));grasp.x+=Math.sin(t*41)*.01*j;grasp.y+=Math.sin(t*37)*.01*j;dir=dirTo(reach);curl=Math.min(.9,(t-2.3)/.15*.9)}
+ else if(t<3.85){const Y=V(-.17,-.13,-.42);grasp=reach.clone().lerp(Y,gzSm((t-3.7)/.15));dir=dirTo(Y);curl=.9}
+ else if(t<4.7){const Y=V(-.17,-.13,-.42),Sh=V(-.09,-.05,-.4),k=gzSm((t-3.9)/.45);grasp=Y.clone().lerp(Sh,k);dir=k>.5?V(.35,.25,-1):dirTo(Y);up=k>.5;curl=.9-.45*gzSm((t-4.1)/.3)}
+ else{const ht=C.headTop||V(.1,.05,-.55),above=ht.clone().add(V(0,.075,0));
+  if(t<5.6){const k=gzSm((t-4.7)/.8);grasp=V(-.09,-.05,-.4).lerp(above,k);dir=dirTo(above).add(V(0,-.25,0));curl=.45+.4*gzSm((t-4.7)/.25)}
+  else{const k=gzSm((t-5.75)/.45);grasp=above.clone().lerp(GZC.home,k);dir=dirTo(above);curl=.85-.75*gzSm((t-5.6)/.12)}}
+ gzHand(f,grasp,dir,up,curl);f.updateMatrixWorld(true);
+ // кубик в ладони
+ if(C.vc&&C.vc.parent===f){C.vc.position.copy(GZC.gp);C.vc.rotation.y+=dt*(up?1.2:0)}
+ // конец нитей сиропа — там, где на экране ладонь
+ if(t<3.7){const gpW=f.localToWorld(GZC.v.copy(GZC.gp));const hd=C.h.distanceTo(camera.position);C.hw=gzGunToWorld(gpW,Math.max(.4,hd-.2-.25*(C.pull||0)),C.hw||new V3())}
+ // отпустить кубик над головкой сифона
+ if(t>=5.6&&C.vc&&C.vc.parent===f){gunScene.attach(C.vc);C.drop=C.vc.position.clone();C.dropT=t;sfx('throw',.5)}
+ return true}
+function gzCutUpd(dt){const C=GZ.cut;C.t+=dt;const t=C.t;P.vel.set(0,0,0);P.iT=1e9;toSpawn=[];if(C.q)C.q.flash=0;
  if(mode==='solo'||isHost)for(const e of enemies)if(e.type!=='queen'&&!e.dead&&!e.remote)kill(e,'x',true);
- // Царицу выбрасывает на берег — следим за полётом
  if(t<0){if(C.q&&!C.q.dead){const dx=C.q.pos.x-P.pos.x,dz=C.q.pos.z-P.pos.z,hd=Math.hypot(dx,dz)||1;let dy=Math.atan2(-dx,-dz)-P.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));P.yaw+=dy*Math.min(1,dt*4);P.pitch+=(Math.atan2(C.q.pos.y+1.5-P.pos.y-P.eye,hd)-P.pitch)*Math.min(1,dt*4)}return}
- if(!C.stand){const q=C.q.pos,tg=Math.abs(q.x)>24?[0,1]:[1,0],a=new V3(q.x+tg[0]*1.35,2.8,q.z+tg[1]*1.35),b=new V3(q.x-tg[0]*1.35,2.8,q.z-tg[1]*1.35);C.stand=a.distanceTo(P.pos)<b.distanceTo(P.pos)?a:b;C.from=P.pos.clone()}
+ if(!C.stand){const q=C.q.pos,tg=Math.abs(q.x)>24?[0,1]:[1,0],a=new V3(q.x+tg[0]*1.4,2.8,q.z+tg[1]*1.4),b=new V3(q.x-tg[0]*1.4,2.8,q.z-tg[1]*1.4);C.stand=a.distanceTo(P.pos)<b.distanceTo(P.pos)?a:b;C.from=P.pos.clone()}
  if(C.q&&!C.q.dead&&C.qd.heart&&!C.rip)C.qd.heart.getWorldPosition(C.h);
- // тяжёлые шаги к ней
  const k=Math.min(1,t/1.4),ke=k*k*(3-2*k);P.pos.lerpVectors(C.from,C.stand,ke);if(k<1)P.pos.y+=Math.abs(Math.sin(t*6.5))*.05;
  if(k<1&&(C.stp=(C.stp||0)-dt)<=0){C.stp=.48;sfx('hit',.25)}
  const ey=P.pos.y+P.eye,dx=C.h.x-P.pos.x,dz=C.h.z-P.pos.z,hd=Math.hypot(dx,dz)||1;let yT=Math.atan2(-dx,-dz),pT=Math.atan2(C.h.y-ey,hd);
- if(t>=3.85&&t<4.7)pT-=.12;else if(t>=4.7&&t<7.5)pT=-.32;else if(t>=7.5&&C.q){const qx=C.q.pos.x-P.pos.x,qz=C.q.pos.z-P.pos.z;yT=Math.atan2(-qx,-qz);pT=Math.atan2(C.q.pos.y+.8-ey,Math.hypot(qx,qz)||1)}
+ if(t>=3.85&&t<7.6)pT-=.1;else if(t>=7.6&&C.q){const qx=C.q.pos.x-P.pos.x,qz=C.q.pos.z-P.pos.z;yT=Math.atan2(-qx,-qz);pT=Math.atan2(C.q.pos.y+.6-ey,Math.hypot(qx,qz)||1)}
  let dy=yT-P.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));P.yaw+=dy*Math.min(1,dt*5);P.pitch+=(pT-P.pitch)*Math.min(1,dt*4);
- // сердцебиение
  if(t>1&&t<3.7&&(C.hb=(C.hb||0)-dt)<=0){C.hb=t<2.3?.85:.42;sfx('slam',.22);shake=Math.max(shake,.06)}
- if(t>1.5&&t<4.7)C.fo=true;else C.fo=false;
- if(t>2.3&&C.st===0){C.st=1;sfx('gloop',1);sfx('roar',1);shake=Math.max(shake,.25)}
- if(C.st===1){C.pull=Math.min(1,(t-2.3)/1.4);gzStrands(C);shake=Math.max(shake,.1+.2*C.pull);if(Math.random()<dt*8)puff(_gzq.copy(C.h).add(new V3(rnd(-.15,.15),rnd(-.15,.15),rnd(-.15,.15))),1,0xd8801f,1.5,.6,10);if((C.scr=(C.scr||0)-dt)<=0){C.scr=.55;sfx('roar',.5+.4*C.pull)}}
- if(t>3.7&&C.st===1){C.st=2;C.rip=true;C.coll=T;gzStrands(null);freeze=Math.max(freeze,.3);shake=Math.max(shake,.7);sfx('slam',1);sfx('gloop',1);sfx('roar',1);
-  puff(C.h,26,0xd8801f,6,.8,9);puff(C.h,6,0xfff0c8,3,.5);if(C.q)C.q.flash=.08;C.vc=gzCube(true);gunScene.add(C.vc);vmLight.color.setHex(0xffb050);vmLight.intensity=4;vmLight.position.set(-.05,-.05,-.45)}
- if(C.st===2&&t>4.7){C.st=3;C.v0=C.vc.position.clone()}
- // добивание: первая очередь новой Газявы
- if(t>7.6&&t<8.2&&GZ.mode===2&&C.q&&!C.q.dead){const mz=muzzle(),d=_gzf.set(C.q.pos.x,C.q.pos.y+.8,C.q.pos.z).sub(mz).normalize();sodaEmit(mz,d,false);spray(mz,d,1);if((C.sp=(C.sp||0)-dt)<=0){C.sp=.12;sfx('spray',.8)}vmShot(3,false);
-  if(Math.random()<dt*20)puff(_gzt.set(C.q.pos.x+rnd(-.4,.4),C.q.pos.y+rnd(.3,1.4),C.q.pos.z+rnd(-.4,.4)),4,0xd8801f,4,.5,6)}
- if(t>8.1&&!C.fin&&C.q){C.fin=1;C.q.flash=.12;puff(_gzt.set(C.q.pos.x,C.q.pos.y+1,C.q.pos.z),30,0xd8801f,6,.9,8);sfx('gloop',1)}
- if(t>GZ_CUT_T){if(C.vc)gunScene.remove(C.vc);gzStrands(null);GZ.cut=null;GZ.cutDone=true;gzBars(false);P.iT=1.2;if(GZ.mode!==2)gzSet(2)}}
+ C.fo=t>1.4&&t<6.25;
+ if(t>2.3&&C.st===0){C.st=1;C.vc=gzCube(true);C.vc.scale.setScalar(.55/GZC.S);fist.add(C.vc);C.vc.visible=false;sfx('gloop',1);sfx('roar',1);shake=Math.max(shake,.25)}
+ if(C.st===1){gzStrands(C);shake=Math.max(shake,.1+.2*(C.pull||0));if(Math.random()<dt*6)puff(_gzq.copy(C.h).add(new V3(rnd(-.12,.12),rnd(-.12,.12),rnd(-.12,.12))),1,0xd8801f,1.2,.6,10);if((C.scr=(C.scr||0)-dt)<=0){C.scr=.55;sfx('roar',.5+.4*(C.pull||0))}}
+ if(t>3.7&&C.st===1){C.st=2;C.rip=true;C.coll=T;gzStrands(null);C.vc.visible=true;freeze=Math.max(freeze,.3);shake=Math.max(shake,.7);sfx('slam',1);sfx('gloop',1);sfx('roar',1);
+  puff(C.h,8,0xd8801f,3,.7,10);if(C.q)C.q.flash=.06;vmLight.color.setHex(0xffb050);vmLight.intensity=3;vmLight.position.set(-.1,-.1,-.42)}
+ if(t>7.9&&t<8.5&&GZ.mode===2&&C.q&&!C.q.dead){const mz=muzzle(),d=_gzf.set(C.q.pos.x,C.q.pos.y+.6,C.q.pos.z).sub(mz).normalize();sodaEmit(mz,d,false);spray(mz,d,1);if((C.sp=(C.sp||0)-dt)<=0){C.sp=.12;sfx('spray',.8)}vmShot(3,false)}
+ if(t>8.4&&!C.fin&&C.q){C.fin=1;C.q.flash=.1;puff(_gzt.set(C.q.pos.x,C.q.pos.y+.8,C.q.pos.z),24,0xd8801f,5,.9,8);sfx('gloop',1)}
+ if(t>GZ_CUT_T){if(C.vc&&C.vc.parent)C.vc.parent.remove(C.vc);gzStrands(null);GZ.cut=null;GZ.cutDone=true;gzBars(false);P.iT=1.2;if(GZ.mode!==2)gzSet(2)}}
 function gzVm(dt){try{gzVm_(dt)}catch(e){if(!gzVm.err){gzVm.err=1;console.error(e)}}}
+// поза Безгазявы в правой руке во время ритуала (абсолютная, смешивается с обычной)
+const GZR={p:new V3(.13,-.04,-.5),r:new THREE.Euler(1.32,-.55,.08),low:new V3(.26,-.7,-.45)};
 function gzVm_(dt){if(cur!==3)return;const g=guns[3],u=g.userData,P_=u.parts||{},C=GZ.cut;if(P_.liquid){P_.liquid.scale.y=Math.min(P_.liquid.scale.y,1)*.96;P_.liquid.scale.x=P_.liquid.scale.z=.95}
  if(GZ.mode===1&&!C){if(P_.needle)P_.needle.rotation.z=1.8}
- if(!C)return;const t=C.t,sm=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
- const b=t<4.2?0:t<7.4?sm((t-4.2)/.5):1-sm((t-7.4)/.6);
- g.position.x-=.17*b;g.position.y+=.1*b;g.position.z+=.07*b;g.rotation.x+=.38*b;g.rotation.y-=.95*b;g.rotation.z+=.22*b;
- const sk=t>5.5&&t<7.0?Math.sin((t-5.5)/1.5*Math.PI):0;
- g.rotation.z+=Math.sin(t*46)*.34*sk;g.rotation.x+=Math.sin(t*37)*.2*sk;g.position.y+=Math.sin(t*41)*.028*sk;g.position.x+=Math.cos(t*33)*.022*sk;
+ if(!C)return;const t=C.t;
+ // убрать оружие вниз, пока левая рука занята
+ if(t<4.0){const k=gzSm((t+1.3)/.5);g.position.y-=.6*k;g.position.x+=.05*k;if(k>=1)g.visible=false;return}
+ const drawK=gzSm((t-4.0)/.7),back=gzSm((t-7.3)/.6),b=drawK*(1-back);
+ const tp=GZC.v.copy(GZR.low).lerp(GZR.p,drawK);
+ g.position.lerp(tp,b);g.rotation.x+=(GZR.r.x-g.rotation.x)*b;g.rotation.y+=(GZR.r.y-g.rotation.y)*b;g.rotation.z+=(GZR.r.z-g.rotation.z)*b;
+ const sk=t>5.95&&t<7.2?Math.sin((t-5.95)/1.25*Math.PI):0;
+ g.position.y+=Math.sin(t*26)*.035*sk;g.rotation.z+=Math.sin(t*41)*.22*sk;g.rotation.x+=Math.sin(t*33)*.12*sk;
  if(sk>.3){C.sh-=dt;if(C.sh<=0){C.sh=.16;sfx('spray',.35)}}
  g.updateMatrixWorld(true);
- if(C.st===3&&C.vc){const hb=boxIn(u.model,/^Голова[ _]сифона/,null),tg=hb?hb.getCenter(_gzt):_gzt.set(.1,-.05,-.5),k3=Math.max(0,Math.min(1,(t-4.7)/.75)),e3=sm(k3);
-  C.vc.position.lerpVectors(C.v0,tg,e3);C.vc.position.y+=Math.sin(k3*Math.PI)*.05;C.vc.scale.setScalar(1-.65*e3);C.fo=false;C.vc.rotation.x+=dt*6;C.vc.rotation.z+=dt*4;
-  if(k3>=1){C.st=4;gunScene.remove(C.vc);C.vc=null;vmLight.color.setHex(0xffc070);vmLight.intensity=3;sfx('gloop',.9);sfx('ding',.6)}}
- if(C.st>=4){const kk=sm((t-5.6)/1.3);gzLook(1-kk);if(P_.liquid)P_.liquid.scale.y=1;if(P_.needle)P_.needle.rotation.z=1.8-3.6*kk+(sk?Math.sin(t*60)*.25*sk:0);
-  if(P_.bub&&P_.bot)for(const bb of P_.bub){bb.o.visible=kk>.35;bb.off+=dt*bb.sp*.5;const bt=P_.bot;if(bb.c0.y+bb.off>bt.c.y+bt.r*.8)bb.off=-bt.r*.8;bb.o.position.y=bb.y0+bb.off}
-  }
- if(t>7.0&&C.st===4){C.st=5;gzSet(2);gas=100;gzAlert('ПОЛУЧЕНО','ГАЗЯВА','сахар + вода + взбалтывание = давление','gold');addStyle('САХАРНЫЙ ЗАРЯД',150);sfx('jet',.8);vmLight.color.setHex(0xfff0d0);vmLight.intensity=4}}
+ const hb=boxIn(u.model,/^Голова[ _]сифона/,null);if(hb){const c=hb.getCenter(_gzt);C.headTop=(C.headTop||new V3()).set(c.x,hb.max.y,c.z)}
+ // кубик падает в головку
+ if(C.drop&&C.vc){const k3=Math.min(1,(t-C.dropT)/.3),tgt=C.headTop||C.drop;C.vc.position.lerpVectors(C.drop,tgt,k3*k3);C.vc.scale.setScalar(.55*(1-.7*k3));C.vc.rotation.x+=dt*5;
+  if(k3>=1){gunScene.remove(C.vc);C.vc=null;C.drop=null;C.st=4;vmLight.color.setHex(0xffc070);vmLight.intensity=3;vmLight.position.copy(tgt);sfx('gloop',.9);sfx('ding',.6)}}
+ if(C.st>=4){const kk=gzSm((t-5.95)/1.15);gzLook(1-kk);if(P_.liquid)P_.liquid.scale.y=1;if(P_.needle)P_.needle.rotation.z=1.8-3.6*kk+(sk?Math.sin(t*60)*.25*sk:0);
+  if(P_.bub&&P_.bot)for(const bb of P_.bub){bb.o.visible=kk>.35;bb.off+=dt*bb.sp*.5;const bt=P_.bot;if(bb.c0.y+bb.off>bt.c.y+bt.r*.8)bb.off=-bt.r*.8;bb.o.position.y=bb.y0+bb.off}}
+ if(t>7.2&&C.st===4){C.st=5;gzSet(2);gas=100;gzAlert('ПОЛУЧЕНО','ГАЗЯВА','сахар + вода + взбалтывание = давление','gold');addStyle('САХАРНЫЙ ЗАРЯД',150);sfx('jet',.8);vmLight.color.setHex(0xfff0d0);vmLight.intensity=4}}
 
 /* --- директор, фаза 2: «график падает» (вращающийся лазер) и «дивиденды» (дождь из золотых крышек) --- */
 const DL={beam:null,lz:null};
