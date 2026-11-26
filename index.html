@@ -3857,7 +3857,7 @@ const vmLight=new THREE.PointLight(0xffc27a,0,1.6,2);vmRoot.add(vmLight);
 const fpMat={armor:M(new THREE.Color(myColor),{metalness:.55,roughness:.3,envMap:ENV})};setTimeout(()=>{try{rebuildSelf()}catch(e){}},0);
 /* hold — точка хвата (верх рукояти) в пространстве камеры; rot — разворот ствола к прицелу */
 const GUN_CFG=[
- {f:'shipuchka',len:.44,hold:[.25,-.2,-.6],rot:[.03,.07,0],mz:/^Срез[ _]трубочки/,fl:.15},
+ {f:'shipuchka',len:.37,hold:[.24,-.225,-.58],rot:[.03,.3,0],mz:/^Канал[ _]ствола/,fl:.16},
  {f:'shaker',len:.6,hold:[.24,-.215,-.62],rot:[.03,.06,0],mz:/^Дуло/,fl:.26},
  {f:'mentos',len:.6,hold:[.26,-.25,-.64],rot:[.03,.065,0],mz:/^Крышка-распылитель/,fl:.22},
  {f:'gazyava',len:.52,hold:[.235,-.215,-.66],rot:[.03,.06,0],mz:/^Дульце/,fl:0}];
@@ -3951,7 +3951,14 @@ function setupGun(i,m){const cf=GUN_CFG[i],drop=[];
  const hand=buildGripHand(gi),hf=new THREE.Group();hf.rotation.x=gi.tilt;hf.add(hand.g);g.add(hf);
  const mzb=boxIn(m,cf.mz,g);u.mz=mzb?mzb.getCenter(new V3()):new V3(0,.03,-cf.len*.8);u.mz.z-=.02;u.flash.position.copy(u.mz);
  Object.assign(u,{glb:true,holder,model:m,k,gi,hand,parts:{}});const P_=u.parts;
- if(i===0){const ax=boxIn(m,/^Ось[ _]барабана/,m);P_.drum=partPivot(m,/^Баночка/,b=>{const cc=ax?ax.getCenter(new V3()):b.getCenter(new V3());return new V3(cc.x,cc.y,b.getCenter(new V3()).z)});
+ if(i===0&&boxIn(m,/^Барабан$/,m)){/*SHIP4*/const ax=boxIn(m,/^Ось[ _]барабана/,m),cc=ax?ax.getCenter(new V3()):null;P_.drumX=true;
+  P_.drum=partPivot(m,/^(Барабан|Обод[ _]барабана)/,b=>cc||b.getCenter(new V3()));
+  P_.hammer=partPivot(m,/^Курок/,b=>new V3((b.min.x+b.max.x)/2,b.min.y,(b.min.z+b.max.z)/2));
+  P_.trigger=partPivot(m,/^Спусковой[ _]крючок/,b=>new V3((b.min.x+b.max.x)/2,b.max.y,(b.min.z+b.max.z)/2));
+  P_.barrel=partPivot(m,/^(Бутылка-ствол|Кола[ _]в[ _]стволе|Ребро[ _]бутылки|Горлышко|Канал[ _]ствола)/);
+  P_.needles=['Л','П'].map(s=>partPivot(m,new RegExp('^Стрелка[ _]манометра[ _]'+s),b=>new V3((b.min.x+b.max.x)/2,b.min.y,(b.min.z+b.max.z)/2))).filter(Boolean);
+  P_.caps=[];m.traverse(o=>{const r=/^Запасная[ _]крышка[ _](\d)$/.exec(o.name);if(r)P_.caps[+r[1]-1]=o})}
+ else if(i===0){const ax=boxIn(m,/^Ось[ _]барабана/,m);P_.drum=partPivot(m,/^Баночка/,b=>{const cc=ax?ax.getCenter(new V3()):b.getCenter(new V3());return new V3(cc.x,cc.y,b.getCenter(new V3()).z)});
   P_.hammer=partPivot(m,/^(Рычаг[ _]крана|Набалдашник[ _]рычага)/,b=>new V3((b.min.x+b.max.x)/2,b.min.y,b.max.z));
   P_.caps=[];const extra=[];m.traverse(o=>{const r=/^Запасная[ _]крышка[ _](\d)$/.exec(o.name);if(r){if(+r[1]<=4)P_.caps[+r[1]-1]=o;else extra.push(o)}});extra.forEach(o=>o.parent&&o.parent.remove(o))}
  else if(i===1){P_.pump=partPivot(m,/^Цевьё/);P_.cap=partPivot(m,/^Крышка[ _]шейкера/);const sb=boxIn(m,/^Шейкер$/,g);u.eject=sb?new V3(sb.max.x,sb.max.y-.01,(sb.min.z+sb.max.z)/2):new V3(.05,.03,-.15)}
@@ -4037,7 +4044,9 @@ function vmUpdate(dt){const g=guns[cur],u=g.userData,cf=GUN_CFG[cur],e=r=>1-Math
   H.fingers.forEach((js,fi)=>js.forEach((j,k)=>{j.rotation.y=j.userData.base+(fi===0&&k?VP.trig*(k===1?.42:.3):0)+(k&&cur===3?sq*.12:0)}))}
  // части оружия
  if(cur===0){VP.drum+=(VP.drumT-VP.drum)*e(26);if(Math.abs(VP.drumT)>50){VP.drum-=VP.drumT;VP.drumT=0}
-  if(P_.drum)P_.drum.rotation.z=VP.drum;VP.hammer=Math.max(0,VP.hammer-dt*7);if(P_.hammer)P_.hammer.rotation.x=-.55*Math.sin(VP.hammer*Math.PI);
+  if(P_.drum){if(P_.drumX)P_.drum.rotation.x=VP.drum;else P_.drum.rotation.z=VP.drum}VP.hammer=Math.max(0,VP.hammer-dt*7);if(P_.hammer)P_.hammer.rotation.x=(P_.drumX?.75:-.55)*Math.sin(VP.hammer*Math.PI);
+  if(P_.drumX){if(P_.trigger)P_.trigger.rotation.x=VP.trig*.45;if(P_.barrel)P_.barrel.position.z=P_.barrel.userData.base.z+Math.sin(Math.min(1,VP.hammer)*Math.PI)*.012;
+   VP.ndl=(VP.ndl||0)+((.55+.35*Math.sin(VP.hammer*Math.PI)+(VM.insp>0?Math.sin(VM.insp*20)*.3:0))-(VP.ndl||0))*e(14);if(P_.needles)for(const n of P_.needles)n.rotation.x=(VP.ndl-.5)*2.2+Math.sin(T*23)*.025}
   if(P_.caps)P_.caps.forEach((c,j)=>{if(c)c.visible=j<coinCh})
   if(VM.insp>0&&!VP.inspFx&&VM.insp>.2){VP.inspFx=1;VP.drumT-=Math.PI*4}
   if(dw<1&&dw>.55&&!VP.drawFx){VP.drawFx=1;VP.drumT-=Math.PI*2/3}}
