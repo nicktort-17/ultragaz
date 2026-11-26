@@ -3951,7 +3951,7 @@ function setupGun(i,m){const cf=GUN_CFG[i],drop=[];
  const hand=buildGripHand(gi),hf=new THREE.Group();hf.rotation.x=gi.tilt;hf.add(hand.g);g.add(hf);
  const mzb=boxIn(m,cf.mz,g);u.mz=mzb?mzb.getCenter(new V3()):new V3(0,.03,-cf.len*.8);u.mz.z-=.02;u.flash.position.copy(u.mz);
  Object.assign(u,{glb:true,holder,model:m,k,gi,hand,parts:{}});const P_=u.parts;
- if(i===0&&boxIn(m,/^Барабан$/,m)){/*SHIP4*/const ax=boxIn(m,/^Ось[ _]барабана/,m),cc=ax?ax.getCenter(new V3()):null;P_.drumX=true;
+ if(i===0&&boxIn(m,/^Барабан$/,m)){/*SHIP4*/const ax=boxIn(m,/^Ось[ _]барабана/,m),cc=ax?ax.getCenter(new V3()):null;P_.v4=true;
   P_.drum=partPivot(m,/^(Барабан|Обод[ _]барабана)/,b=>cc||b.getCenter(new V3()));
   P_.hammer=partPivot(m,/^Курок/,b=>new V3((b.min.x+b.max.x)/2,b.min.y,(b.min.z+b.max.z)/2));
   P_.trigger=partPivot(m,/^Спусковой[ _]крючок/,b=>new V3((b.min.x+b.max.x)/2,b.max.y,(b.min.z+b.max.z)/2));
@@ -4044,8 +4044,8 @@ function vmUpdate(dt){const g=guns[cur],u=g.userData,cf=GUN_CFG[cur],e=r=>1-Math
   H.fingers.forEach((js,fi)=>js.forEach((j,k)=>{j.rotation.y=j.userData.base+(fi===0&&k?VP.trig*(k===1?.42:.3):0)+(k&&cur===3?sq*.12:0)}))}
  // части оружия
  if(cur===0){VP.drum+=(VP.drumT-VP.drum)*e(26);if(Math.abs(VP.drumT)>50){VP.drum-=VP.drumT;VP.drumT=0}
-  if(P_.drum){if(P_.drumX)P_.drum.rotation.x=VP.drum;else P_.drum.rotation.z=VP.drum}VP.hammer=Math.max(0,VP.hammer-dt*7);if(P_.hammer)P_.hammer.rotation.x=(P_.drumX?.75:-.55)*Math.sin(VP.hammer*Math.PI);
-  if(P_.drumX){if(P_.trigger)P_.trigger.rotation.x=VP.trig*.45;if(P_.barrel)P_.barrel.position.z=P_.barrel.userData.base.z+Math.sin(Math.min(1,VP.hammer)*Math.PI)*.012;
+  if(P_.drum){if(P_.drumX)P_.drum.rotation.x=VP.drum;else P_.drum.rotation.z=VP.drum}VP.hammer=Math.max(0,VP.hammer-dt*7);if(P_.hammer)P_.hammer.rotation.x=(P_.v4?.75:-.55)*Math.sin(VP.hammer*Math.PI);
+  if(P_.v4){if(P_.trigger)P_.trigger.rotation.x=VP.trig*.45;if(P_.barrel)P_.barrel.position.z=P_.barrel.userData.base.z+Math.sin(Math.min(1,VP.hammer)*Math.PI)*.012;
    VP.ndl=(VP.ndl||0)+((.55+.35*Math.sin(VP.hammer*Math.PI)+(VM.insp>0?Math.sin(VM.insp*20)*.3:0))-(VP.ndl||0))*e(14);if(P_.needles)for(const n of P_.needles)n.rotation.x=(VP.ndl-.5)*2.2+Math.sin(T*23)*.025}
   if(P_.caps)P_.caps.forEach((c,j)=>{if(c)c.visible=j<coinCh})
   if(VM.insp>0&&!VP.inspFx&&VM.insp>.2){VP.inspFx=1;VP.drumT-=Math.PI*4}
