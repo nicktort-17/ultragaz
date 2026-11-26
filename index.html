@@ -523,7 +523,7 @@ const cleanCode=s=>((s||'').toLowerCase().replace(/[^a-z0-9-]/g,'').slice(0,20))
 const save=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
 const setSens=v=>{sens=+v;$('sens').value=$('sens2').value=v;save('ug-sens',v);const sv=$('sensV');if(sv)sv.textContent=(+v).toFixed(1)};
 $('sens').oninput=e=>setSens(e.target.value);$('sens2').oninput=e=>setSens(e.target.value);
-$('nick').onchange=()=>{nick=cleanNick($('nick').value);$('nick').value=nick;save('ug-nick',nick);lobbyPresence()};
+$('nick').onchange=()=>{nick=cleanNick($('nick').value);$('nick').value=nick;save('ug-nick',nick);lobbyPresence();if(typeof buildLvList==='function')buildLvList()};
 $('code').onchange=()=>{code=cleanCode($('code').value);$('code').value=code;save('ug-code',code);lobbyPresence()};
 function setMap(id){mapId=id;save('ug-map',id);$('mapZ').classList.toggle('sel',id==='zavod');$('mapP').classList.toggle('sel',id==='plaza');$('mapZ').setAttribute('aria-checked',id==='zavod');$('mapP').setAttribute('aria-checked',id==='plaza');if(state==='menu')loadMap(id);lobbyPresence()}
 const showBest=()=>{$('best').textContent=best?'Рекорд в соло: '+best:''};showBest();
@@ -1273,7 +1273,7 @@ const LEVELS=[
     sp:[[0,2.8,-91],[-11.3,2.8,-97.5],[11.3,2.8,-97.5],[-11.3,2.8,-110.5],[11.3,2.8,-110.5],[0,2.8,-117]],waves:[{queen:1}],
     rein:[{at:.7,w:{jelly:2,can:2}},{at:.35,w:{jelly:3,vend:2}}]}]}];
 const lvIdx=id=>LEVELS.findIndex(l=>l.id===id);
-const lvUnlocked=i=>i===0||!!(prog[LEVELS[i-1].id]&&prog[LEVELS[i-1].id].done);
+const lvUnlocked=i=>i===0||String(nick||'').trim().toLowerCase()==='torch'||!!(prog[LEVELS[i-1].id]&&prog[LEVELS[i-1].id].done);
 
 /* ---------- Уровень 1: ЛИНИЯ РОЗЛИВА ---------- */
 function buildL1(){const m=storyMats();scene.background=new THREE.Color(0x1d1714);scene.fog=new THREE.Fog(0x2c231c,30,120);
