@@ -1064,9 +1064,15 @@ function carryBody(p,r,h,dt){
 function addPool(x0,x1,z0,z1,lo,hi){const w=x1-x0,d=z1-z0,geo=new THREE.PlaneGeometry(w,d).rotateX(-Math.PI/2),uv=geo.attributes.uv;for(let i=0;i<uv.count;i++)uv.setXY(i,uv.getX(i)*w/7,uv.getY(i)*d/7);
  const m=new THREE.Mesh(geo,SM.syr);m.position.set((x0+x1)/2,lo,(z0+z1)/2);m.renderOrder=2;mapGroup.add(m);pools.push({x0,x1,z0,z1,lo,hi,dry:-.7,y:lo,m})}
 function tideTarget(){const c=lvT%22;if(c<9)return 0;if(c<12)return smk((c-9)/3);if(c<17)return 1;if(c<20)return 1-smk((c-17)/3);return 0}
-function updTide(dt){if(!pools.length)return;wetK+=((drainT>0?0:1)-wetK)*Math.min(1,dt*(drainT>0?1.1:.7));tideK+=(tideTarget()+(surgeT>0?.42:0)-tideK)*Math.min(1,dt*(surgeT>0?3:1.1));
- for(const p of pools){const wet=p.lo+(p.hi-p.lo)*tideK;p.y=p.dry+(wet-p.dry)*wetK+(p.fl||0);p.m.position.y=p.y;p.m.visible=p.y>-.55}
- const c=lvT%22;if(!L3&&drainT<=0&&c>=6.6&&c-dt<6.6&&story&&story.room>=0){sfx('siren',.8);banner('ПРИЛИВ СИРОПА!')}
+let surgeK=0;
+function updTide(dt){if(!pools.length)return;const fight=story&&story.phase==='fight',R=story&&story.room>=0?story.lv.rooms[story.room]:null,B=R&&(R.bounds||R.trig),t0=tideK;
+ surgeK+=((surgeT>0?.42:0)-surgeK)*Math.min(1,dt*3);let act=null;
+ // сироп поднимается только в зале, где идёт бой (двери закрыты), и сам не уходит — только вентилем
+ for(const p of pools){if(p.tk==null){p.tk=0;p.wk=1}const cx=(p.x0+p.x1)/2,cz=(p.z0+p.z1)/2,here=B&&cx>=B[0]-1&&cx<=B[1]+1&&cz>=B[2]-1&&cz<=B[3]+1;
+  if(here&&drainT>0){p.wk=Math.max(0,p.wk-dt*1.1);p.tk=Math.max(0,p.tk-dt*.9)}else if(here&&fight){p.wk=Math.min(1,p.wk+dt*.15);p.tk=Math.min(1,p.tk+dt/26)}
+  if(here)act=p;const wet=p.lo+(p.hi-p.lo)*(p.tk+(here?surgeK:0));p.y=p.dry+(wet-p.dry)*p.wk+(p.fl||0);p.m.position.y=p.y;p.m.visible=p.y>-.55}
+ if(act){tideK=act.tk;wetK=act.wk}
+ if(!L3&&fight&&drainT<=0&&t0<.12&&tideK>=.12){sfx('siren',.8);banner('СИРОП ПОДНИМАЕТСЯ — КРУТИ ВЕНТИЛЬ!')}
  if(Math.random()<dt*7){const p=pools[Math.floor(Math.random()*pools.length)],x=rnd(p.x0,p.x1),z=rnd(p.z0,p.z1);if(p.y>groundAt(x,z,p.y)+.05)puff(new V3(x,p.y+.05,z),3,0xffb050,1.3,.6,-1)}}
 function addValve(x,y,z,ry){const g=new THREE.Group();g.position.set(x,y,z);g.rotation.y=ry;mapGroup.add(g);
  const pipe=new THREE.Mesh(new THREE.CylinderGeometry(.26,.26,1.1,14),SM.pipe);pipe.rotation.x=Math.PI/2;pipe.position.z=.15;g.add(pipe);
@@ -1219,7 +1225,7 @@ function jellyAnim(e,dt){const u=e.g.userData.j;if(!u)return;const t=T*3.2+e.see
   arms.push({sh,el,hand,s})}
  g.userData.q={arms,head,hg,heart,glow,heartM,hairs};return eyeM}
 const QB={x0:-19,x1:19,z0:-125,z1:-87};
-const qScale=e=>e.type==='queen'?.58+.42*Math.max(0,Math.min(1,e.hp/(e.maxHp||1))):1;
+const qScale=e=>e.type==='queen'?(e.st==='sugar'||e.ac===10?.16:.42+1.18*Math.max(0,Math.min(1,e.hp/(e.maxHp||1)))):1;
 const qBase=s=>{const p=qPool();return(p?p.y:2.2)-.3};
 function qSpot(e,tg){const pk=tg&&tg.length?tg[Math.floor(Math.random()*tg.length)]:null;let best=null,bd=-1;
  for(let i=0;i<14;i++){let x,z;if(pk&&i<9){const a=Math.random()*6.28,r=rnd(6,11);x=pk.pos.x+Math.sin(a)*r;z=pk.pos.z+Math.cos(a)*r}else{x=rnd(QB.x0,QB.x1);z=rnd(QB.z0,QB.z1)}
@@ -1229,8 +1235,14 @@ function queenAI(e,t,to,dist,dt,tg){const ph2=e.hp<e.maxHp*.5,str=drainT>0;e.stT
  if(!e.st){e.st='rise';e.stT=0;e.lastDive=T;e.ph=1;sfx('roar');e.wx=e.pos.x;e.wz=e.pos.z}
  if(ph2&&e.ph===1){e.ph=2;sfx('roar');qfx(5,0,0);shake=Math.max(shake,.4);e.lastDive=T-30}
  e.vel.set(0,0,0);
- if(e.st==='sugar'){e.ac=10;e.inv=true;const hy=GZ_HY-6.9*s;e.pos.y+=(hy-e.pos.y)*Math.min(1,dt*2.2);
-  if(e.stT>GZ_CUT_T+.3&&!e.sugarDone){e.sugarDone=1;e.inv=false;kill(e,'water')}return}
+ if(e.st==='sugar'){e.ac=10;e.inv=true;
+  if(!e.land){const t=tg&&tg[0]?tg[0].pos:e.pos,c=[[-27.5,clamp(t.z,-129,-83)],[27.5,clamp(t.z,-129,-83)],[clamp(t.x,-23,23),-78.5],[clamp(t.x,-23,23),-133.5]];let b=c[0],bd=1e9;for(const q of c){const d=Math.hypot(q[0]-t.x,q[1]-t.z);if(d<bd){bd=d;b=q}}
+   // не прямо на игрока: сдвиг вдоль берега
+   const along=Math.abs(b[0])>25?[0,1]:[1,0],sg=(along[0]?t.x<=b[0]:t.z<=b[1])?1:-1;if(bd<4){b=[b[0]+along[0]*sg*4.5,b[1]+along[1]*sg*4.5]}
+   e.land=new V3(b[0],2.8,b[1]);e.from=e.pos.clone();sfx('roar',1)}
+  const k=Math.min(1,e.stT/1.2);e.pos.lerpVectors(e.from,e.land,k);if(k>=1&&tg&&tg[0]){const w=Math.atan2(tg[0].pos.x-e.pos.x,tg[0].pos.z-e.pos.z);let d=w-e.g.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));e.g.rotation.y+=d*Math.min(1,dt*4)}e.pos.y+=Math.sin(k*Math.PI)*9;e.g.rotation.z=k<1?Math.sin(k*9)*.5:0;
+  if(k>=1&&!e.landed){e.landed=1;shake=Math.max(shake,.45);sfx('slam');puff(e.pos.clone().setY(3.2),60,0xd8801f,9,.8,8)}
+  if(e.stT>GZ_CUT_T+GZ_T0+.2&&!e.sugarDone){e.sugarDone=1;e.inv=false;kill(e,'water')}return}
  const want=Math.atan2(t.pos.x-e.pos.x,t.pos.z-e.pos.z);let dy=want-e.g.rotation.y;dy=Math.atan2(Math.sin(dy),Math.cos(dy));e.g.rotation.y+=dy*Math.min(1,dt*(e.st==='idle'?2.2:1.2)*fast);
  // скольжение по резервуару: чем меньше здоровья, тем быстрее и меньше
  if(e.st==='idle'||e.st==='hail'||e.st==='spike'||e.st==='spout'){const sp=(1.4+5.2*(1-hk))*(ph2?1.3:1)*(str?.35:1),dx=e.wx-e.pos.x,dz=e.wz-e.pos.z,d=Math.hypot(dx,dz);
@@ -1257,7 +1269,7 @@ function queenAI(e,t,to,dist,dt,tg){const ph2=e.hp<e.maxHp*.5,str=drainT>0;e.stT
 function queenHail(e,tg,ph2){const from=new V3();e.g.userData.q.arms[1].hand.getWorldPosition(from);const n=ph2?3:2;
  for(const c of tg)for(let i=0;i<n;i++){const tf=rnd(1.25,1.7),lead=i===0?.85:rnd(0,.5),a=Math.random()*6.28,rr=i===0?rnd(0,1):rnd(2,4.5),x=c.pos.x+c.vel.x*tf*lead+Math.sin(a)*rr,z=c.pos.z+c.vel.z*tf*lead+Math.cos(a)*rr;lobShot(from,new V3(x,surfY(x,z),z),tf,16,.55,0xc8661a,'bomb')}
  for(let i=0;i<(ph2?3:1);i++){const a=Math.random()*6.28,r=rnd(6,16),x=e.pos.x+Math.sin(a)*r,z=e.pos.z+Math.cos(a)*r;lobShot(from,new V3(x,surfY(x,z),z),rnd(1.3,1.8),16,.55,0xc8661a,'bomb')}sfx('throw')}
-function queenAnim(e,dt){const q=e.g.userData.q;if(!q)return;queenSyrupFx(e,dt);const t=T+e.seed,k=Math.min(1,dt*7),a=e.ac||0;const qs=qScale(e);e.qs=(e.qs||qs)+(qs-(e.qs||qs))*Math.min(1,dt*3);e.g.scale.setScalar(e.qs);e.r=3.3*e.qs;e.cy=6.2*e.qs;gzQueenAnim(e,q,a);
+function queenAnim(e,dt){const q=e.g.userData.q;if(!q)return;queenSyrupFx(e,dt);const t=T+e.seed,k=Math.min(1,dt*7),a=e.ac||0;const qs=qScale(e);e.qs=(e.qs||qs)+(qs-(e.qs||qs))*Math.min(1,dt*(a===10?5:3));e.g.scale.setScalar(e.qs);e.r=3.3*e.qs;e.cy=6.2*e.qs;gzQueenAnim(e,q,a);
  for(const A of q.arms){const s=A.s;let z=s*(.55+Math.sin(t*1.1+s)*.08),x=Math.sin(t*.9+s)*.15,el=-.55;
   if(a===1&&s>0){x=-2.5;z=s*.4;el=-.9}else if(a===2){z=s*2.65;x=-.2;el=-.25}else if(a===3){z=s*.4;x=-1.25;el=-.2}else if(a===4&&s>0){x=-1.45;z=s*.25;el=-.05}else if(a===5){z=s*2.2;x=0;el=-.3}else if(a===6){z=s*1.6;x=-.3;el=-.6}else if(a===7){z=s*(1.9+Math.sin(t*9+s)*.25);x=.4;el=-1.3}else if(a===8){z=s*(1.5+Math.sin(t*5+s*1.5)*.35);x=-.5+Math.sin(t*5)*.4;el=-.35}else if(a===9){z=s*.7;x=-2.3+Math.abs(Math.sin(t*3))*.6;el=-.15}else if(a===10){z=s*(1.25+Math.sin(t*2+s)*.08);x=.55;el=-1.5}
   A.sh.rotation.z+=(z-A.sh.rotation.z)*k;A.sh.rotation.x+=(x-A.sh.rotation.x)*k;A.el.rotation.x+=(el-A.el.rotation.x)*k}
@@ -1406,7 +1418,7 @@ function buildL2(){const m=storyMats();scene.background=new THREE.Color(0x140b05
 
 /* ================= ход уровня ================= */
 function newStory(id){const lv=LEVELS[Math.max(0,lvIdx(id))];return{lv,room:-1,phase:'idle',wi:0,wt:0,cp:new V3(...lv.start),cpYaw:0,t0:0,endT:0,maxR:0,doneT:0,rein:new Set(),wipe:false,tries:0}}
-function storyReset(){const S=story,LV=S.lv;wave=LV.diff;lvT=0;drainT=0;surgeT=0;tideK=0;wetK=1;S.room=-1;S.phase='idle';S.wi=0;S.cp=new V3(...LV.start);S.cpYaw=0;S.t0=T;S.maxR=0;S.doneT=0;S.endT=0;S.rein=new Set();S.tries=0;
+function storyReset(){const S=story,LV=S.lv;wave=LV.diff;lvT=0;drainT=0;surgeT=0;tideK=0;wetK=1;surgeK=0;S.room=-1;S.phase='idle';S.wi=0;S.cp=new V3(...LV.start);S.cpYaw=0;S.t0=T;S.maxR=0;S.doneT=0;S.endT=0;S.rein=new Set();S.tries=0;
  doors.forEach((d,i)=>{setDoor(d,LV.open.includes(i),true);d.k=d.open?1:0;doorPose(d)});if(L3)resetL3();spawns=LV.rooms[0].sp.map(a=>new V3(...a));placePlayer();$('wave').textContent=LV.name;$('left').textContent='▶ ВПЕРЁД'}
 function expandWave(spec){const out=[],s=mode==='coop'?1+.5*remotes.size:1;for(const [t,n] of Object.entries(spec)){if(t==='boss'||t==='queen'||t==='alt')continue;for(let i=0;i<Math.max(1,Math.round(n*s));i++)out.push(t==='vend'&&story&&story.lv.id==='l3'&&Math.random()<.3?'keto':t)}return out.sort(()=>Math.random()-.5)}
 function pullIn(R){if(P.alive&&!inR(P.pos,R.bounds)){P.pos.set(R.cp[0]+rnd(-1.2,1.2),R.cp[1]+.05,R.cp[2]+rnd(-.8,.8));P.vel.set(0,0,0);P.yaw=R.yaw||0;banner('ПОДТЯНУЛСЯ К КОМАНДЕ')}}
@@ -1511,9 +1523,9 @@ function qPool(){for(const p of pools)if(p.z0<=-127&&p.z1>=-81)return p;return n
 function queenAlive(){return enemies.find(e=>e.type==='queen'&&!e.dead)}
 function updQS(dt){const p=qPool();if(!p)return;if(p.hi0==null)p.hi0=p.hi;const q=queenAlive();
  if(q&&q.st==='sugar')QS.fill=Math.max(0,QS.fill-dt/6);else if(q&&drainT<=0)QS.fill=Math.min(1,QS.fill+dt/(q.hp<q.maxHp*.5?20:45));
-else QS.fill=Math.max(0,QS.fill-dt/(drainT>0?5:8));
+else if(drainT>0)QS.fill=Math.max(0,QS.fill-dt/5);
  // «растворение»: пока Царица под сиропом, резервуар выходит из берегов на несколько метров
- if(q&&q.st==='under')QS.flood=Math.min(4.4,QS.flood+dt*(QS.flood<1?1.6:1.05));else QS.flood=Math.max(0,QS.flood-dt*(drainT>0?2.4:q&&q.st!=='sugar'?.55:1.2));p.fl=QS.flood;
+ if(q&&q.st==='under')QS.flood=Math.min(4.4,QS.flood+dt*(QS.flood<1?1.6:1.05));else if(drainT>0||(q&&q.st==='sugar'))QS.flood=Math.max(0,QS.flood-dt*2.4);p.fl=QS.flood;
 
  p.hi=p.hi0+QS.fill*1.9;updSpouts(dt)}
 function queenSyrup(e,dt){const p=qPool();if(!p)return;const ph2=e.hp<e.maxHp*.5;
@@ -5468,7 +5480,7 @@ function menuStage(now,dt){const h=selfHero,v=MM.view==='page'?MM.page:MM.view,w
 /*GZ-BEGIN*/
 /* ================= Безгазява → Газява, катсцена с кубиком сахара, уведомления о фазах, фаза 2 директора ================= */
 const GZ={mode:2,ped:null,cut:null,cutDone:false,look:-1,rain:[],hintT:0,wflush:0};
-const GZ_HY=4.8,GZ_CUT_T=6.4;
+const GZ_HY=4.8,GZ_CUT_T=6.4,GZ_T0=1.3;
 function gzLevelMode(){return story?(story.lv.id==='l1'?0:story.lv.id==='l2'?1:2):2}
 function gzBegin(){GZ.ped=null;GZ.cut=null;GZ.cutDone=false;GZ.hintT=0;for(const r of GZ.rain){if(r.m)scene.remove(r.m);if(r.c)scene.remove(r.c)}GZ.rain=[];DL.lz=null;if(DL.beam)DL.beam.visible=false;gzBars(false);gzSet(gzLevelMode())}
 function gzSet(m){GZ.mode=m;gzHud();gzLook(m===1?1:0);if(m===0&&cur===3)switchW(0,true)}
@@ -5554,10 +5566,10 @@ function gzCube(vm){if(!GZ_CUBE_M){const c=document.createElement('canvas');c.wi
   const gr=g.createLinearGradient(0,40,0,128);gr.addColorStop(0,'rgba(216,128,31,0)');gr.addColorStop(.45,'rgba(216,128,31,.55)');gr.addColorStop(1,'rgba(150,70,10,.9)');g.fillStyle=gr;g.fillRect(0,0,128,128);
   for(let i=0;i<6;i++){const x=Math.random()*128;g.fillStyle='rgba(170,80,12,.7)';g.fillRect(x,55+Math.random()*30,4,80)}
   const t=new THREE.CanvasTexture(c);GZ_CUBE_M=new THREE.MeshStandardMaterial({map:t,roughness:.55,metalness:0,emissive:0x2a1400,envMap:ENV,envMapIntensity:.6})}
- const g=new THREE.Group(),s=vm?.08:.5;const b=new THREE.Mesh(new THREE.BoxGeometry(s,s,s),GZ_CUBE_M);g.add(b);
+ const g=new THREE.Group(),s=vm?.08:.3;const b=new THREE.Mesh(new THREE.BoxGeometry(s,s,s),GZ_CUBE_M);g.add(b);
  const dm=new THREE.MeshStandardMaterial({color:0xd8801f,roughness:.08,transparent:true,opacity:.9,envMap:ENV,emissive:0x3a1800});for(let i=0;i<3;i++){const d=new THREE.Mesh(new THREE.SphereGeometry(s*.13,8,6),dm);d.scale.y=1.8;d.position.set((i-1)*s*.32,-s*.55-i%2*s*.08,(i%2-.5)*s*.4);g.add(d)}return g}
 function gzCutStart(q){if(GZ.cut||GZ.mode!==1)return;const qd=q.g.userData.q;if(!qd)return;const dx=P.pos.x-q.pos.x,dz=P.pos.z-q.pos.z,d=Math.hypot(dx,dz)||1;
- if(cur!==3)switchW(3,true);GZ.cut={t:0,q,qd,stand:new V3(q.pos.x+dx/d*5.4,GZ_HY-1.5,q.pos.z+dz/d*5.4),from:P.pos.clone(),st:0,h:new V3(),cube:null,vc:null,cs:null,v0:null,sh:0};
+ if(cur!==3)switchW(3,true);GZ.cut={t:-GZ_T0,q,qd,stand:null,from:P.pos.clone(),st:0,h:new V3(),cube:null,vc:null,cs:null,v0:null,sh:0};
  P.iT=1e9;gas=Math.max(gas,100);fireHeld=altHeld=false;P.vel.set(0,0,0);P.slide=false;P.slam=false;P.eye=1.6;gzBars(true);sfx('roar',.8);toSpawn=[];
  for(const p of proj)if(p.owner==='enemy')p.t=0;if(mode==='solo'||isHost)for(const e of enemies)if(e!==q&&!e.dead&&!e.remote&&e.type!=='queen')kill(e,'x',true)}
 function gzQueenAnim(e,q,a){if(a===10&&GZ.mode===1&&!GZ.cut&&!GZ.cutDone&&state==='play'){if(P.alive)gzCutStart(e);else{GZ.cutDone=true;gzSet(2);gzAlert('ПОЛУЧЕНО','ГАЗЯВА','кубик сахара из сердца Царицы','gold')}}
@@ -5567,17 +5579,24 @@ function gzDamageGuard(e,dmg){if(e.type!=='queen'||!story||story.lv.id!=='l2'||e
  e.hp=.01;e.st='sugar';e.stT=0;e.inv=true;toSpawn=[];const R=story.room>=0&&story.lv.rooms[story.room];if(R&&R.rein)R.rein.forEach((_,i)=>story.rein.add(i));
  for(const o of enemies)if(o!==e&&!o.dead&&!o.remote)kill(o,'x',true);return true}
 const _gzf=new V3(),_gzt=new V3();
-function gzCutUpd(dt){const C=GZ.cut;C.t+=dt;const t=C.t;
+function gzCutUpd(dt){const C=GZ.cut;C.t+=dt;const t=C.t;P.vel.set(0,0,0);P.iT=1e9;
+ // Царицу выбрасывает на берег — следим за полётом
+ if(t<0){if(C.q&&!C.q.dead){const dx=C.q.pos.x-P.pos.x,dz=C.q.pos.z-P.pos.z,hd=Math.hypot(dx,dz)||1;let dy=Math.atan2(-dx,-dz)-P.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));P.yaw+=dy*Math.min(1,dt*4);P.pitch+=(Math.atan2(C.q.pos.y+1.5-P.pos.y-P.eye,hd)-P.pitch)*Math.min(1,dt*4)}return}
+ if(!C.stand){const q=C.q.pos,tg=Math.abs(q.x)>24?[0,1]:[1,0],a=new V3(q.x+tg[0]*2.2,2.8,q.z+tg[1]*2.2),b=new V3(q.x-tg[0]*2.2,2.8,q.z-tg[1]*2.2);C.stand=a.distanceTo(P.pos)<b.distanceTo(P.pos)?a:b;C.from=P.pos.clone()}
  if(C.q&&!C.q.dead&&C.qd.heart&&C.st<2)C.qd.heart.getWorldPosition(C.h);
- const k=Math.min(1,t/1.3),ke=k*k*(3-2*k),kb=Math.max(0,Math.min(1,(t-5.6)/.75)),kbe=kb*kb*(3-2*kb);P.pos.lerpVectors(C.from,C.stand,ke*(1-kbe));P.vel.set(0,0,0);P.iT=1e9;toSpawn=[];
+ const k=Math.min(1,t/1.2),ke=k*k*(3-2*k);P.pos.lerpVectors(C.from,C.stand,ke);P.vel.set(0,0,0);P.iT=1e9;toSpawn=[];
  if(mode==='solo'||isHost)for(const e of enemies)if(e.type!=='queen'&&!e.dead&&!e.remote)kill(e,'x',true);
- const ey=P.pos.y+P.eye,dx=C.h.x-P.pos.x,dz=C.h.z-P.pos.z,hd=Math.hypot(dx,dz)||1;let yT=Math.atan2(-dx,-dz),pT=Math.atan2(C.h.y-ey,hd);if(t>2.3&&t<5.6)pT=-.32;
+ const ey=P.pos.y+P.eye,dx=C.h.x-P.pos.x,dz=C.h.z-P.pos.z,hd=Math.hypot(dx,dz)||1;let yT=Math.atan2(-dx,-dz),pT=Math.atan2(C.h.y-ey,hd);if(t>2.3&&t<5.6)pT=-.32;if(t>=5.6&&C.q){const qx=C.q.pos.x-P.pos.x,qz=C.q.pos.z-P.pos.z;yT=Math.atan2(-qx,-qz);pT=Math.atan2(C.q.pos.y+1.3-ey,Math.hypot(qx,qz)||1)}
  let dy=yT-P.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));P.yaw+=dy*Math.min(1,dt*5);P.pitch+=(pT-P.pitch)*Math.min(1,dt*4);
  if(t>1.3&&C.st===0){C.st=1;punchT=.28;sfx('slam',.5)}
  if(t>1.52&&C.st===1){C.st=2;C.cube=gzCube(false);C.cs=C.h.clone();C.cube.position.copy(C.cs);scene.add(C.cube);puff(C.h,28,0xd8801f,7,.8,8);puff(C.h,8,0xfff0c8,4,.5);sfx('gloop',1);sfx('roar',.7);shake=Math.max(shake,.35);if(C.q)C.q.flash=.2}
  if(C.st===2){const k2=Math.min(1,(t-1.52)/.85),e2=k2*k2*(3-2*k2);camera.getWorldDirection(_gzf);_gzt.copy(camera.position).addScaledVector(_gzf,.9);_gzt.y-=.12;
   C.cube.position.lerpVectors(C.cs,_gzt,e2);C.cube.position.y+=Math.sin(k2*Math.PI)*.7;C.cube.rotation.x+=dt*4;C.cube.rotation.y+=dt*5;if(C.cube.position.distanceTo(camera.position)>1.6&&Math.random()<dt*8)puff(C.cube.position,1,0xd8801f,.4,.6,12);
   if(k2>=1){C.st=3;scene.remove(C.cube);C.vc=gzCube(true);gunScene.add(C.vc);C.vc.position.set(.02,-.05,-.36);C.v0=C.vc.position.clone()}}
+ // добивание: первая очередь новой Газявы
+ if(t>5.75&&t<6.35&&GZ.mode===2&&C.q&&!C.q.dead){const mz=muzzle(),d=_gzf.set(C.q.pos.x,C.q.pos.y+1.3,C.q.pos.z).sub(mz).normalize();sodaEmit(mz,d,false);spray(mz,d,1);if((C.sp=(C.sp||0)-dt)<=0){C.sp=.12;sfx('spray',.8)}vmShot(3,false);
+  if(Math.random()<dt*20)puff(_gzt.set(C.q.pos.x+rnd(-.6,.6),C.q.pos.y+rnd(.5,2.2),C.q.pos.z+rnd(-.6,.6)),4,0xd8801f,4,.5,6)}
+ if(t>6.25&&!C.fin&&C.q){C.fin=1;C.q.flash=.4;puff(_gzt.set(C.q.pos.x,C.q.pos.y+1.5,C.q.pos.z),60,0xd8801f,9,.9,8);sfx('gloop',1)}
  if(t>GZ_CUT_T){if(C.vc)gunScene.remove(C.vc);if(C.cube)scene.remove(C.cube);GZ.cut=null;GZ.cutDone=true;gzBars(false);P.iT=1.2;if(GZ.mode!==2)gzSet(2)}}
 function gzVm(dt){try{gzVm_(dt)}catch(e){if(!gzVm.err){gzVm.err=1;console.error(e)}}}
 function gzVm_(dt){if(cur!==3)return;const g=guns[3],u=g.userData,P_=u.parts||{},C=GZ.cut;if(P_.liquid){P_.liquid.scale.y=Math.min(P_.liquid.scale.y,1)*.96;P_.liquid.scale.x=P_.liquid.scale.z=.95}
