@@ -1981,20 +1981,21 @@ const _uwd=new V3();
 /* ---------- струя Газявы: капли летят по баллистической дуге, между ними — сплошная лента жидкости ---------- */
 const SODA={d:[],seq:0,sid:0,lastT:-9,mesh:null,N:220};
 function sodaInit(){if(SODA.mesh)return;const N=SODA.N,g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(N*18),3));g.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(N*12),2));g.setAttribute('aA',new THREE.BufferAttribute(new Float32Array(N*6),1));
- const m=new THREE.ShaderMaterial({uniforms:{uT:{value:0}},transparent:true,depthWrite:false,side:THREE.DoubleSide,
+ const m=new THREE.ShaderMaterial({uniforms:{uT:{value:0},uW:{value:0}},transparent:true,depthWrite:false,side:THREE.DoubleSide,
   vertexShader:'attribute float aA;varying vec2 vU;varying float vA;void main(){vU=uv;vA=aA;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-  fragmentShader:`uniform float uT;varying vec2 vU;varying float vA;
+  fragmentShader:`uniform float uT;uniform float uW;varying vec2 vU;varying float vA;
    float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
    void main(){float x=abs(vU.y-.5)*2.;if(x>1.)discard;float core=1.-x*x;
     vec3 c=mix(vec3(.16,.05,.015),vec3(.5,.2,.05),core);c+=vec3(1.,.82,.55)*(1.-smoothstep(0.,.22,abs(vU.y-.36)))*.55;
-    vec2 cell=floor(vec2(vU.x*9.-uT*14.,vU.y*4.));float b=step(.78,h(cell))*smoothstep(.2,.9,1.-vA);c=mix(c,vec3(.97,.92,.84),b*.8);
-    float a=vA*(.75+.25*core);gl_FragColor=vec4(c,a*(1.-smoothstep(.75,1.,x)));}`});
+    vec2 cell=floor(vec2(vU.x*9.-uT*14.,vU.y*4.));float b=step(.78,h(cell))*smoothstep(.2,.9,1.-vA);c=mix(c,vec3(.97,.92,.84),b*.8*(1.-uW));
+    vec3 cw=mix(vec3(.16,.42,.78),vec3(.55,.8,.98),core)+vec3(.9,.97,1.)*(1.-smoothstep(0.,.14,abs(vU.y-.36)))*.35;c=mix(c,cw,uW);
+    float a=vA*(.75+.25*core)*(1.-.35*uW);gl_FragColor=vec4(c,a*(1.-smoothstep(.75,1.,x)));}`});
  const mesh=new THREE.Mesh(g,m);mesh.frustumCulled=false;mesh.renderOrder=6;scene.add(mesh);SODA.mesh=mesh}
 function sodaEmit(o,d,mine,key){sodaInit();key=mine?'me':(key||'peer');const S_=SODA.src||(SODA.src={}),st=S_[key]||(S_[key]={sid:0,lastT:-9});if(T-st.lastT>.2)st.sid=++SODA.sid;st.lastT=T;const sid=st.sid;if(mine){SODA.lastT=T;SODA.msid=sid}
  for(let k=2;k>=0;k--){const v=d.clone().multiplyScalar(42+rnd(-1.5,1.5));if(mine)v.addScaledVector(P.vel,.4);v.x+=rnd(-.22,.22);v.y+=rnd(-.15,.25);v.z+=rnd(-.22,.22);
   const p=o.clone().addScaledVector(v,k*.027);SODA.d.push({p,v,t:0,life:1.4,sid,seq:++SODA.seq,mine,hitC:null});}
  if(SODA.d.length>SODA.N)SODA.d.splice(0,SODA.d.length-SODA.N)}
-function sodaHitEnemy(e,dr){const c=center(e,tmpA);puff(c,6,0x6b2a12,4,.4);puff(c,3,0xf6eee2,3,.35);
+function sodaHitEnemy(e,dr){if(GZ.mode===1)return gzWaterHit(e,dr);const c=center(e,tmpA);puff(c,6,0x6b2a12,4,.4);puff(c,3,0xf6eee2,3,.35);
  if(e.type==='jelly'||e.type==='queen'){puff(c,4,0xffb050,2,.4,-2);if(!sodaHitEnemy.syr){sodaHitEnemy.syr=1;banner('СИРОПНЫХ ГАЗЯВОЙ НЕ ПРОМОЧИТЬ')}return}
  if(!(e.wet>0)){addStyle('ЗАЛИТ',10)}e.wet=3;if(!e.remote)e.vel.addScaledVector(_sv.copy(dr.v).normalize(),.9)}
 const _sv=new V3(),_sa=new V3(),_sb=new V3(),_sc=new V3();
@@ -2008,9 +2009,9 @@ function updSoda(dt){if(!SODA.mesh&&!SODA.d.length)return;sodaInit();const D=SOD
    if(dr.dead)continue;
    for(const pr of proj)if(pr.kind==='rocket'&&!pr.dead&&!pr.boost&&pr.m.position.distanceTo(dr.p)<.9){pr.boost=true;pr.m.children[1].material.color.setHex(0xf6eee2);pr.m.scale.setScalar(1.5);addStyle('МЕНТОС + КОЛА',40);puff(pr.m.position,30,0xf6eee2,6,.6)}}
   const g=groundAt(dr.p.x,dr.p.z,op.y+.3);
-  if(dr.p.y<=g&&op.y>=g-.05){dr.dead=true;dr.p.y=g;puff(_sb.set(dr.p.x,g+.05,dr.p.z),4,Math.random()<.4?0xf6eee2:0x6b2a12,2.6,.35,10);if(dr.mine&&(++land)%2===0&&Math.random()<.6)addPuddle(dr.p.x,g,dr.p.z,.42,7);continue}
-  if(inBox(dr.p)||dr.p.y<-30){dr.dead=true;puff(op,4,0x6b2a12,2.5,.3,10);continue}
-  if(Math.random()<dt*6)puff(dr.p,1,Math.random()<.5?0xf6eee2:0x8a3a14,1.2,.35,9)}
+  if(dr.p.y<=g&&op.y>=g-.05){dr.dead=true;dr.p.y=g;puff(_sb.set(dr.p.x,g+.05,dr.p.z),4,Math.random()<.4?0xf6eee2:GZ.mode===1?0xbfe6ff:0x6b2a12,2.6,.35,10);if(GZ.mode!==1&&dr.mine&&(++land)%2===0&&Math.random()<.6)addPuddle(dr.p.x,g,dr.p.z,.42,7);continue}
+  if(inBox(dr.p)||dr.p.y<-30){dr.dead=true;puff(op,4,GZ.mode===1?0xbfe6ff:0x6b2a12,2.5,.3,10);continue}
+  if(Math.random()<dt*6)puff(dr.p,1,Math.random()<.5?0xf6eee2:GZ.mode===1?0x9fd8ff:0x8a3a14,1.2,.35,9)}
  // лента: соседние живые капли одной струи
  const L=D.filter(d=>!d.dead).sort((a,b)=>a.seq-b.seq),pos=SODA.mesh.geometry.attributes.position,uv=SODA.mesh.geometry.attributes.uv,aa=SODA.mesh.geometry.attributes.aA,cam=camera.position;let n=0;
  const quad=(a,b,wa,wb,ua,ub,fa,fb)=>{if(n>=SODA.N)return;_sc.subVectors(b,a);const mid=_sb.addVectors(a,b).multiplyScalar(.5).sub(cam);const side=_sv.crossVectors(_sc,mid).normalize();
@@ -2873,6 +2874,7 @@ function updChute(c,G,t,flare){const u=c.userData,p=u.dome.geometry.attributes.p
  const sk=(u.SEG)*(u.C+1);for(let i=0;i<u.G;i++){const vi=sk+i*8;_cw.fromBufferAttribute(p,vi);c.localToWorld(_cw);const tgt=Math.cos(i/u.G*Math.PI*2)>0?pr:pl;lp.setXYZ(i*2,_cw.x,_cw.y,_cw.z);lp.setXYZ(i*2+1,tgt.x,tgt.y,tgt.z)}
  lp.setXYZ(u.G*2,pl.x,pl.y,pl.z);lp.setXYZ(u.G*2+1,pl.x,pl.y-.4,pl.z);lp.setXYZ(u.G*2+2,pr.x,pr.y,pr.z);lp.setXYZ(u.G*2+3,pr.x,pr.y-.4,pr.z);lp.needsUpdate=true}
 /*BEER-END*/
+
 
 
 
@@ -5576,7 +5578,8 @@ function gzCutUpd(dt){const C=GZ.cut;C.t+=dt;const t=C.t;
   C.cube.position.lerpVectors(C.cs,_gzt,e2);C.cube.position.y+=Math.sin(k2*Math.PI)*.7;C.cube.rotation.x+=dt*4;C.cube.rotation.y+=dt*5;if(C.cube.position.distanceTo(camera.position)>1.6&&Math.random()<dt*8)puff(C.cube.position,1,0xd8801f,.4,.6,12);
   if(k2>=1){C.st=3;scene.remove(C.cube);C.vc=gzCube(true);gunScene.add(C.vc);C.vc.position.set(.02,-.05,-.36);C.v0=C.vc.position.clone()}}
  if(t>GZ_CUT_T){if(C.vc)gunScene.remove(C.vc);if(C.cube)scene.remove(C.cube);GZ.cut=null;GZ.cutDone=true;gzBars(false);P.iT=1.2;if(GZ.mode!==2)gzSet(2)}}
-function gzVm(dt){if(cur!==3)return;const g=guns[3],u=g.userData,P_=u.parts||{},C=GZ.cut;
+function gzVm(dt){try{gzVm_(dt)}catch(e){if(!gzVm.err){gzVm.err=1;console.error(e)}}}
+function gzVm_(dt){if(cur!==3)return;const g=guns[3],u=g.userData,P_=u.parts||{},C=GZ.cut;
  if(GZ.mode===1&&!C){if(P_.needle)P_.needle.rotation.z=1.8}
  if(!C)return;const t=C.t,sm=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
  const b=t<2.1?0:t<5.5?sm((t-2.1)/.5):1-sm((t-5.5)/.6);
@@ -5630,8 +5633,9 @@ function B_vis(e){const B=e.g.userData.boss;if(B)B.kickT=.5}
 function dlFx(n){if(n[0]===1)dlStart(n[1],n[2],n[3],n[4],n[5]||1,n[6],n[7],false);else if(n[0]===2){const sp=[];for(let i=1;i+2<n.length;i+=3)sp.push([n[i],n[i+1],n[i+2]]);dlRain(sp,false)}}
 
 /* --- общий кадр --- */
-function gzFrame(dt){gzPhases();dlUpd(dt);dlRainUpd(dt);if(story)gzPedUpd(dt);if(GZ.cut)gzCutUpd(dt);
- if(SODA.mesh)SODA.mesh.material.uniforms.uW.value=GZ.mode===1?1:0;
+function gzFrame(dt){try{gzFrame_(dt)}catch(e){if(!gzFrame.err){gzFrame.err=1;console.error(e)}}}
+function gzFrame_(dt){gzPhases();dlUpd(dt);dlRainUpd(dt);if(story)gzPedUpd(dt);if(GZ.cut)gzCutUpd(dt);
+ {const u=SODA.mesh&&SODA.mesh.material.uniforms;if(u&&u.uW)u.uW.value=GZ.mode===1?1:0}
  GZ.wflush-=dt;if(GZ.wflush<=0){GZ.wflush=.12;for(const e of enemies)if(e.wdmg>0&&!e.dead){const d=e.wdmg;e.wdmg=0;damage(e,d,99,'water')}}}
 /*GZ-END*/
 if(/[?&]debug\b/.test(location.search))window.__ugEval=s=>eval(s);
