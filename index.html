@@ -1133,7 +1133,7 @@ function updWrings(dt){for(const w of wrings){w.R+=14*dt;const yl=syrupLvl(w.x,w
    if(Math.abs(d-w.R)<1.1&&c.pos.y<w.y+1.3){w.hit.add(key);hitTarget(c,26,new V3(c.pos.x-w.x,0,c.pos.z-w.z).normalize().multiplyScalar(15).setY(9))}}}
  wrings=wrings.filter(w=>{const end=w.R>36;if(end)scene.remove(w.m);return!end})}
 function qfx(sub,...a){if(mp()&&isHost)pushFx(['q',0,sub,...a.map(r1)])}
-function clearStoryFx(){for(const k of kmarks){scene.remove(k.m);scene.remove(k.f)}kmarks=[];goo.forEach(g=>scene.remove(g.m));goo=[];quakes.forEach(q=>{if(q.m)scene.remove(q.m);if(q.c)scene.remove(q.c)});quakes=[];wrings.forEach(w=>scene.remove(w.m));wrings=[];
+function clearStoryFx(){queenSyrupReset();for(const k of kmarks){scene.remove(k.m);scene.remove(k.f)}kmarks=[];goo.forEach(g=>scene.remove(g.m));goo=[];quakes.forEach(q=>{if(q.m)scene.remove(q.m);if(q.c)scene.remove(q.c)});quakes=[];wrings.forEach(w=>scene.remove(w.m));wrings=[];
  for(const p of proj)if(p.mark){scene.remove(p.mark);p.mark=null}$('syr').style.opacity=0}
 
 /* ================= новые враги ================= */
@@ -1228,25 +1228,28 @@ function buildQueen(g,mm){const E={envMap:ENV,envMapIntensity:1.1},car=mm(0xd880
   const bowl=new THREE.Mesh(new THREE.SphereGeometry(.9,18,10,0,Math.PI*2,Math.PI/2,Math.PI/2),car2);bowl.material.side=THREE.DoubleSide;hand.add(bowl);const rr=new THREE.Mesh(new THREE.TorusGeometry(.9,.08,8,28),gold);rr.rotation.x=Math.PI/2;hand.add(rr);
   arms.push({sh,el,hand,s})}
  g.userData.q={arms,head,hg,heart,glow,heartM,hairs};return eyeM}
-function queenAI(e,t,to,dist,dt,tg){const ph2=e.hp<e.maxHp*.5,str=drainT>0;e.stT=(e.stT||0)+dt;
+/*v8*/function queenAI(e,t,to,dist,dt,tg){const ph2=e.hp<e.maxHp*.5,str=drainT>0;e.stT=(e.stT||0)+dt;queenSyrup(e,dt);
  if(!e.st){e.st='rise';e.stT=0;e.lastDive=T;e.ph=1;sfx('roar')}
  if(ph2&&e.ph===1){e.ph=2;banner('ЦАРИЦА В ЯРОСТИ');sfx('roar');qfx(5,0,0);shake=Math.max(shake,.4)}
  const want=Math.atan2(t.pos.x-e.pos.x,t.pos.z-e.pos.z);let dy=want-e.g.rotation.y;dy=Math.atan2(Math.sin(dy),Math.cos(dy));e.g.rotation.y+=dy*Math.min(1,dt*(e.st==='idle'?2:1));
  const sink=str?-1.2:0;e.vel.set(0,0,0);
  if(e.st==='rise'){e.inv=true;e.ac=6;const k=Math.min(1,e.stT/2.4);e.pos.y=-13+13*(1-Math.pow(1-k,3))+sink*k;if(Math.random()<dt*30)puff(new V3(e.pos.x+rnd(-3,3),Math.max(0,syrupLvl(e.pos.x,e.pos.z)),e.pos.z+rnd(-3,3)),3,0xd8801f,6,.7,10);if(k>=1){e.st='idle';e.stT=0;e.cd=1.2;e.inv=false}}
  else if(e.st==='idle'){e.ac=0;e.pos.y+=(sink-e.pos.y)*Math.min(1,dt*2);e.cd-=dt*(ph2?1.45:1)*(str?.6:1);
-  if(e.cd<=0){if(ph2&&T-e.lastDive>13){e.st='dive';e.stT=0;sfx('gloop',1)}else{const r=Math.random();let s=r<.36?'hail':r<.7?'spike':'wave';if(s===e.last&&Math.random()<.65)s=s==='wave'?'hail':'wave';e.last=s;e.st=s;e.stT=0;e.done=0;if(s==='wave'){sfx('roar',.8);qfx(5,0,0)}}}}
+  if(e.cd<=0){if(ph2&&T-e.lastDive>13){e.st='dive';e.stT=0;sfx('gloop',1)}else{let s=queenPick(e);e.last=s;e.st=s;e.stT=0;e.done=0;if(s==='wave'){sfx('roar',.8);qfx(5,0,0)}}}}
+ else if(e.st==='stranded'){e.ac=7;e.pos.y+=(-2.4-e.pos.y)*Math.min(1,dt*2.5);if(Math.random()<dt*10)puff(new V3(e.pos.x+rnd(-3,3),Math.max(0,syrupLvl(e.pos.x,e.pos.z))+.2,e.pos.z+rnd(-3,3)),3,0xd8801f,4,.6,10);if(e.stT>3.2){e.st='idle';e.stT=0;e.cd=.9}}
+ else if(e.st==='swirl'){e.ac=8;if(e.stT>3.8){e.st='idle';e.cd=rnd(1.4,2);e.stT=0}}
+ else if(e.st==='spout'){e.ac=9;if(!e.done&&e.stT>.45){e.done=1;for(const c of tg){const x=c.pos.x+c.vel.x*.6,z=c.pos.z+c.vel.z*.6;spout(x,z,true);qfx(6,x,z)}if(ph2)for(let i=0;i<3;i++){const a=Math.random()*6.28,r=rnd(6,15),x=e.pos.x+Math.sin(a)*r,z=e.pos.z+Math.cos(a)*r;spout(x,z,true);qfx(6,x,z)}sfx('roar',.6)}if(e.stT>1.7){e.st='idle';e.cd=rnd(1.3,2);e.stT=0}}
  else if(e.st==='hail'){e.ac=1;if(!e.done&&e.stT>.75){e.done=1;queenHail(e,tg,ph2)}if(e.stT>1.5){e.st='idle';e.cd=rnd(1.5,2.3);e.stT=0}}
  else if(e.st==='wave'){e.ac=e.stT<1.15?2:3;if(!e.done&&e.stT>1.15){e.done=1;const y=Math.max(0,syrupLvl(e.pos.x,e.pos.z));waveRing(e.pos.x,y,e.pos.z,true);qfx(1,e.pos.x,e.pos.z);surgeT=3.4;shake=Math.max(shake,.45);sfx('slam');puff(new V3(e.pos.x,y+.5,e.pos.z),80,0xd8801f,14,.9,10)}if(e.stT>2.1){e.st='idle';e.cd=rnd(1.8,2.6);e.stT=0}}
  else if(e.st==='spike'){e.ac=4;if(!e.done&&e.stT>.55){e.done=1;for(const c of tg){const a=Math.atan2(c.pos.x-e.pos.x,c.pos.z-e.pos.z);spikeLine(e.pos.x,e.pos.z,a,12,true);qfx(2,e.pos.x,e.pos.z,a)}if(ph2){spikeRing(e.pos.x,e.pos.z,6.5,true);qfx(3,e.pos.x,e.pos.z,6.5)}sfx('crack',1)}if(e.stT>1.5){e.st='idle';e.cd=rnd(1.4,2.2);e.stT=0}}
  else if(e.st==='dive'){e.ac=5;e.inv=e.stT>.5;e.pos.y-=dt*(4+e.stT*8);if(e.stT>1.5){const sp=(story&&story.room>=0&&story.lv.rooms[story.room].qspots)||[[e.pos.x,e.pos.z]],s=sp[Math.floor(Math.random()*sp.length)];
    e.pos.x=s[0];e.pos.z=s[1];e.st='rise';e.stT=.7;e.lastDive=T;for(let i=0;i<2;i++)toSpawn.push('jelly');spawnT=.3}}}
 function queenHail(e,tg,ph2){const from=new V3();e.g.userData.q.arms[1].hand.getWorldPosition(from);const n=ph2?3:2;
- for(const c of tg)for(let i=0;i<n;i++){const tf=rnd(1.25,1.7),lead=i===0?.85:rnd(0,.5),a=Math.random()*6.28,rr=i===0?rnd(0,1):rnd(2,4.5),x=c.pos.x+c.vel.x*tf*lead+Math.sin(a)*rr,z=c.pos.z+c.vel.z*tf*lead+Math.cos(a)*rr;npMark(lobShot(from,new V3(x,surfY(x,z),z),tf,16,.55,0xc8661a,'bomb'),.9)}
- for(let i=0;i<(ph2?3:1);i++){const a=Math.random()*6.28,r=rnd(6,16),x=e.pos.x+Math.sin(a)*r,z=e.pos.z+Math.cos(a)*r;npMark(lobShot(from,new V3(x,surfY(x,z),z),rnd(1.3,1.8),16,.55,0xc8661a,'bomb'),.9)}sfx('throw')}
-function queenAnim(e,dt){const q=e.g.userData.q;if(!q)return;const t=T+e.seed,k=Math.min(1,dt*7),a=e.ac||0;
+ for(const c of tg)for(let i=0;i<n;i++){const tf=rnd(1.25,1.7),lead=i===0?.85:rnd(0,.5),a=Math.random()*6.28,rr=i===0?rnd(0,1):rnd(2,4.5),x=c.pos.x+c.vel.x*tf*lead+Math.sin(a)*rr,z=c.pos.z+c.vel.z*tf*lead+Math.cos(a)*rr;lobShot(from,new V3(x,surfY(x,z),z),tf,16,.55,0xc8661a,'bomb')}
+ for(let i=0;i<(ph2?3:1);i++){const a=Math.random()*6.28,r=rnd(6,16),x=e.pos.x+Math.sin(a)*r,z=e.pos.z+Math.cos(a)*r;lobShot(from,new V3(x,surfY(x,z),z),rnd(1.3,1.8),16,.55,0xc8661a,'bomb')}sfx('throw')}
+function queenAnim(e,dt){const q=e.g.userData.q;if(!q)return;queenSyrupFx(e,dt);const t=T+e.seed,k=Math.min(1,dt*7),a=e.ac||0;
  for(const A of q.arms){const s=A.s;let z=s*(.55+Math.sin(t*1.1+s)*.08),x=Math.sin(t*.9+s)*.15,el=-.55;
-  if(a===1&&s>0){x=-2.5;z=s*.4;el=-.9}else if(a===2){z=s*2.65;x=-.2;el=-.25}else if(a===3){z=s*.4;x=-1.25;el=-.2}else if(a===4&&s>0){x=-1.45;z=s*.25;el=-.05}else if(a===5){z=s*2.2;x=0;el=-.3}else if(a===6){z=s*1.6;x=-.3;el=-.6}
+  if(a===1&&s>0){x=-2.5;z=s*.4;el=-.9}else if(a===2){z=s*2.65;x=-.2;el=-.25}else if(a===3){z=s*.4;x=-1.25;el=-.2}else if(a===4&&s>0){x=-1.45;z=s*.25;el=-.05}else if(a===5){z=s*2.2;x=0;el=-.3}else if(a===6){z=s*1.6;x=-.3;el=-.6}else if(a===7){z=s*(1.9+Math.sin(t*9+s)*.25);x=.4;el=-1.3}else if(a===8){z=s*(1.5+Math.sin(t*5+s*1.5)*.35);x=-.5+Math.sin(t*5)*.4;el=-.35}else if(a===9){z=s*.7;x=-2.3+Math.abs(Math.sin(t*3))*.6;el=-.15}
   A.sh.rotation.z+=(z-A.sh.rotation.z)*k;A.sh.rotation.x+=(x-A.sh.rotation.x)*k;A.el.rotation.x+=(el-A.el.rotation.x)*k}
  q.head.rotation.z=Math.sin(t*.8)*.06;q.head.rotation.x=(a===2?-.25:a===3?.2:0)+Math.sin(t*.6)*.04;const hp=1+.14*Math.sin(t*5);q.heart.scale.setScalar(hp);q.heart.rotation.y+=dt;q.glow.material.opacity=.7+.3*Math.sin(t*5);
  q.heartM.color.setHex(drainT>0?0xffffff:0xfff2c8);q.hairs.forEach((h,i)=>h.rotation.z=Math.sin(t*1.3+i)*.12);
@@ -1317,10 +1320,20 @@ function buildL1(){const m=storyMats();scene.background=new THREE.Color(0x1d1714
 
 /* ---------- Уровень 2: СИРОПНЫЕ ЦИСТЕРНЫ ---------- */
 function tankRoom(cx,cz,R,H,gaps){const mt=SM.tank.clone();mt.side=THREE.BackSide;
- const seg=(t0,t1,y0,y1)=>{if(y1-y0<.05)return;const geo=new THREE.CylinderGeometry(R,R,y1-y0,Math.max(3,Math.ceil((t1-t0)*14)),1,true,t0,t1-t0),uv=geo.attributes.uv;for(let i=0;i<uv.count;i++)uv.setXY(i,uv.getX(i)*(t1-t0)*R/4,uv.getY(i)*(y1-y0)/4);
+ const seg=(t0,t1,y0,y1)=>{if(y1-y0<.05||t1-t0<.01)return;const geo=new THREE.CylinderGeometry(R,R,y1-y0,Math.max(3,Math.ceil((t1-t0)*14)),1,true,t0,t1-t0),uv=geo.attributes.uv;for(let i=0;i<uv.count;i++)uv.setXY(i,uv.getX(i)*(t1-t0)*R/4,uv.getY(i)*(y1-y0)/4);
   const m=new THREE.Mesh(geo,mt);m.position.set(cx,(y0+y1)/2,cz);mapGroup.add(m);level.push(m)};
- const hw=.2;seg(hw,Math.PI-hw,0,H);seg(Math.PI+hw,Math.PI*2-hw,0,H);for(const g of gaps){const c=g.th;seg(c-hw,c+hw,0,g.y0);seg(c-hw,c+hw,g.y1,H)}
- for(const y of[4,10,16,22]){const r=new THREE.Mesh(new THREE.TorusGeometry(R-.05,.12,6,96),SM.rust);r.rotation.x=Math.PI/2;r.position.set(cx,y,cz);mapGroup.add(r)}
+ // проём в стене цистерны — ровно по ширине двери, с откосами до стены зала (без щелей)
+ const DW=6.2,hw=DW/2/R,G=gaps.slice().sort((a,b)=>a.th-b.th);
+ let t=G.length?G[0].th+hw:0;for(const g of G.slice(1).concat(G.length?[{th:G[0].th+Math.PI*2}]:[])){if(g.th-hw>t)seg(t,g.th-hw,0,H);t=g.th+hw}
+ if(!G.length)seg(0,Math.PI*2,0,H);
+ for(const g of gaps){const c=g.th;seg(c-hw,c+hw,0,g.y0);seg(c-hw,c+hw,g.y1,H);
+  const sx=Math.sin(c),sz=Math.cos(c),ex=cx+sx*R,ez=cz+sz*R,d=1.6;
+  for(const s of[-1,1]){const px=ex+sz*s*(DW/2+.25)+sx*(d/2-.6),pz=ez-sx*s*(DW/2+.25)+sz*(d/2-.6);addBoxW(px,g.y0,pz,Math.abs(sz)>.5?.5:d,g.y1-g.y0,Math.abs(sz)>.5?d:.5,SM.steel||SM.plat,2)}
+  addBoxW(ex+sx*(d/2-.6),g.y1,ez+sz*(d/2-.6),Math.abs(sz)>.5?DW+1:d,.5,Math.abs(sz)>.5?d:DW+1,SM.steel||SM.plat,2)}
+ // ржавые обручи — с разрывами над проёмами
+ for(const y of[4,10,16,22]){const cut=gaps.filter(g=>y>g.y0-.3&&y<g.y1+.3).map(g=>Math.PI/2-g.th).map(a=>((a%(Math.PI*2))+Math.PI*2)%(Math.PI*2)).sort((a,b)=>a-b);
+  const arcs=[];if(!cut.length)arcs.push([0,Math.PI*2]);else{const w=hw+.04;for(let i=0;i<cut.length;i++){const a0=cut[i]+w,a1=(i+1<cut.length?cut[i+1]:cut[0]+Math.PI*2)-w;if(a1>a0)arcs.push([a0,a1])}}
+  for(const [a0,a1] of arcs){const geo=new THREE.TorusGeometry(R-.05,.12,6,Math.max(8,Math.ceil((a1-a0)*16)),a1-a0);geo.rotateZ(a0);geo.rotateX(Math.PI/2);const r=new THREE.Mesh(geo,SM.rust);r.position.set(cx,y,cz);mapGroup.add(r)}}
  const half=R+.4,st=.8,lim=R*.72;for(let a=-lim;a<lim;a+=st){const am=a+st/2,h=Math.sqrt(R*R-am*am),dd=half-h;if(dd<.6)continue;
   if(Math.abs(am)>4.3){solid(cx+am,0,cz+h+dd/2,st,H,dd);solid(cx+am,0,cz-h-dd/2,st,H,dd)}solid(cx+h+dd/2,0,cz+am,dd,H,st);solid(cx-h-dd/2,0,cz+am,dd,H,st)}
  const cw=half-lim;for(const [sx,sz] of[[-1,-1],[1,-1],[-1,1],[1,1]])solid(cx+sx*(lim+cw/2),0,cz+sz*(lim+cw/2),cw,H,cw)}
@@ -1422,7 +1435,7 @@ function updLevel(dt){const S=story;if(!S)return;lvT+=dt;drainT=Math.max(0,drain
  const R=S.room>=0?S.lv.rooms[S.room]:null;
  updBeacons(dt,S,R);objMark(S,R);if(L3)updL3(dt);
  for(const p of proj)if(p.mark){p.mark.material.opacity=.45+.4*Math.abs(Math.sin(T*14));p.mark.rotation.y+=dt*2}
- updGoo(dt);updQuakes(dt);updWrings(dt);
+ updGoo(dt);updQuakes(dt);updWrings(dt);updQS(dt);
  if(P.alive&&P.syr>.45&&state==='play'&&!(poolAt(P.pos)||{}).safe){P.hp-=6*dt;if((S.syrT=(S.syrT||0)-dt)<=0){S.syrT=1.2;sfx('gloop',.5);feed.unshift({label:'− ВЯЗНЕШЬ В СИРОПЕ',t:1.4})}if(P.hp<=0)die()}
  {const cy=syrupLvl(camera.position.x,camera.position.z);$('syr').style.opacity=cy>camera.position.y?.62:0}
  S.maxR=Math.max(S.maxR,rank());ambTick(dt);
@@ -1471,6 +1484,38 @@ function showResults(){const S=story,LV=S.lv;state='res';fireHeld=altHeld=false;
  $('resNext').hidden=!nx;if(nx)$('resNext').innerHTML='<i>01</i>ДАЛЬШЕ: '+nx.name;$('resAgain').innerHTML='<i>'+(nx?'02':'01')+'</i>ПЕРЕИГРАТЬ';$('resMenu').innerHTML='<i>'+(nx?'03':'02')+'</i>В МЕНЮ';
  $('res').hidden=false;setTimeout(()=>{try{(nx?$('resNext'):$('resAgain')).focus({preventScroll:true})}catch(e){}},60)}
 function lvCard(){const LV=story.lv,c=$('lvCard');$('lcN').textContent='УРОВЕНЬ '+LV.n;$('lcT').textContent=LV.name;$('lcS').textContent=LV.sub;c.hidden=false;c.classList.remove('lcgo');void c.offsetWidth;c.classList.add('lcgo');clearTimeout(lvCard.h);lvCard.h=setTimeout(()=>c.hidden=true,5200)}
+/* ---------- Царица и сироп: зал наполняется, в сиропе она лечится, слив выбрасывает её на мель ---------- */
+const QS={fill:0,feedT:0,told:false,spouts:[],vortex:null,wasDrain:false,vt:0};
+function qPool(){for(const p of pools)if(p.z0<=-127&&p.z1>=-81)return p;return null}
+function queenAlive(){return enemies.find(e=>e.type==='queen'&&!e.dead)}
+function updQS(dt){const p=qPool();if(!p)return;if(p.hi0==null)p.hi0=p.hi;const q=queenAlive();
+ if(q&&drainT<=0)QS.fill=Math.min(1,QS.fill+dt/(q.hp<q.maxHp*.5?30:45));else QS.fill=Math.max(0,QS.fill-dt/(drainT>0?5:8));
+ p.hi=p.hi0+QS.fill*1.3;updSpouts(dt)}
+function queenSyrup(e,dt){const p=qPool();if(!p)return;const ph2=e.hp<e.maxHp*.5;
+ if(drainT<=0&&p.y>1.9&&e.st!=='dive'&&e.st!=='rise'&&e.st!=='stranded'){QS.feedT+=dt;if(QS.feedT>2.5&&e.hp<e.maxHp){e.hp=Math.min(e.maxHp,e.hp+e.maxHp*(ph2?.016:.011)*dt);if(!QS.told){QS.told=true;banner('ЦАРИЦА ПЬЁТ СИРОП И ЛЕЧИТСЯ — СЛЕЙ ЕГО ВЕНТИЛЯМИ!')}}}else QS.feedT=0;
+ if(drainT>0&&!QS.wasDrain&&e.st!=='dive'&&e.st!=='rise'){e.st='stranded';e.stT=0;e.done=0;banner('ЦАРИЦА НА МЕЛИ!');sfx('roar',.7);qfx(5,0,0)}QS.wasDrain=drainT>0}
+function queenPick(e){const p=qPool(),fl=p&&p.y>2.55,r=Math.random();let s=r<.26?'hail':r<.5?'spike':r<.72?'spout':fl&&r<.9?'swirl':'wave';
+ if(s===e.last&&Math.random()<.7)s=s==='spout'?'hail':'spout';return s}
+function queenSyrupFx(e,dt){const p=qPool(),a=e.ac||0;if(!p)return;
+ const feeding=drainT<=0&&p.y>1.9&&a!==5&&a!==6&&a!==7;e.feedV=(e.feedV||0)+((feeding?1:0)-(e.feedV||0))*Math.min(1,dt*2);
+ if(e.feedV>.05&&!(e.flash>0)){const k=e.feedV*(.45+.35*Math.sin(T*6));for(const m of e.mats)m.emissive.setRGB(.6*k,.34*k,.03*k);
+  if(Math.random()<dt*24*e.feedV){const ang=Math.random()*6.28,r=rnd(4,10),f=new V3(e.pos.x+Math.sin(ang)*r,p.y+.1,e.pos.z+Math.cos(ang)*r);puff(f,2,0xffc040,1.5,.8,-3)}}
+ if(a===8){if(!QS.vortex){const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');g.translate(128,128);for(let i=0;i<5;i++){g.rotate(Math.PI*2/5);g.beginPath();for(let k=0;k<60;k++){const t=k/60,r=8+t*118,an=t*4.2;g.lineTo(Math.cos(an)*r,Math.sin(an)*r)}g.strokeStyle='rgba(255,220,140,.75)';g.lineWidth=10;g.stroke()}
+   QS.vortex=new THREE.Mesh(new THREE.CircleGeometry(16,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:.85}));scene.add(QS.vortex)}
+  const V=QS.vortex;V.visible=true;V.position.set(e.pos.x,p.y+.07,e.pos.z);V.rotation.y-=dt*3.2;
+  if(Math.random()<dt*40){const an=Math.random()*6.28,r=rnd(2,15);puff(new V3(e.pos.x+Math.sin(an)*r,p.y+.15,e.pos.z+Math.cos(an)*r),2,0xffd08a,2,.5,6)}
+  if(P.alive&&state==='play'){const dx=e.pos.x-P.pos.x,dz=e.pos.z-P.pos.z,d=Math.hypot(dx,dz)||1;if(d<18&&P.pos.y<p.y+.45){const f=1-d/18;P.vel.x+=(dx/d*10-dz/d*7)*f*dt*3.2;P.vel.z+=(dz/d*10+dx/d*7)*f*dt*3.2;
+   if(d<5){QS.vt-=dt;if(QS.vt<=0){QS.vt=.45;hurt(9);sfx('gloop',.6)}}if(!QS.toldV){QS.toldV=true;banner('ВОДОВОРОТ! ВЫБИРАЙСЯ ИЗ СИРОПА')}}}}
+ else if(QS.vortex)QS.vortex.visible=false}
+const SPOUT_G=new THREE.CylinderGeometry(1,1.35,1,24,1,true).translate(0,.5,0);
+function spout(x,z,dmg){const y=Math.max(syrupLvl(x,z),groundAt(x,z,9),0);const r=new THREE.Mesh(MARK_G,new THREE.MeshBasicMaterial({color:0xffa030,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));r.position.set(x,y+.08,z);r.scale.setScalar(2.4);scene.add(r);QS.spouts.push({x,z,y,t:-1.1,dmg,r,c:null,hit:new Set()})}
+function updSpouts(dt){for(const s of QS.spouts){const pt=s.t;s.t+=dt;if(s.r)s.r.material.opacity=s.t<0?.4+.5*Math.abs(Math.sin(s.t*16)):Math.max(0,1-s.t*3);
+  if(pt<0&&s.t>=0){s.c=new THREE.Mesh(SPOUT_G,new THREE.MeshStandardMaterial({color:0xd8801f,roughness:.1,transparent:true,opacity:.88,envMap:ENV,emissive:0x5a2000,side:THREE.DoubleSide,depthWrite:false}));s.c.position.set(s.x,s.y,s.z);scene.add(s.c);
+   puff(new V3(s.x,s.y+.5,s.z),40,0xffb050,9,.9,10);puff(new V3(s.x,s.y+.5,s.z),15,0xfff0c8,7,.7,10);const v=sndV(s.x,s.y,s.z);if(v>.1)sfx('gloop',v);
+   if(s.dmg)for(const c of targets()){const key=c.local?'me':c.peer;if(s.hit.has(key))continue;if(Math.hypot(c.pos.x-s.x,c.pos.z-s.z)<2.3&&c.pos.y<s.y+6&&c.pos.y>s.y-1.5){s.hit.add(key);hitTarget(c,18,new V3(0,16,0))}}}
+  if(s.c){const k=s.t<.2?s.t/.2:s.t>.75?Math.max(.01,1-(s.t-.75)/.4):1;s.c.scale.set(1.6*(.7+.3*k),7*k,1.6*(.7+.3*k));s.c.material.opacity=.88*k;if(Math.random()<dt*30)puff(new V3(s.x+rnd(-1,1),s.y+7*k,s.z+rnd(-1,1)),2,0xffc060,3,.5,10)}}
+ QS.spouts=QS.spouts.filter(s=>{const end=s.t>1.2;if(end){if(s.r)scene.remove(s.r);if(s.c)scene.remove(s.c)}return!end})}
+function queenSyrupReset(){QS.fill=0;QS.feedT=0;QS.wasDrain=false;QS.told=false;for(const s of QS.spouts){if(s.r)scene.remove(s.r);if(s.c)scene.remove(s.c)}QS.spouts=[];if(QS.vortex){scene.remove(QS.vortex);QS.vortex=null}const p=qPool();if(p&&p.hi0!=null)p.hi=p.hi0}
 /*STORY-END*/
 /*BEER-BEGIN*/
 /* ================= УРОВЕНЬ 3: ПИВНОЕ МОРЕ — мир ================= */
@@ -1727,6 +1772,7 @@ function buildL3(){const m=storyMats(),b=beerMats();L3={kegs:[],rings:[],chairs:
  {const im=new THREE.InstancedMesh(new THREE.TorusGeometry(.12,.035,6,10),b.chrome,70);im.userData.dyn=1;im.frustumCulled=false;mapGroup.add(im);L3.chain=im}
  plight(0,6,-62,0xffc070,.45,24);plight(0,6,-86,0xffc070,.45,24);plight(0,-1,-75,0xffb040,.6,10);
  for(let i=0;i<3;i++)addBeacon(i);questInit();
+ dressL3(b);
  // прогрев шейдеров и текстур босса, чтобы его появление не подвисало
  {const w=new THREE.Group(),T_=buildTank(),M_=buildMissile(),G_=buildGirl(ALT_O);w.add(T_.g,M_.g,G_.g);w.position.set(0,-60,0);scene.add(w);
   for(const ex of['wink','smirk','laugh','angry','dizzy','blink'])faceTex('alt',ex);for(const ex of['scared','happy','wink','blink'])faceTex('beach',ex);
@@ -1782,7 +1828,10 @@ function updL3(dt){const S=story;if(!L3||!S)return;const t=lvT;
  // пенный вал
  const wc=t-WAVE_T0,wi=Math.floor(wc/WAVE_PER),wp=wc-wi*WAVE_PER;
  if(wc>0&&!(S.phase==='exit'||S.phase==='done'||L3.end)){if(wp<dt&&wi!==L3.lastWarn){L3.lastWarn=wi;if(S.room>=1){sfx('horn');banner('ПЕННЫЙ ВАЛ! ДЕРЖИСЬ!')}}
-  if(wp>=2.6&&wp<8.6){const x=-46+(wp-2.6)*16;updFoamWave(x,dt,wi)}else if(L3.wave)L3.wave.visible=false}else if(L3.wave)L3.wave.visible=false;
+  // сторона волны — случайная, но одинаковая у всех игроков; парированная волна катится обратно
+  if(wp>=2.6){const dir=waveDir(wi);let W=L3.wv;if(!W||W.wi!==wi)W=L3.wv={wi,rev:false};L3.wvWp=wp;
+   let x,m;if(!W.rev){x=dir*(-46+(wp-2.6)*16);m=dir}else{x=W.xr-dir*(wp-W.tr)*18;m=-dir}
+   if(Math.abs(x)<=47&&wp<WAVE_PER-1)updFoamWave(x,dt,wi,m,W.rev);else if(L3.wave)L3.wave.visible=false}else if(L3.wave)L3.wave.visible=false}else if(L3.wave)L3.wave.visible=false;
  // за бортом
  const fin=S.phase==='exit'||S.phase==='done';if(P.alive&&state==='play'&&!onHull(P.pos.x,P.pos.z)&&P.pos.y<SEA_Y+.4){if(!L3.inSeaT){splash(P.pos.x,P.pos.z,1.4);if(!fin)banner('ЗА БОРТОМ! СЕЙЧАС ВЫЛОВИМ…')}L3.inSeaT+=dt;if(fin)L3.inSeaT=Math.min(L3.inSeaT,1);
   const tgt=seaH(P.pos.x,P.pos.z,t)-1.35;P.vel.y+=(tgt-P.pos.y)*16*dt;P.vel.y*=1-Math.min(1,dt*4);const h2=Math.hypot(P.vel.x,P.vel.z);if(h2>4.5){P.vel.x*=4.5/h2;P.vel.z*=4.5/h2}
@@ -1795,7 +1844,8 @@ function foamTex(){if(FOAM_T)return FOAM_T;const c=document.createElement('canva
  let r=7;const rr=()=>(r=(r*16807)%2147483647)/2147483647;
  for(let i=0;i<1400;i++){const x=rr()*512,y=rr()*512,R=2+Math.pow(rr(),3)*26;for(const[dx,dy]of[[0,0],[512,0],[-512,0],[0,512],[0,-512]]){const gr=g.createRadialGradient(x+dx-R*.3,y+dy-R*.3,R*.1,x+dx,y+dy,R);gr.addColorStop(0,'rgba(255,255,250,.9)');gr.addColorStop(.7,'rgba(240,214,160,.35)');gr.addColorStop(.92,'rgba(190,140,60,.5)');gr.addColorStop(1,'rgba(255,248,230,0)');g.fillStyle=gr;g.beginPath();g.arc(x+dx,y+dy,R,0,7);g.fill()}}
  FOAM_T=new THREE.CanvasTexture(c);FOAM_T.wrapS=FOAM_T.wrapT=THREE.RepeatWrapping;FOAM_T.anisotropy=8;FOAM_T.repeat.set(.25,.25);return FOAM_T}
-function updFoamWave(x,dt,wi){L3.waveX=x;L3.waveWi=wi;if(!L3.wave){const g=new THREE.Group(),sh=new THREE.Shape();
+function waveDir(wi){const h=Math.sin(wi*12.9898+78.233)*43758.5453;return h-Math.floor(h)<.5?1:-1}
+function updFoamWave(x,dt,wi,m=1,rev=false){L3.waveX=x;L3.waveWi=wi;L3.waveM=m;if(!L3.wave){const g=new THREE.Group(),sh=new THREE.Shape();
   // профиль вала: пологий тыл, высокий гребень, загнутая губа впереди
   sh.moveTo(-4.2,0);sh.bezierCurveTo(-2.8,.3,-1.4,2.2,.2,2.9);sh.bezierCurveTo(1.3,3.15,2.3,2.6,2.1,1.85);sh.bezierCurveTo(1.9,1.35,1.3,1.5,1.45,1.05);sh.bezierCurveTo(1.6,.6,2.4,.25,3.2,0);sh.lineTo(-4.2,0);
   const ft=foamTex(),fm=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,map:ft,roughness:.55,transparent:true,opacity:.96,emissive:0x5a3a10,emissiveMap:ft,emissiveIntensity:.35,side:THREE.DoubleSide});
@@ -1808,26 +1858,26 @@ function updFoamWave(x,dt,wi){L3.waveX=x;L3.waveWi=wi;if(!L3.wave){const g=new T
      const a=[.92,.55,.16],b=[1,.97,.9],m=Math.min(1,k*k*(1.15+st*.3));for(let q=0;q<3;q++)col[i*3+q]=a[q]+(b[q]-a[q])*m}ge.setAttribute('color',new THREE.BufferAttribute(col,3))}}
   mapGroup.add(g);L3.wave=g}
  const g=L3.wave;g.visible=true;const onDeck=Math.abs(x)<13.6;g.position.set(x,onDeck?0:SEA_Y+.3+Math.max(0,1-(Math.abs(x)-13)/12)*3,0);
- const tt=lvT;g.scale.y=1+Math.sin(tt*7)*.04;
+ const tt=lvT;g.scale.y=1+Math.sin(tt*7)*.04;g.scale.x=m;
  const zs=()=>[rnd(-96,-56),rnd(-44,1),rnd(28.6,50)][Math.floor(Math.random()*3)];
- for(let q=0;q<Math.round(dt*120+Math.random());q++){const z=zs(),y=(onDeck?2.9:SEA_Y+3);puff(new V3(x+1.5,y,z),3,0xfffaf0,6,.75,7);if(Math.random()<.4)puff(new V3(x+2.4,onDeck?.4:SEA_Y+.5,z),3,0xe8a228,5,.7,4)}
+ for(let q=0;q<Math.round(dt*120+Math.random());q++){const z=zs(),y=(onDeck?2.9:SEA_Y+3);puff(new V3(x+1.5*m,y,z),3,0xfffaf0,6,.75,7);if(Math.random()<.4)puff(new V3(x+2.4*m,onDeck?.4:SEA_Y+.5,z),3,0xe8a228,5,.7,4)}
  // удар о борт: брызги, когда вал перехлёстывает через фальшборт
- const side=x<-13.6?0:x>13.6?2:1;if(L3.waveSide!==wi*3+side){L3.waveSide=wi*3+side;if(side===1){for(let k=0;k<6;k++){const z=zs();puff(new V3(-13.4,2,z),24,0xfff6e2,11,.9,10);puff(new V3(-13.4,1.6,z),10,0xe09a18,8,.8,8)}sfx('gloop',.9);if(typeof shake!=='undefined')shake=Math.max(shake||0,.35)}}
+ const side=x<-13.6?0:x>13.6?2:1,sk=wi*6+side+(rev?3:0);if(L3.waveSide!==sk){L3.waveSide=sk;if(side===1){const bx=m>0?-13.4:13.4;for(let k=0;k<6;k++){const z=zs();puff(new V3(bx,2,z),24,0xfff6e2,11,.9,10);puff(new V3(bx,1.6,z),10,0xe09a18,8,.8,8)}sfx('gloop',.9);if(typeof shake!=='undefined')shake=Math.max(shake||0,.35)}}
  const outdoor=p=>(p.z<-55.5&&p.z>-96)||(p.z<.5&&p.z>-44)||(p.z>28.8);
- const hit=(key,p)=>{const k=wi+':'+key;if(L3.waveHit.has(k))return false;if(p.x<x+2.2&&p.x>x-1.2&&outdoor(p)&&p.y<2.7&&onHull(p.x,p.z)){L3.waveHit.add(k);return true}return false};
- if(P.alive&&hit('me',P.pos)){P.vel.x+=19;P.vel.y=Math.max(P.vel.y,6.5);hurt(6);banner('СМЫВАЕТ!');puff(new V3(P.pos.x,1.4,P.pos.z),46,0xfff6e2,9,.8,8);puff(new V3(P.pos.x,1,P.pos.z),18,0xe09a18,7,.7,6);sfx('gloop',1);if(typeof shake!=='undefined')shake=Math.max(shake||0,.6)}
- if(mode==='solo'||isHost)for(const e of enemies){if(e.dead||e.remote||ENEMY[e.type].fly||ENEMY[e.type].boss)continue;if(hit(e.id,e.pos)){e.vel.x+=25;e.vel.y=Math.max(e.vel.y,12);e.stun=Math.max(e.stun||0,1.3);puff(new V3(e.pos.x,1.4,e.pos.z),16,0xfff6e2,7,.7,6)}}}
+ const hit=(key,p)=>{const k=wi+(rev?'r':'')+':'+key;if(L3.waveHit.has(k))return false;const u=(p.x-x)*m;if(u<2.2&&u>-1.2&&outdoor(p)&&p.y<2.7&&onHull(p.x,p.z)){L3.waveHit.add(k);return true}return false};
+ if(P.alive&&!(rev&&L3.wv&&L3.wv.by==='me')&&hit('me',P.pos)){P.vel.x+=19*m;P.vel.y=Math.max(P.vel.y,6.5);hurt(6);banner('СМЫВАЕТ!');puff(new V3(P.pos.x,1.4,P.pos.z),46,0xfff6e2,9,.8,8);puff(new V3(P.pos.x,1,P.pos.z),18,0xe09a18,7,.7,6);sfx('gloop',1);if(typeof shake!=='undefined')shake=Math.max(shake||0,.6)}
+ if(mode==='solo'||isHost)for(const e of enemies){if(e.dead||e.remote||ENEMY[e.type].fly||ENEMY[e.type].boss)continue;if(hit(e.id,e.pos)){e.vel.x+=25*m;if(rev)addStyle('ОБРАТНЫЙ ВАЛ',40);e.vel.y=Math.max(e.vel.y,12);e.stun=Math.max(e.stun||0,1.3);puff(new V3(e.pos.x,1.4,e.pos.z),16,0xfff6e2,7,.7,6)}}}
 /* непарируемые снаряды: красный ореол */
 function npMark(p,r){if(!p)return p;p.np=1;const h=new THREE.Mesh(new THREE.SphereGeometry(r||.4,12,8),new THREE.MeshBasicMaterial({color:0xff1a2a,transparent:true,opacity:.38,depthWrite:false,blending:THREE.AdditiveBlending}));p.m.add(h);h.scale.setScalar(1/Math.max(.001,p.m.scale.x||1));return p}
 /* парирование пенного вала — только на стиле S и выше */
-function waveParry(){if(!L3||!L3.wave||!L3.wave.visible||L3.waveX==null||!P.alive)return false;const x=L3.waveX,p=P.pos;
- const outdoor=(p.z<-55.5&&p.z>-96)||(p.z<.5&&p.z>-44)||(p.z>28.8);if(!(p.x<x+4.5&&p.x>x-1.5&&outdoor&&p.y<3.2&&onHull(p.x,p.z)))return false;
- const k=L3.waveWi+':me';if(L3.waveHit.has(k))return false;
+function waveParry(){if(!L3||!L3.wave||!L3.wave.visible||L3.waveX==null||!P.alive)return false;const x=L3.waveX,m=L3.waveM||1,p=P.pos,W=L3.wv;
+ const outdoor=(p.z<-55.5&&p.z>-96)||(p.z<.5&&p.z>-44)||(p.z>28.8),u=(p.x-x)*m;if(!(u<4.5&&u>-1.5&&outdoor&&p.y<3.2&&onHull(p.x,p.z)))return false;
+ if(!W||W.rev)return false;const k=L3.waveWi+':me';if(L3.waveHit.has(k))return false;
  if(rank()<4){banner('ПЕННЫЙ ВАЛ ОТБИВАЕТСЯ ТОЛЬКО НА СТИЛЕ S');return false}
- L3.waveHit.add(k);heal(25);addStyle('ПАРИРОВАНИЕ ВОЛНЫ',260);parryOk();banner('ВОЛНА ОТБИТА!');shake=Math.max(shake,.5);
- const fp=new V3(p.x-1.2,1.6,p.z);puff(fp,80,0xfff6e2,13,.9,6);puff(fp,30,0xe09a18,10,.8,6);blast(fp,2.5,0xffe6a0);sfx('gloop',1);
- for(const e of enemies){if(e.dead||e.remote||ENEMY[e.type].boss)continue;const dx=e.pos.x-p.x,dz=e.pos.z-p.z,d=Math.hypot(dx,dz);if(d<7){const f=1-d/7;e.vel.x+=(dx/(d||1))*22*f-8;e.vel.z+=(dz/(d||1))*22*f;e.vel.y=Math.max(e.vel.y,10*f);e.stun=Math.max(e.stun||0,1.5);if(mode==='solo'||isHost)damage(e,3,1,'parry')}}
- return true}
+ L3.waveHit.add(k);waveReverse(L3.waveWi,x,L3.wvWp,true);heal(25);addStyle('ПАРИРОВАНИЕ ВОЛНЫ',260);parryOk();banner('ВОЛНА ОТБИТА — ПОШЛА НАЗАД!');shake=Math.max(shake,.5);
+ const fp=new V3(p.x-1.2*m,1.6,p.z);puff(fp,80,0xfff6e2,13,.9,6);puff(fp,30,0xe09a18,10,.8,6);blast(fp,2.5,0xffe6a0);
+ if(mp())pushFx(['A',0,10,L3.waveWi,r1(x),Math.round(L3.wvWp*100)/100]);return true}
+function waveReverse(wi,x,wp,mine){const W=L3.wv;if(!W||W.wi!==wi||W.rev)return;W.rev=true;W.xr=x;W.tr=wp;W.by=mine?'me':'peer';sfx('gloop',1);sfx('slam',.6)}
 /* под жидкостью: пиво в море и сироп во втором уровне */
 let UW=null;
 function uwFx(inMenu){const c=camera.position;let lq=null;
@@ -1846,6 +1896,101 @@ function uwFx(inMenu){const c=camera.position;let lq=null;
  if(lq){const t=performance.now()/1000;UW.el.style.backdropFilter='blur('+(lq==='beer'?1.2:2.5)+'px)';
   if(Math.random()<(lq==='beer'?.5:.2)){camera.getWorldDirection(_uwd);const p=new V3(c.x+_uwd.x*1.6+rnd(-1,1),c.y-.6+rnd(-.4,.4),c.z+_uwd.z*1.6+rnd(-1,1));puff(p,1,lq==='beer'?0xfff0c0:0xffc070,.4,1.2,-3)}}}
 const _uwd=new V3();
+/* ---------- струя Газявы: капли летят по баллистической дуге, между ними — сплошная лента жидкости ---------- */
+const SODA={d:[],seq:0,sid:0,lastT:-9,mesh:null,N:220};
+function sodaInit(){if(SODA.mesh)return;const N=SODA.N,g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(N*18),3));g.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(N*12),2));g.setAttribute('aA',new THREE.BufferAttribute(new Float32Array(N*6),1));
+ const m=new THREE.ShaderMaterial({uniforms:{uT:{value:0}},transparent:true,depthWrite:false,side:THREE.DoubleSide,
+  vertexShader:'attribute float aA;varying vec2 vU;varying float vA;void main(){vU=uv;vA=aA;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:`uniform float uT;varying vec2 vU;varying float vA;
+   float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
+   void main(){float x=abs(vU.y-.5)*2.;if(x>1.)discard;float core=1.-x*x;
+    vec3 c=mix(vec3(.16,.05,.015),vec3(.5,.2,.05),core);c+=vec3(1.,.82,.55)*(1.-smoothstep(0.,.22,abs(vU.y-.36)))*.55;
+    vec2 cell=floor(vec2(vU.x*9.-uT*14.,vU.y*4.));float b=step(.78,h(cell))*smoothstep(.2,.9,1.-vA);c=mix(c,vec3(.97,.92,.84),b*.8);
+    float a=vA*(.75+.25*core);gl_FragColor=vec4(c,a*(1.-smoothstep(.75,1.,x)));}`});
+ const mesh=new THREE.Mesh(g,m);mesh.frustumCulled=false;mesh.renderOrder=6;scene.add(mesh);SODA.mesh=mesh}
+function sodaEmit(o,d,mine,key){sodaInit();key=mine?'me':(key||'peer');const S_=SODA.src||(SODA.src={}),st=S_[key]||(S_[key]={sid:0,lastT:-9});if(T-st.lastT>.2)st.sid=++SODA.sid;st.lastT=T;const sid=st.sid;if(mine){SODA.lastT=T;SODA.msid=sid}
+ for(let k=2;k>=0;k--){const v=d.clone().multiplyScalar(42+rnd(-1.5,1.5));if(mine)v.addScaledVector(P.vel,.4);v.x+=rnd(-.22,.22);v.y+=rnd(-.15,.25);v.z+=rnd(-.22,.22);
+  const p=o.clone().addScaledVector(v,k*.027);SODA.d.push({p,v,t:0,life:1.4,sid,seq:++SODA.seq,mine,hitC:null});}
+ if(SODA.d.length>SODA.N)SODA.d.splice(0,SODA.d.length-SODA.N)}
+function sodaHitEnemy(e,dr){const c=center(e,tmpA);puff(c,6,0x6b2a12,4,.4);puff(c,3,0xf6eee2,3,.35);
+ if(e.type==='jelly'||e.type==='queen'){puff(c,4,0xffb050,2,.4,-2);if(!sodaHitEnemy.syr){sodaHitEnemy.syr=1;banner('СИРОПНЫХ ГАЗЯВОЙ НЕ ПРОМОЧИТЬ')}return}
+ if(!(e.wet>0)){addStyle('ЗАЛИТ',10)}e.wet=3;if(!e.remote)e.vel.addScaledVector(_sv.copy(dr.v).normalize(),.9)}
+const _sv=new V3(),_sa=new V3(),_sb=new V3(),_sc=new V3();
+function updSoda(dt){if(!SODA.mesh&&!SODA.d.length)return;sodaInit();const D=SODA.d,G=8.5;let land=0;
+ for(const dr of D){if(dr.dead)continue;dr.t+=dt;dr.v.y-=G*dt;dr.v.multiplyScalar(1-dt*.25);const op=_sa.copy(dr.p);dr.p.addScaledVector(dr.v,dt);
+  if(dr.t>dr.life){dr.dead=true;continue}
+  if(dr.mine&&(state==='play')){
+   for(const e of enemies){if(e.dead)continue;if(center(e,tmpB).distanceTo(dr.p)<e.r+.35){sodaHitEnemy(e,dr);dr.dead=true;break}}
+   if(dr.dead)continue;
+   for(const c of coins){if(c.dead)continue;if(c.m.position.distanceTo(dr.p)<.6){ricochet(c,1.1,1);addStyle('КОЛА-РИКОШЕТ',30);dr.dead=true;break}}
+   if(dr.dead)continue;
+   for(const pr of proj)if(pr.kind==='rocket'&&!pr.dead&&!pr.boost&&pr.m.position.distanceTo(dr.p)<.9){pr.boost=true;pr.m.children[1].material.color.setHex(0xf6eee2);pr.m.scale.setScalar(1.5);addStyle('МЕНТОС + КОЛА',40);puff(pr.m.position,30,0xf6eee2,6,.6)}}
+  const g=groundAt(dr.p.x,dr.p.z,op.y+.3);
+  if(dr.p.y<=g&&op.y>=g-.05){dr.dead=true;dr.p.y=g;puff(_sb.set(dr.p.x,g+.05,dr.p.z),4,Math.random()<.4?0xf6eee2:0x6b2a12,2.6,.35,10);if(dr.mine&&(++land)%2===0&&Math.random()<.6)addPuddle(dr.p.x,g,dr.p.z,.42,7);continue}
+  if(inBox(dr.p)||dr.p.y<-30){dr.dead=true;puff(op,4,0x6b2a12,2.5,.3,10);continue}
+  if(Math.random()<dt*6)puff(dr.p,1,Math.random()<.5?0xf6eee2:0x8a3a14,1.2,.35,9)}
+ // лента: соседние живые капли одной струи
+ const L=D.filter(d=>!d.dead).sort((a,b)=>a.seq-b.seq),pos=SODA.mesh.geometry.attributes.position,uv=SODA.mesh.geometry.attributes.uv,aa=SODA.mesh.geometry.attributes.aA,cam=camera.position;let n=0;
+ const quad=(a,b,wa,wb,ua,ub,fa,fb)=>{if(n>=SODA.N)return;_sc.subVectors(b,a);const mid=_sb.addVectors(a,b).multiplyScalar(.5).sub(cam);const side=_sv.crossVectors(_sc,mid).normalize();
+  const P4=[[a,wa,0],[b,wb,0],[b,wb,1],[a,wa,0],[b,wb,1],[a,wa,1]];for(let k=0;k<6;k++){const [pt,w,v]=P4[k],i=n*6+k,sg=v?1:-1;pos.setXYZ(i,pt.x+side.x*w*sg,pt.y+side.y*w*sg,pt.z+side.z*w*sg);uv.setXY(i,pt===a?ua:ub,v);aa.setX(i,pt===a?fa:fb)}n++};
+ const W=d=>.06+Math.min(.16,d.t*.2),F=d=>Math.pow(Math.max(0,1-d.t/d.life),.6);
+ const last={};for(const b of L){const a=last[b.sid];last[b.sid]=b;if(!a||b.seq-a.seq>8||a.p.distanceTo(b.p)>6.5)continue;quad(a.p,b.p,W(a),W(b),a.seq*.15,b.seq*.15,F(a),F(b))}
+ // от дула до самой свежей капли, пока стреляем
+ if(T-SODA.lastT<.12&&L.length&&state==='play'){let nw=null;for(let i=L.length-1;i>=0;i--)if(L[i].sid===SODA.msid){nw=L[i];break}if(nw&&nw.t<.15){quad(muzzle(),nw.p,.035,W(nw)*.9,nw.seq*.15+.3,nw.seq*.15,.9,F(nw))}}
+ SODA.mesh.geometry.setDrawRange(0,n*6);pos.needsUpdate=true;uv.needsUpdate=true;aa.needsUpdate=true;SODA.mesh.material.uniforms.uT.value=T;
+ if(D.length>40&&D[0].dead)SODA.d=D.filter(d=>!d.dead)}
+/* ---------- обжитость уровня 3: поручни, имя яхты, мачта с радаром, трубы, чайки, острова, буи, мелочи на палубе ---------- */
+function txtPlane(txt,w,h,font,fg,glow){const c=document.createElement('canvas');c.width=1024;c.height=Math.round(1024*h/w);const g=c.getContext('2d');g.font=font;g.textAlign='center';g.textBaseline='middle';if(glow){g.shadowColor=glow;g.shadowBlur=18}g.fillStyle=fg;g.fillText(txt,c.width/2,c.height/2);
+ const t=new THREE.CanvasTexture(c);t.anisotropy=8;return new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false}))}
+function dressL3(b){const M=(c,o)=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.6},o||{}));
+ // поручни по фальшборту
+ for(const s of[-1,1]){const pts=[];for(let z=-95.6;z<=56;z+=1.2){const h=hullHW(z);if(h<.9)break;pts.push(new V3(s*(h-.1),1.98,z))}
+  const tb=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),pts.length*2,.055,6,false),b.chrome);mapGroup.add(tb);
+  const n=Math.floor(pts.length/2),im=new THREE.InstancedMesh(new THREE.CylinderGeometry(.035,.035,.36,6),b.chrome,n),o=new THREE.Object3D();for(let i=0;i<n;i++){const q=pts[i*2];o.position.set(q.x,1.8,q.z);o.updateMatrix();im.setMatrixAt(i,o.matrix)}mapGroup.add(im)}
+ // имя яхты на бортах
+ for(const s of[-1,1]){const t=txtPlane('ПЕННАЯ ЛЕДИ',11,1.5,'italic 900 150px "Russo One",Arial','#d8b05a','rgba(0,0,0,.4)');t.position.set(s*13.07,-1.55,14);t.rotation.y=s*Math.PI/2;mapGroup.add(t);
+  const t2=txtPlane('☆ ГАЗ-ЯХТ-КЛУБ ☆',7,.8,'700 110px "Russo One",Arial','#f6eee2');t2.position.set(s*13.07,-2.5,14);t2.rotation.y=s*Math.PI/2;mapGroup.add(t2)}
+ // мачта с радаром и трубы на верхней палубе
+ deco(new THREE.CylinderGeometry(.14,.2,6,10),b.white,0,13.1,12);deco(new THREE.BoxGeometry(2.2,.12,.12),b.chrome,0,14.4,12);deco(new THREE.SphereGeometry(.55,16,12),b.white,0,16.4,12);
+ const rad=new THREE.Group();rad.position.set(0,15.3,12);mapGroup.add(rad);{const bar=new THREE.Mesh(new THREE.BoxGeometry(3.2,.22,.28),M(0x22252a,{metalness:.6}));bar.position.y=.15;rad.add(bar);rad.add(new THREE.Mesh(new THREE.CylinderGeometry(.12,.12,.3,8),b.chrome))}
+ rad.userData.dyn=1;const lamp=deco(new THREE.SphereGeometry(.12,8,6),new THREE.MeshBasicMaterial({color:0xff3040}),0,17.05,12);lamp.userData.dyn=1;
+ const funnels=[];for(const s of[-1,1]){const f=deco(new THREE.CylinderGeometry(.95,1.15,3.4,20),b.white,s*4.6,11.8,9.5);f.rotation.x=-.18;deco(new THREE.CylinderGeometry(.97,.97,.5,20),M(0x1f3a6e),s*4.6,13.2,9.2).rotation.x=-.18;deco(new THREE.CylinderGeometry(.98,.98,.22,20),b.gold,s*4.6,12.8,9.3).rotation.x=-.18;funnels.push(new V3(s*4.6,13.6,9.1))}
+ // гирлянда флажков от мачты к носу и корме
+ const flagC=[0xff3fa4,0xf2b84b,0x5fe0c8,0xfff0e0,0xe04040];for(const [a,c] of[[new V3(0,16,12),new V3(0,2.2,54)],[new V3(0,16,12),new V3(-11.5,2.2,-40)],[new V3(0,16,12),new V3(11.5,2.2,-40)]]){
+  const n=Math.floor(a.distanceTo(c)/.9),im=new THREE.InstancedMesh(new THREE.ConeGeometry(.22,.5,3).rotateX(Math.PI),new THREE.MeshStandardMaterial({roughness:.7,side:THREE.DoubleSide}),n),o=new THREE.Object3D();
+  for(let i=0;i<n;i++){const k=(i+.5)/n;o.position.lerpVectors(a,c,k);o.position.y-=Math.sin(k*Math.PI)*1.6+.25;o.rotation.set(0,i*.7,0);o.updateMatrix();im.setMatrixAt(i,o.matrix);im.setColorAt(i,new THREE.Color(flagC[i%5]))}mapGroup.add(im);
+  const ln=[];for(let i=0;i<=16;i++){const k=i/16,q=new V3().lerpVectors(a,c,k);q.y-=Math.sin(k*Math.PI)*1.6;ln.push(q)}const l=new THREE.Line(new THREE.BufferGeometry().setFromPoints(ln),new THREE.LineBasicMaterial({color:0x333333}));mapGroup.add(l)}
+ // кнехты, бухты каната, зонтики, столики с коктейлями, растения
+ const rope=M(0xc9a26a,{roughness:.9}),iron=M(0x2a2d33,{metalness:.5,roughness:.4});
+ for(const [x,z] of[[12,-12],[-12,-22],[12,-38],[-12,-62],[12,-89],[-12,-90],[9,46],[-9,46]]){deco(new THREE.CylinderGeometry(.2,.26,.55,10),iron,x,.27,z);deco(new THREE.CylinderGeometry(.28,.28,.08,10),iron,x,.58,z);const t=deco(new THREE.TorusGeometry(.42,.11,6,18),rope,x+(x>0?-.9:.9),.12,z+.6);t.rotation.x=Math.PI/2}
+ const umC=[0xff3fa4,0x5fe0c8,0xf2b84b,0xf0641e];[[-9.5,-8],[9.5,-30],[-9.6,40],[9.6,40]].forEach(([x,z],i)=>{deco(new THREE.CylinderGeometry(.05,.05,2.6,8),b.chrome,x,1.3,z);const u=deco(new THREE.ConeGeometry(2.1,.7,12,1,true),M(umC[i],{side:THREE.DoubleSide}),x,2.75,z);u.userData.dyn=1});
+ const glassM=new THREE.MeshPhysicalMaterial?new THREE.MeshPhysicalMaterial({color:0xffffff,transparent:true,opacity:.35,roughness:.05}):M(0xffffff,{transparent:true,opacity:.35}),cockM=M(0xff8a3a,{emissive:0x501800});
+ for(const [x,z] of[[-8.6,-6],[8.6,-28],[-8.7,38],[8.7,38],[-10.4,-60.5]]){deco(new THREE.CylinderGeometry(.42,.42,.05,14),b.white,x,.62,z);deco(new THREE.CylinderGeometry(.04,.04,.6,6),b.chrome,x,.31,z);for(const d of[-.15,.15]){deco(new THREE.CylinderGeometry(.06,.035,.18,8),glassM,x+d,.74,z);deco(new THREE.CylinderGeometry(.05,.03,.1,8),cockM,x+d,.71,z)}}
+ const pot=M(0xd8c8b0,{roughness:.8}),leaf=M(0x2f8a3a,{roughness:.7});for(const [x,z] of[[-12.2,0],[12.2,0],[-12.2,-43],[12.2,-43],[-6,30],[6,30]]){deco(new THREE.CylinderGeometry(.45,.35,.7,12),pot,x,.35,z);for(let i=0;i<6;i++){const l=deco(new THREE.ConeGeometry(.12,1.2,4),leaf,x+Math.sin(i)*.15,1.1,z+Math.cos(i)*.15);l.rotation.set(Math.cos(i*1.3)*.5,0,Math.sin(i*1.3)*.5)}}
+ // диджей-пульт с колонками и диско-шаром у бара на корме
+ addBoxW(10.6,0,-61,2.6,1.1,1.2,M(0x1a1a20,{metalness:.3}),2);decoW(10.6,1.12,-61,2.4,.05,1,M(0x2d2f36,{emissive:0x101830}));for(const s of[-1,1]){deco(new THREE.CylinderGeometry(.36,.36,.06,18),M(0x111111),10.6+s*.6,1.16,-61);decoW(10.6+s*1.75,0,-61,.8,1.9,.8,M(0x15151a),1);deco(new THREE.CylinderGeometry(.28,.28,.05,16),M(0x333333),10.6+s*1.75,1.35,-60.58).rotation.x=Math.PI/2}
+ const disco=deco(new THREE.IcosahedronGeometry(.45,2),M(0xdddddd,{metalness:1,roughness:.12,envMap:ENV,flatShading:true}),10.6,3.6,-61);disco.userData.dyn=1;deco(new THREE.CylinderGeometry(.015,.015,1.3,4),b.chrome,10.6,4.45,-61);
+ // чайки
+ const gullM=M(0xfafafa,{side:THREE.DoubleSide,roughness:.8}),gulls=[];for(let i=0;i<8;i++){const g=new THREE.Group(),wg=new THREE.BufferGeometry();wg.setAttribute('position',new THREE.Float32BufferAttribute([0,0,-.25,0,0,.25,1.1,.1,0],3));wg.computeVertexNormals();
+  const L=new THREE.Mesh(wg,gullM),R=new THREE.Mesh(wg,gullM);R.scale.x=-1;g.add(L,R);const bd=new THREE.Mesh(new THREE.ConeGeometry(.12,.8,6).rotateX(Math.PI/2),gullM);g.add(bd);g.userData={L,R,r:rnd(18,40),h:rnd(14,26),sp:rnd(.15,.3)*(Math.random()<.5?1:-1),ph:Math.random()*6,cz:rnd(-60,30)};g.userData.dyn=1;mapGroup.add(g);gulls.push(g)}
+ // острова, маяк, корабли на горизонте, плавучие бутылки-буи и надувные игрушки
+ const sand=M(0xe8d39a,{roughness:.95}),hill=M(0x6f8a3c,{roughness:.9}),rock=M(0x7a6a5a,{roughness:.9});
+ for(const [x,z,r] of[[-190,-60,34],[210,40,40],[-160,170,26],[150,-210,30]]){deco(new THREE.CylinderGeometry(r*1.15,r*1.3,2,32),sand,x,SEA_Y-.4,z);const h=deco(new THREE.ConeGeometry(r,r*.55,24),hill,x,SEA_Y+r*.27,z);h.scale.z=.8;
+  deco(new THREE.DodecahedronGeometry(r*.18,0),rock,x+r*.6,SEA_Y+1,z+r*.2);for(let i=0;i<5;i++){const a=i*1.3,px=x+Math.cos(a)*r*.75,pz=z+Math.sin(a)*r*.6;deco(new THREE.CylinderGeometry(.5,.8,10,6),M(0x8a6a40),px,SEA_Y+5,pz);deco(new THREE.ConeGeometry(4,3,7),M(0x3f8f3a),px,SEA_Y+10.5,pz)}}
+ {const x=-190,z=-60;for(let i=0;i<6;i++)deco(new THREE.CylinderGeometry(2.1-i*.12,2.2-i*.12,3,16),M(i%2?0xffffff:0xd03030),x+12,SEA_Y+12+i*3,z);deco(new THREE.CylinderGeometry(1.5,1.5,2,12),M(0xfff4c0,{emissive:0xffe080,emissiveIntensity:.8}),x+12,SEA_Y+31,z);
+  const beam=deco(new THREE.ConeGeometry(2.2,40,12,1,true).translate(0,20,0).rotateZ(Math.PI/2),new THREE.MeshBasicMaterial({color:0xfff0b0,transparent:true,opacity:.12,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}),x+12,SEA_Y+31,z);beam.userData.dyn=1;L3.beam=beam}
+ const ships=[];for(const [x,z,ry] of[[120,-120,.4],[-120,110,-2.4]]){const g=new THREE.Group();g.position.set(x,SEA_Y,z);g.rotation.y=ry;const hm=new THREE.Mesh(new THREE.BoxGeometry(7,3,26),M(0x34404e));hm.position.y=.5;g.add(hm);const sm=new THREE.Mesh(new THREE.BoxGeometry(5,4,7),M(0xe8e4dc));sm.position.set(0,4,-6);g.add(sm);
+  const st=new THREE.Mesh(new THREE.CylinderGeometry(.9,1,3,10),M(0xc03030));st.position.set(0,7,-6);g.add(st);g.userData.dyn=1;mapGroup.add(g);ships.push(g)}
+ const bottleM=new THREE.MeshPhysicalMaterial?new THREE.MeshPhysicalMaterial({color:0x2f7a3a,roughness:.1,transparent:true,opacity:.85}):M(0x2f7a3a),capM=M(0xd8b05a,{metalness:.8,roughness:.3}),floats=[];
+ for(const [x,z] of[[-34,-20],[36,-48],[-40,30],[42,20],[-30,-80],[30,-100]]){const g=new THREE.Group();const bt=new THREE.Mesh(latheG([[.0,-1.6],[.9,-1.6],[1,-1.4],[1,.6],[.45,1.3],[.32,2.2],[.36,2.5],[0,2.55]],16),bottleM);g.add(bt);const c=new THREE.Mesh(new THREE.CylinderGeometry(.4,.4,.25,12),capM);c.position.y=2.55;g.add(c);g.userData.k='b';floats.push({g,x,z});mapGroup.add(g)}
+ const toyM=[M(0xff6fb0),M(0xfff07a)];for(const [x,z,k] of[[18,-30,0],[-17,6,1],[17,-70,1]]){const g=new THREE.Group();if(k){const d=new THREE.Mesh(new THREE.TorusGeometry(.9,.38,10,24),toyM[1]);d.rotation.x=Math.PI/2;g.add(d)}else{const d=new THREE.Mesh(new THREE.TorusGeometry(.9,.38,10,24),toyM[0]);d.rotation.x=Math.PI/2;g.add(d);const n=new THREE.Mesh(new THREE.CylinderGeometry(.18,.22,1.6,8),toyM[0]);n.position.set(0,.8,.7);n.rotation.x=-.3;g.add(n);const h=new THREE.Mesh(new THREE.SphereGeometry(.3,10,8),toyM[0]);h.position.set(0,1.6,.95);g.add(h)}
+  floats.push({g,x,z});mapGroup.add(g)}
+ for(const f of floats)f.g.userData.dyn=1;
+ mapAnims.push(dt=>{const t=lvT;rad.rotation.y+=dt*1.6;lamp.material.color.setHex(Math.sin(t*4)>0?0xff3040:0x401010);disco.rotation.y+=dt*.9;
+  if(Math.random()<dt*5)for(const f of funnels)puff(f.clone().add(new V3(rnd(-.4,.4),0,rnd(-.4,.4))),1,0xfff4e0,1.2,2.2,-2.5);
+  for(const g of gulls){const u=g.userData,a=t*u.sp+u.ph;g.position.set(Math.cos(a)*u.r,u.h+Math.sin(t*.7+u.ph)*1.5,u.cz+Math.sin(a)*u.r*.8);g.rotation.y=-a+(u.sp>0?0:Math.PI);const fl=Math.sin(t*9+u.ph)*.5;u.L.rotation.z=fl;u.R.rotation.z=-fl}
+  for(const f of floats){const y=seaH(f.x,f.z,t);f.g.position.set(f.x,y-(f.g.userData.k==='b'?.6:.1),f.z);f.g.rotation.set(Math.sin(t*1.1+f.x)*.18,t*.1,Math.cos(t*.9+f.z)*.18)}
+  for(const s of ships)s.position.y=SEA_Y+Math.sin(t*.4+s.position.x)*.3;if(L3.beam)L3.beam.rotation.y+=dt*.5})}
 /*BEER-WORLD-END*/
 
 /* ================= УРОВЕНЬ 3: персонажи, босс, квест ================= */
@@ -2215,7 +2360,9 @@ function buildAlt(g,mm,mats){altCleanup();const A={};g.userData.alt=A;
  A.tank=buildTank();g.add(A.tank.g);A.mp=new THREE.Group();g.add(A.mp);A.mis=buildMissile();A.mp.add(A.mis.g);A.mp.visible=false;
  A.girl=buildGirl(ALT_O);A.tank.seat.add(A.girl.g);setFace(A.girl,'wink');
  A.tm=[];A.tank.g.traverse(o=>{if(o.isMesh&&o.material.isMeshStandardMaterial&&o.material.map&&o.material.map.image===beerMats().moneyT.image&&o.material!==beerMats().money&&!mats.includes(o.material)){mats.push(o.material);A.tm.push(o.material)}});
- A.mis.g.traverse(o=>{if(o.isMesh&&o.material.isMeshStandardMaterial&&!mats.includes(o.material))mats.push(o.material)});
+ {const shared=new Set(Object.values(beerMats()).filter(v=>v&&v.isMaterial)),cl=new Map();
+  A.mis.g.traverse(o=>{if(!o.isMesh||!o.material.isMeshStandardMaterial)return;let m=o.material;if(shared.has(m)){if(!cl.has(m))cl.set(m,m.clone());m=o.material=cl.get(m)}
+   if(m.emissive.getHex()===0&&!mats.includes(m))mats.push(m)})}
  A.ob={x:0,z:0,yaw:0,hw:1.8,hl:2.8,top:1.42,dx:0,dz:0,dyaw:0,live:true};if(L3){L3.obbs=[A.ob];L3.alt=A}
  A.ac=-1;A.acT=0;A.vs=new V3();A.lp=null;A.taunt=0;return new THREE.MeshBasicMaterial({color:0xff3fa4})}
 /* ---------- снаряды ---------- */
@@ -2369,22 +2516,58 @@ function altDetach(e,A){if(A.wreck)return;const w=A.tank.g;mapGroup.attach(w);A.
 function altSnapRide(A){const G=A.girl;if(G.g.parent!==A.mis.seat){A.mis.seat.add(G.g);G.g.position.set(0,-.93*1.3,0);G.g.rotation.set(0,0,0)}A.jump={done:1}}
 function altDeath(e){const A=e.g.userData.alt;if(!A||!L3)return;altCleanupFx();const G=A.girl;e.g.updateMatrixWorld(true);
  mapGroup.attach(A.mp);const end={mis:A.mp,girl:G,t:0,v:new V3(A.vs.x*.5,6,A.vs.z*.5),spin:0,chute:null};
- mapGroup.attach(G.g);L3.end=end;girlPose(G,'chute',1);setFace(G,'angry');say(G,'ЭТО ЕЩЁ НЕ КОНЕЦ!',3);
+ mapGroup.attach(G.g);L3.end=end;end.gv=new V3(A.vs.x*.25,11,A.vs.z*.25);end.v.set(A.vs.x*.6,2,A.vs.z*.6);girlPose(G,'jump',1);setFace(G,'dizzy');sfx('jet');shake=Math.max(shake,.35);puff(G.g.position,40,0xfff0f8,8,.6,6);
  if(A.wreck)A.wreck=null;banner('АЛЬТУШКА ПОВЕРЖЕНА!');sfx('frag')}
+/* эпичный взрыв ракеты «Ядерная любовь»: серия огненных шаров, ударная волна, обломки, розовый гриб */
+function missileBoom(E,p){const B=E.boom={t:0,p:p.clone(),q:[],deb:[],fx:[]};sfx('boom',1);sfx('frag',.8);shake=Math.max(shake,.9);blast(p,7,0xfff0c0);puff(p,140,0xffb040,16,1.2,4);puff(p,80,0xff5aa8,13,1.4,2);puff(p,60,0x2a2020,8,2.2,-2);
+ for(let i=0;i<6;i++)B.q.push({t:.08+i*.11,p:p.clone().add(new V3(rnd(-3.5,3.5),rnd(-1.5,3),rnd(-3.5,3.5))),r:rnd(3,5),c:[0xffd070,0xff7a3a,0xff5aa8][i%3]});
+ const sw=new THREE.Mesh(new THREE.RingGeometry(.85,1,64),new THREE.MeshBasicMaterial({color:0xfff0d0,transparent:true,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}));sw.rotation.x=-Math.PI/2;sw.position.copy(p);mapGroup.add(sw);B.fx.push({m:sw,k:'ring'});
+ const sh=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),new THREE.MeshBasicMaterial({color:0xffc0e0,transparent:true,opacity:.5,depthWrite:false,blending:THREE.AdditiveBlending}));sh.position.copy(p);mapGroup.add(sh);B.fx.push({m:sh,k:'shell'});
+ const cap=new THREE.Mesh(new THREE.SphereGeometry(1,20,12),new THREE.MeshStandardMaterial({color:0xff8cc8,emissive:0xff3a80,emissiveIntensity:.7,transparent:true,opacity:.72,depthWrite:false,roughness:1}));cap.position.copy(p);cap.scale.set(1,.6,1);mapGroup.add(cap);B.fx.push({m:cap,k:'cap'});
+ const stem=new THREE.Mesh(new THREE.CylinderGeometry(.7,1.3,1,16,1,true).translate(0,-.5,0),new THREE.MeshStandardMaterial({color:0xffa0d0,emissive:0xff5a90,emissiveIntensity:.6,transparent:true,opacity:.7,depthWrite:false,side:THREE.DoubleSide}));stem.position.copy(p);mapGroup.add(stem);B.fx.push({m:stem,k:'stem'});
+ const dm=[new THREE.MeshStandardMaterial({color:0xff4fa8,roughness:.4}),new THREE.MeshStandardMaterial({color:0x26262c,metalness:.6,roughness:.4}),new THREE.MeshStandardMaterial({color:0xe8e2d8,roughness:.5})];
+ for(let i=0;i<14;i++){const g=i%3===0?new THREE.ConeGeometry(.25,.6,6):i%3===1?new THREE.BoxGeometry(.6,.05,.5):new THREE.CylinderGeometry(.22,.22,.5,8);const d=new THREE.Mesh(g,dm[i%3]);d.position.copy(p);mapGroup.add(d);
+  B.deb.push({m:d,v:new V3(rnd(-1,1),rnd(.2,1.2),rnd(-1,1)).normalize().multiplyScalar(rnd(12,24)),w:new V3(rnd(-9,9),rnd(-9,9),rnd(-9,9))})}
+ banner('ЯДЕРНАЯ ЛЮБОВЬ — БУМ!')}
+function updBoom(E,dt){const B=E.boom;if(!B)return;B.t+=dt;const t=B.t;
+ for(const q of B.q)if(!q.done&&t>=q.t){q.done=1;blast(q.p,q.r,q.c);puff(q.p,50,q.c,10,.9,3);sfx('boom',.5)}
+ for(const f of B.fx){const m=f.m;if(!m.parent)continue;
+  if(f.k==='ring'){const r=2+t*38;m.scale.setScalar(r);m.material.opacity=Math.max(0,1-t/1.1);if(t>1.1)m.parent.remove(m)}
+  else if(f.k==='shell'){const r=1+t*22;m.scale.setScalar(r);m.material.opacity=Math.max(0,.5-t*.8);if(t>.7)m.parent.remove(m)}
+  else if(f.k==='cap'){const g=Math.min(1,t/1.2),r=1.6+g*4.6;m.scale.set(r,r*.6,r);m.position.y=B.p.y+g*9+t*.6;m.material.opacity=.72*Math.max(0,1-Math.max(0,t-2.2)/2);m.rotation.y+=dt*.3;if(Math.random()<dt*30)puff(m.position.clone().add(new V3(rnd(-r,r),rnd(-1,1)*r*.4,rnd(-r,r))),3,Math.random()<.5?0xff8cc8:0xffb070,2,1.2,-1);if(t>4.3)m.parent.remove(m)}
+  else if(f.k==='stem'){const g=Math.min(1,t/1.2);m.position.y=B.p.y+g*9+t*.6;m.scale.set(1+g*.8,g*9+t*.6+.1,1+g*.8);m.material.opacity=.7*Math.max(0,1-Math.max(0,t-2)/2);if(t>4.1)m.parent.remove(m)}}
+ for(const d of B.deb){if(!d.m.parent)continue;d.v.y-=14*dt;d.m.position.addScaledVector(d.v,dt);d.m.rotation.x+=d.w.x*dt;d.m.rotation.y+=d.w.y*dt;d.m.rotation.z+=d.w.z*dt;if(Math.random()<dt*30)puff(d.m.position,1,0x2a2a2a,1,.9,-1.5);
+  if(d.m.position.y<SEA_Y||(onHull(d.m.position.x,d.m.position.z)&&d.m.position.y<.2)){if(d.m.position.y<SEA_Y)splash(d.m.position.x,d.m.position.z,.8);else puff(d.m.position,8,0xffa040,3,.4);d.m.parent.remove(d.m)}}
+ if(t>5)E.boom=null}
 function altCleanupFx(){const F=L3&&L3.altFx;if(!F)return;for(const k in F)if(F[k]&&F[k].parent)F[k].parent.remove(F[k]);L3.altFx={}}
 function updAltEnd(dt){const E=L3.end;if(!E)return;E.t+=dt;const m=E.mis;
- if(m.parent){E.v.y-=9*dt;E.v.z-=10*dt;m.position.addScaledVector(E.v,dt);m.rotation.z+=dt*5;m.rotation.x+=dt*.9;if(Math.random()<dt*40)puff(m.position,2,0x333333,2,1,-2);
-  if(m.position.y<SEA_Y+.3){splash(m.position.x,m.position.z,2.6);m.parent.remove(m);sfx('boom',.7)}}
- const G=E.girl,car=L3.car;if(!G||!car)return;
- if(!E.chute&&!E.st&&E.t>.5){const c=new THREE.Group();const dome=new THREE.Mesh(new THREE.SphereGeometry(1.6,16,8,0,Math.PI*2,0,Math.PI/2.4),new THREE.MeshStandardMaterial({color:0xff3fa4,side:THREE.DoubleSide,roughness:.7}));c.add(dome);
-  for(let i=0;i<8;i++){const a=i/8*6.283,l=new THREE.Mesh(new THREE.CylinderGeometry(.01,.01,2.2,3),new THREE.MeshBasicMaterial({color:0x222222}));l.position.set(Math.cos(a)*.7,-.9,Math.sin(a)*.7);l.rotation.set(Math.sin(a)*.5,0,-Math.cos(a)*.5);c.add(l)}
-  mapGroup.add(c);E.chute=c;E.from=G.g.position.clone();E.ct=0}
- const U=car.userData,inner=U.inner;
- if(E.chute){E.ct+=dt;const k=Math.min(1,E.ct/5.5);inner.updateMatrixWorld(true);const to=inner.localToWorld(_aw.set(0,.98,-1.75));const sk=k*k*(3-2*k);G.g.position.lerpVectors(E.from,to,sk);G.g.position.y+=Math.sin(k*Math.PI)*1.5*(1-k);
-  G.g.rotation.y+=(0-G.g.rotation.y)*Math.min(1,dt*2);E.chute.position.set(G.g.position.x,G.g.position.y+3.6,G.g.position.z);E.chute.rotation.z=Math.sin(E.t*1.4)*.15;
-  if(k>=1){inner.attach(G.g);E.chute.userData.v=new V3(rnd(-1,1),2,-3);E.chuteFly=E.chute;E.chute=null;E.st='land';E.sT=0;setFace(G,'angry');say(G,'ЭТО ЕЩЁ НЕ КОНЕЦ!',2.5)}}
- if(E.chuteFly){const c=E.chuteFly;c.position.addScaledVector(c.userData.v,dt);c.rotation.z+=dt*.8;c.scale.multiplyScalar(1-dt*.25);if(c.scale.x<.3){mapGroup.remove(c);E.chuteFly=null}}
- if(!E.st){girlPose(G,'chute',dt);return}
+ // ракета: дымит, искрит и эпично взрывается в воздухе
+ if(m.parent){E.v.y-=5*dt;m.position.addScaledVector(E.v,dt);m.rotation.z+=dt*7;m.rotation.x+=dt*1.4;if(Math.random()<dt*60)puff(m.position,2,Math.random()<.5?0x333333:0xff8040,2.5,1,-2);if(Math.random()<dt*25)puff(m.position,3,0xffe080,7,.25,6);
+  if(E.t>1.2||m.position.y<SEA_Y+.6){missileBoom(E,m.position.clone());m.parent.remove(m)}}
+ updBoom(E,dt);
+ const G=E.girl,car=L3.car;if(!G||!car)return;const U=car.userData,inner=U.inner;
+ // катапульта: вылетает вверх, кувыркаясь
+ if(!E.chute&&!E.st){E.gv.y-=13*dt;G.g.position.addScaledVector(E.gv,dt);G.g.rotation.x=Math.max(0,1-E.t/.9)*E.t*6;girlPose(G,'jump',dt,{hair:.4});
+  if(E.t>.9){const c=new THREE.Group(),cm=new THREE.MeshStandardMaterial({color:0xff3fa4,side:THREE.DoubleSide,roughness:.65,emissive:0x330818});
+   const cg=new THREE.SphereGeometry(1.9,20,8,0,Math.PI*2,0,Math.PI/2.6),cp=cg.attributes.position;for(let i=0;i<cp.count;i++){const x=cp.getX(i),z=cp.getZ(i),a=Math.atan2(z,x);const f=1+.06*Math.cos(a*10);cp.setX(i,x*f);cp.setZ(i,z*f)}cg.computeVertexNormals();
+   const dome=new THREE.Mesh(cg,cm);dome.position.y=-.55;c.add(dome);const st=new THREE.Mesh(new THREE.SphereGeometry(1.92,20,1,0,Math.PI*2,Math.PI/2.9,.05),new THREE.MeshBasicMaterial({color:0x1a1a22,side:THREE.DoubleSide}));st.position.y=-.55;c.add(st);
+   for(let i=0;i<10;i++){const a=i/10*6.283,l=new THREE.Mesh(new THREE.CylinderGeometry(.008,.008,3.1,3),new THREE.MeshBasicMaterial({color:0x2a2a30}));l.position.set(Math.cos(a)*.85,-1.75,Math.sin(a)*.85);l.lookAt(c.position);l.rotateX(Math.PI/2);c.add(l)}
+   mapGroup.add(c);E.chute=c;c.scale.setScalar(.05);E.from=G.g.position.clone();E.ct=0;E.sw=new V3(.5,0,0);E.swv=new V3();G.g.rotation.x=0;sfx('throw',1);puff(G.g.position.clone().setY(G.g.position.y+3),30,0xff8ccc,6,.5,2);setFace(G,'angry');say(G,'ЭТО ЕЩЁ НЕ КОНЕЦ!',2.6)}}
+ // спуск на парашюте: раскачивается как маятник, подруливает к машине, у самой машины подгибает ноги
+ if(E.chute){E.ct+=dt;const T_=6,k=Math.min(1,E.ct/T_);inner.updateMatrixWorld(true);const to=inner.localToWorld(_aw.set(0,.98,-1.75)).clone();
+  const sk=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2,prev=G.g.position.clone();
+  G.g.position.x=E.from.x+(to.x-E.from.x)*sk;G.g.position.z=E.from.z+(to.z-E.from.z)*sk;G.g.position.y=E.from.y+(to.y-E.from.y)*(1-Math.pow(1-k,1.6))+Math.sin(k*Math.PI)*.8;
+  const vel=_av.copy(G.g.position).sub(prev).divideScalar(Math.max(dt,1e-3));
+  // маятник: наклон в сторону движения + затухающие колебания
+  const tx=-vel.z*.06,tz=vel.x*.06;E.swv.x+=((tx-E.sw.x)*9-E.swv.x*1.2)*dt;E.swv.z+=((tz-E.sw.z)*9-E.swv.z*1.2)*dt;E.sw.x+=E.swv.x*dt;E.sw.z+=E.swv.z*dt;
+  const flare=k>.86?(k-.86)/.14:0;const c=E.chute,ps=E.ct<.45?Math.min(1.08,1-Math.pow(1-E.ct/.45,3)*1+Math.sin(E.ct/.45*Math.PI)*.15):1+Math.sin(E.ct*2.6)*.03;c.scale.set(ps,ps*(1-flare*.15),ps);
+  const off=_aw.set(0,3.5,0).applyEuler(new THREE.Euler(E.sw.x-flare*.35,0,E.sw.z));c.position.copy(G.g.position).add(off);c.rotation.set(E.sw.x-flare*.35,E.t*.15,E.sw.z);
+  G.g.rotation.set(E.sw.x*.9,G.g.rotation.y+((Math.atan2(to.x-G.g.position.x,to.z-G.g.position.z)||0)-G.g.rotation.y)*Math.min(1,dt*1.5)*(1-k),E.sw.z*.9);
+  girlPose(G,flare>0?'jump':'chute',dt,{lHip:[Math.sin(E.t*2.7)*.18,0,0],rHip:[-Math.sin(E.t*2.7)*.18,0,0],lKn:[Math.max(0,Math.sin(E.t*2.7))*.3,0,0],rKn:[Math.max(0,-Math.sin(E.t*2.7))*.3,0,0],wind:_av.set(0,1.6,0)});
+  if(E.ct>3&&!E.said2){E.said2=1;say(G,'ПАПИНА МАШИНА, ВЫРУЧАЙ!',2.4)}if(flare>0&&!E.said3){E.said3=1;setFace(G,'wink')}
+  if(k>=1){inner.attach(G.g);G.g.rotation.set(0,0,0);c.userData.v=new V3(rnd(-1,1),1.2,-3.5);E.chuteFly=c;E.chute=null;E.st='land';E.sT=0;sfx('slam',.5);puff(G.g.getWorldPosition(new V3()),20,0xfff0f8,4,.4,6);shake=Math.max(shake,.15)}}
+ if(E.chuteFly){const c=E.chuteFly;c.userData.v.y-=2.2*dt;c.position.addScaledVector(c.userData.v,dt);c.rotation.x+=dt*.9;c.scale.y=Math.max(.15,c.scale.y-dt*.9);c.scale.x*=1-dt*.12;c.scale.z*=1-dt*.12;if(c.position.y<SEA_Y){splash(c.position.x,c.position.z,1.4);mapGroup.remove(c);E.chuteFly=null}}
+ if(!E.st)return;
  E.sT+=dt;const st=E.st,lp=(a,b,k)=>G.g.position.lerpVectors(a,b,Math.min(1,k));
  if(st==='land'){girlPose(G,'stand',dt);G.g.position.set(0,.98,-1.75);G.g.rotation.set(0,0,0);if(E.sT>.5){E.st='side';E.sT=0;sfx('throw')}}
  else if(st==='side'){girlPose(G,'jump',dt);const k=Math.min(1,E.sT/.6);G.g.position.set(1.35*k,.98+Math.sin(k*Math.PI)*.8-.5*k,-1.75+1.35*k);G.g.rotation.y=k*-Math.PI/2;U.door.rotation.y=-1.25*Math.min(1,E.sT/.5);if(k>=1){E.st='in';E.sT=0;sfx('door',.6)}}
@@ -2469,11 +2652,16 @@ function updHelperBottles(dt){if(!L3.hb)return;for(const h of L3.hb){h.t+=dt;con
    if(h.host){const b=enemies.find(e=>e.type==='alt'&&!e.dead);if(b&&center(b,_av).distanceTo(h.to)<b.r+2.5){damage(b,3,99,'mud');addStyle('ГРЯЗНУЛЬКА ПОМОГЛА',30)}}}}
  L3.hb=L3.hb.filter(h=>!h.dead)}
 /* ---------- игрок и танк/обломки: столкновение, езда на крыше ---------- */
-function obbPush(p,r,h,carry){let on=false;for(const ob of L3.obbs||[]){const c=Math.cos(ob.yaw),sn=Math.sin(ob.yaw),lx=p.x-ob.x,lz=p.z-ob.z,fx=lx*c-lz*sn,fz=lx*sn+lz*c,ex=ob.hw+r,ez=ob.hl+r;
-  if(Math.abs(fx)>=ex||Math.abs(fz)>=ez||p.y>ob.top+.05||p.y+h<0)continue;
+function obbPush(p,r,h,carry,list){let on=false;for(const ob of list||L3.obbs||[]){const c=Math.cos(ob.yaw),sn=Math.sin(ob.yaw),lx=p.x-ob.x,lz=p.z-ob.z,fx=lx*c-lz*sn,fz=lx*sn+lz*c,ex=ob.hw+r,ez=ob.hl+r;
+  if(Math.abs(fx)>=ex||Math.abs(fz)>=ez||p.y>ob.top+.05||p.y+h<(ob.bot||0))continue;
   if(p.y>ob.top-.55&&carry){p.y=ob.top;on=ob;continue}
   const px=ex-Math.abs(fx),pz=ez-Math.abs(fz);let nx=fx,nz=fz;if(px<pz)nx=Math.sign(fx||1)*ex;else nz=Math.sign(fz||1)*ez;p.x=ob.x+nx*c+nz*sn;p.z=ob.z-nx*sn+nz*c}return on}
-function updObbs(dt){if(!L3.obbs||!L3.obbs.length)return;
+/* в море: машина денег и грязнулька — твёрдые (на крышу машины можно встать) */
+function updSeaCol(){if(!P.alive||state!=='play')return;const L=L3.sobbs||(L3.sobbs=[{hw:1.12,hl:2.5,live:false},{hw:.38,hl:.38,live:false}]);const list=[];
+ const c=L3.car;if(c&&c.visible){const o=L[0];o.x=c.position.x;o.z=c.position.z;o.yaw=c.rotation.y;o.bot=c.position.y-.6;o.top=c.position.y+1.02;list.push(o)}
+ const q=L3.q;if(q&&q.G&&q.G.g.visible&&q.G.g.parent){const gp=q.G.g.getWorldPosition(_hgv);if(!onHull(gp.x,gp.z)){const o=L[1];o.x=gp.x;o.z=gp.z;o.yaw=0;o.bot=gp.y;o.top=gp.y+1.9;list.push(o)}}
+ if(!list.length)return;const on=list[0]===L[0]?obbPush(P.pos,.4,1.75,true,[L[0]]):false;if(list.includes(L[1]))obbPush(P.pos,.4,1.75,false,[L[1]]);if(on&&P.vel.y<=.5){P.vel.y=Math.max(0,P.vel.y);P.grounded=true;P.lastG=T}}
+function updObbs(dt){updSeaCol();if(!L3.obbs||!L3.obbs.length)return;
  if(P.alive&&state==='play'){const on=obbPush(P.pos,.4,1.75,true);if(on&&P.vel.y<=.5){P.vel.y=Math.max(0,P.vel.y);P.grounded=true;P.lastG=T;if(on.live){P.pos.x+=on.dx*0;P.pos.z+=on.dz*0;
    const c=Math.cos(on.dyaw),sn=Math.sin(on.dyaw),lx=P.pos.x-on.x,lz=P.pos.z-on.z;P.pos.x=on.x+lx*c+lz*sn;P.pos.z=on.z-lx*sn+lz*c;P.yaw+=on.dyaw}}}
  if(mode==='solo'||isHost)for(const e of enemies){if(e.dead||e.remote||e.type==='alt'||ENEMY[e.type].fly)continue;obbPush(e.pos,e.r*.8,2,true)}}
@@ -2491,7 +2679,7 @@ function l3Hint(){let el=document.getElementById('l3hint');if(!el){el=document.c
 /* сеть */
 function l3Fx(n){if(!L3)return;const s2=n[0];if(s2===1&&L3.q){(L3.ghostR=L3.ghostR||[]).push(ringFly(new V3(n[1],n[2],n[3]),new V3(n[4],n[5],n[6]),n[7]|0,false))}
  else if(s2===2&&L3.q)questGrab(n[1]|0);else if(s2===6&&L3.q)helperThrow(new V3(n[1],n[2],n[3]),false);else if(s2===9){const c=L3.chairs[n[1]|0];if(c)breakChair(c)}}
-function altFx(n){const s2=n[0];if(s2===8){bambBoom(new V3(n[1],n[2],n[3]),false);return}if(s2===9){ketoMark(n[1],n[2],n[3],false);return}if(!L3)return;if(s2===3)nukeBoom(n[1],n[2],false,[]);else if(s2===6){const b=enemies.find(e=>e.type==='alt');if(b){const A=b.g.userData.alt;A.kick=.35;const mz=A.tank.muzzle.getWorldPosition(new V3());puff(mz,30,0xffd27a,8,.4,-2);sfx('boom',.7)}}
+function altFx(n){const s2=n[0];if(s2===10){if(L3)waveReverse(n[1],n[2],n[3],false);return}if(s2===8){bambBoom(new V3(n[1],n[2],n[3]),false);return}if(s2===9){ketoMark(n[1],n[2],n[3],false);return}if(!L3)return;if(s2===3)nukeBoom(n[1],n[2],false,[]);else if(s2===6){const b=enemies.find(e=>e.type==='alt');if(b){const A=b.g.userData.alt;A.kick=.35;const mz=A.tank.muzzle.getWorldPosition(new V3());puff(mz,30,0xffd27a,8,.4,-2);sfx('boom',.7)}}
  else if(s2===7)sfx('slam')}
 
 
@@ -2581,6 +2769,23 @@ LEVELS.push({id:'l3',n:3,name:'ПИВНОЕ МОРЕ',sub:'Яхта «Пенна
    sp:[[-6,0,-60],[10,0,-60],[-11,0,-77],[11,0,-77],[-9,0,-92],[8.5,0,-92.5],[0,0,-60],[-4,5,-70],[4,5,-84]],waves:[{alt:1}],
    rein:[{at:.8,w:{can:4,vend:2}},{at:.5,w:{bambun:1,drone:2,jelly:2}},{at:.25,w:{can:4,vend:2,drone:2}}]}]});
 /*BEER-END*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3294,14 +3499,14 @@ function applyFx(e){const k=e[0],n=e.slice(2).map(v=>+v||0);
  else if(k==='r'){const m=rocketMesh();m.position.set(n[0],n[1],n[2]);const v=new V3(n[3],n[4],n[5]);m.lookAt(m.position.clone().add(v));m.rotateY(Math.PI);proj.push({m,vel:v,owner:'ghost',kind:'ghost',t:3,r:.3})}
  else if(k==='g'){const m=bottleMesh();m.position.set(n[0],n[1],n[2]);proj.push({m,vel:new V3(n[3],n[4],n[5]),owner:'ghost',kind:'ghostg',t:2.6,r:.3})}
  else if(k==='c'){const m=capMesh();m.position.set(n[0],n[1],n[2]);proj.push({m,vel:new V3(n[3],n[4],n[5]),owner:'ghost',kind:'ghostc',t:3,r:.2})}
- else if(k==='w'){const o=new V3(n[0],n[1],n[2]),d=new V3(n[3],n[4],n[5]).normalize();spray(o,d,6);floorPuddle(o,d,32,.55,7)}
+ else if(k==='w'){const o=new V3(n[0],n[1],n[2]),d=new V3(n[3],n[4],n[5]).normalize();sodaEmit(o,d,false);spray(o,d,2)}
  else if(k==='y'){if(n[3])colaBurst(n[0],n[1],n[2],false);else{geyserFx(n[0],n[1],n[2]);addPuddle(n[0],n[1],n[2],2.6,10)}}
  else if(k==='j'){const o=new V3(n[0],n[1],n[2]),d=new V3(n[3],n[4],n[5]).normalize();for(let i=0;i<3;i++)spray(o,spread(d,.25),10);sfx('jet',.4)}
  else if(k==='h'){const p=new V3(n[0],n[1],n[2]);ring(p,6,0xf2b84b);puff(p,30,0xf2b84b,9,.5);sfx('slam',.4)}
  else if(k==='v'){if(isHost&&story)openValve(n[0],false)}
  else if(k==='k'){const p=new V3(n[0],n[1],n[2]);blast(p,4.6,0xfff1dc);puff(p,60,0xf6eee2,12,.9,5);sfx('boom',.5);addPuddle(n[0],n[3],n[2],2.3,9)}
  else if(k==='K'){if(L3)kegBoom(n[0],false)}else if(k==='W'){if(L3)splash(n[0],n[1],1.6)}else if(k==='L')l3Fx(n);else if(k==='A')altFx(n);
- else if(k==='q'&&!isHost&&story){const s2=n[0];if(s2===1)waveRing(n[1],Math.max(0,syrupLvl(n[1],n[2])),n[2],false);else if(s2===2)spikeLine(n[1],n[2],n[3],12,false);else if(s2===3)spikeRing(n[1],n[2],n[3],false);else if(s2===5)sfx('roar',.8)}}
+ else if(k==='q'&&!isHost&&story){const s2=n[0];if(s2===1)waveRing(n[1],Math.max(0,syrupLvl(n[1],n[2])),n[2],false);else if(s2===2)spikeLine(n[1],n[2],n[3],12,false);else if(s2===3)spikeRing(n[1],n[2],n[3],false);else if(s2===5)sfx('roar',.8);else if(s2===6)spout(n[1],n[2],false)}}
 function sendPresence(){const o={n:nick,c:myColor,m:mode,r:code,pl:1,al:P.alive?1:0,x:r2(P.pos.x),y:r2(P.pos.y),z:r2(P.pos.z),yw:r2(P.yaw),pt:r2(P.pitch),an:(P.grounded?0:1)|(P.slide?2:0)|(P.dashT>0?4:0)|(P.slam?8:0),fc:fireCount,pu:punchCount,hc:cosStr(myCos),hp:Math.max(0,Math.ceil(P.hp)),w:cur,k:kills,d:deaths,sc:score,dl:dl.slice(),fx:fxOut.slice()};
  if(kb)o.kb=kb;
  if(mode==='coop'&&isHost){o.wv=wave;o.lf=toSpawn.length+telegraphs.length+enemies.length;
@@ -3711,14 +3916,8 @@ function fire(alt){if(!P.alive||(L3&&ringHeld()))return;const w=WP[cur];camera.g
  else{if(!alt){const m=rocketMesh();m.position.copy(muzzle());m.lookAt(m.position.clone().add(aim));m.rotateY(Math.PI);const v=aim.clone().multiplyScalar(46);proj.push({m,vel:v,owner:'player',kind:'rocket',t:4,r:.3});sfx('rocket');kick=1.3;vmShot(2,false);
    if(mp())pushFx(['r',0,r1(m.position.x),r1(m.position.y),r1(m.position.z),r1(v.x),r1(v.y),r1(v.z)])}
   else{let n=0;for(const p of proj)if(p.kind==='rocket'&&!p.dead){p.dead=true;explode(p.m.position.clone(),p.boost?7:5,p.boost?7:4.5,p.boost?'mentos':'rocket');n++}if(n){addStyle('ПОДРЫВ В ВОЗДУХЕ',40*n);vmShot(2,true)}else w.at=0}}}
-function soda(alt){if(!alt){if(gas<2){fl0();return}gas-=1.8;gasIdle=.45;vmShot(3,false);const o=camera.position,mz=muzzle(),d=spread(aim,.035);spray(mz,d,4);sprayFx-=1;if(sprayFx<=0){sprayFx=3;sfx('spray')}
-  ray.set(o,d);ray.far=32;const h=ray.intersectObjects(level,false);const wallD=h.length?h[0].distance:32;if(h.length&&h[0].face&&(soda.pc=(soda.pc||0)+1)%2===0){const n=h[0].face.normal.clone().transformDirection(h[0].object.matrixWorld);if(n.y>.7)addPuddle(h[0].point.x,h[0].point.y,h[0].point.z,.45,7)}
-  for(const p of proj)if(p.kind==='rocket'&&!p.dead&&!p.boost){const t=raySphere(o,d,p.m.position,.8);if(t!==null&&t<wallD){p.boost=true;p.m.children[1].material.color.setHex(0xf6eee2);p.m.scale.setScalar(1.5);addStyle('МЕНТОС + КОЛА',40);puff(p.m.position,30,0xf6eee2,6,.6)}}
-  for(const c of coins){if(c.dead)continue;const t=raySphere(o,d,c.m.position,.6);if(t!==null&&t<wallD){ricochet(c,1.1,1);addStyle('КОЛА-РИКОШЕТ',30);return}}
-  let best=null,bt=1e9;for(const e of enemies){const t=raySphere(o,d,center(e,tmpA),e.r+.15);if(t!==null&&t<wallD&&t<bt){bt=t;best=e}}
-  if(mode==='pvp')for(const [peer,r] of remotes)if(r.alive){const t=raySphere(o,d,rc(r,tmpA),.7);if(t!==null&&t<wallD&&t<bt){bt=t;best={peer}}}
-  if(best&&!best.peer){if(!(best.wet>0)){addStyle('ЗАЛИТ',10);puff(center(best,tmpA),10,0x6b2a12,4,.4)}best.wet=3;if(!best.remote)best.vel.addScaledVector(d,1.2)}
-  if(mp()&&(fire.wfx=(fire.wfx||0)-1)<=0){fire.wfx=2;pushFx(['w',0,r1(mz.x),r1(mz.y),r1(mz.z),r2(d.x),r2(d.y),r2(d.z)])}}
+/*v7*/function soda(alt){if(!alt){if(gas<2){fl0();return}gas-=1.8;gasIdle=.45;vmShot(3,false);const mz=muzzle(),d=spread(aim,.025);sodaEmit(mz,d,true);spray(mz,d,1);sprayFx-=1;if(sprayFx<=0){sprayFx=3;sfx('spray')}
+  if(mp()&&(fire.wfx=(fire.wfx||0)-1)<=0){fire.wfx=1;pushFx(['w',0,r1(mz.x),r1(mz.y),r1(mz.z),r2(d.x),r2(d.y),r2(d.z)])}}
  else{if(gas<35){fl0();return}gas-=35;gasIdle=.6;vmShot(3,true);P.vel.addScaledVector(aim,-13);if(aim.y<-.3)P.vel.y=Math.max(P.vel.y,-aim.y*12+2);P.grounded=false;P.slam=false;P.slide=false;
   const mz=muzzle();for(let i=0;i<4;i++)spray(mz,spread(aim,.25),10);puff(mz,30,0xf6eee2,8,.6);sfx('jet');shake=Math.max(shake,.12);fovKick=8;addStyle('РЕАКТИВНАЯ ГАЗИРОВКА',15);
   if(mp())pushFx(['j',0,r1(mz.x),r1(mz.y),r1(mz.z),r2(aim.x),r2(aim.y),r2(aim.z)])}}
@@ -3929,7 +4128,7 @@ function frame(now){requestAnimationFrame(frame);perfTick(now-last);let dt=Math.
   updProj(dt);updCoins(dt);updPeels(dt);updCola(dt);flushDmg();netFrame(dt);
   styleV=Math.max(0,styleV-dt*(12+rank()*15));for(const k in FRESH)FRESH[k]=Math.min(1,FRESH[k]+dt*.25);feed.forEach(f=>f.t-=dt);feed=feed.filter(f=>f.t>0);
   pflashV=Math.max(0,pflashV-dt*4);$('pflash').style.opacity=pflashV;const v=$('vig');v.style.opacity=Math.max(0,(+v.style.opacity||0)-dt*2.5);hud(dt)}
- updFx(dt);for(const f of mapAnims)f(dt);
+ updFx(dt);if(typeof updSoda==='function')updSoda(dt);for(const f of mapAnims)f(dt);
  let tpOn=false,eyeSave=null;selfHero.root.visible=false;const inMenu=state==='menu';hudShow(!inMenu);
  {const want=inMenu?menuScene:scene;if(selfHero.root.parent!==want){want.add(selfHero.root);setHeroLayer(selfHero,inMenu?0:1)}}
  if(postMenu!==inMenu){postMenu=inMenu;if(gradePass){const u=gradePass.uniforms;u.warm.value.set(...(inMenu?[.95,1,1.06]:[1.03,1,.97]));u.sat.value=inMenu?1.12:1.28;u.vig.value=inMenu?.4:.32}if(bloomPass){bloomPass.strength=inMenu?.55:.42;bloomPass.threshold=inMenu?.88:.93;bloomPass.radius=inMenu?.5:.4}}
