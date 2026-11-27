@@ -156,6 +156,21 @@ function firePit(x,z){const M=L4.M,y=tY(x,z);solid(x,y,z,1.7,.35,1.7);for(let i=
 function sandcastle(x,z){solid(x,tY(x,z),z,1.4,.9,1.4);const y=tY(x,z),m=new THREE.MeshStandardMaterial({color:0xd9c08a,roughness:1});deco(CY(.6,.7,.4,10),m,x,y+.2,z);deco(CY(.35,.42,.55,10),m,x,y+.6,z);for(let i=0;i<4;i++){const a=i*1.57;deco(CY(.13,.16,.55,8),m,x+Math.cos(a)*.55,y+.45,z+Math.sin(a)*.55);deco(new THREE.ConeGeometry(.15,.22,8),m,x+Math.cos(a)*.55,y+.84,z+Math.sin(a)*.55)}}
 function cooler(x,z,ry){solid(x,tY(x,z),z,.75,.55,.75);const y=tY(x,z),g=grp(x,y,z,ry);gm(g,BX(.7,.45,.45),new THREE.MeshStandardMaterial({color:0x2f6ad8,roughness:.4}),0,.22,0);gm(g,BX(.72,.08,.47),L4.M.white,0,.48,0);
  const can=new THREE.MeshStandardMaterial({color:0x2a58c8,metalness:.8,roughness:.25,envMap:ENV});for(let i=0;i<3;i++)gm(g,CY(.045,.045,.15,10),can,-.15+i*.15,.6,0)}
+/* ---------- арена пляжа: крупные игровые формы вместо россыпи мелочи ---------- */
+// Сан-дек: дощатое возвышение (запрыгнуть / подняться по ступени со стороны моря), пара шезлонгов у задней кромки.
+function sunDeck(x,z,w,d,h){const M=L4.M;let y=-99;for(const [a,b] of[[-1,-1],[1,-1],[-1,1],[1,1],[0,0]])y=Math.max(y,tY(x+a*w/2,z+b*d/2));const top=y+h;
+ decoW(x,y-.5,z,w,h+.5-.14,d,M.dwood,2).castShadow=true;decoW(x,top-.14,z,w+.3,.14,d+.3,M.plank,1).receiveShadow=true;
+ for(const s of[-1,1])for(const t of[-1,1])decoW(x+s*(w/2-.1),y-.5,z+t*(d/2-.1),.28,h+.42,.28,M.wood,1);
+ solid(x,y-.5,z,w+.3,h+.5,d+.3);
+ // лесенка со стороны моря: ступени ≤ .45 (игрок сам шагает на ≤ .55)
+ const sw=w*.55,sd=.75,ts=tY(x,z+d/2+.9),n=Math.max(1,Math.ceil((top-ts)/.45)-1);
+ for(let k=1;k<=n;k++){const st=ts+(top-ts)*k/(n+1),zc=z+d/2+.15+(n-k+.5)*sd;decoW(x,y-.5,zc,sw,st-y+.5,sd,M.plank,1).receiveShadow=true;solid(x,y-.5,zc,sw,st-y+.5,sd)}
+ for(let i=0;i<2;i++)lounger(x-w/2+1+i*1.3,z-d/2+.9,Math.PI,i+1,top);parasol(x+w/2-1.1,z-d/2+1,1,.05,top);return top}
+// Скальный выступ: три сросшихся валуна — укрытие и высота; верх ходибельный (rockCollide поднимает рельеф).
+function rockOutcrop(x,z){const rm=rockMat(),rg=rockGeo(311,3);
+ for(const [ox,oz,sx,sy,sz,ry] of[[0,0,2.8,1.6,2.3,.3],[2.4,-1.3,1.8,2.4,1.6,1.1],[-2.1,1.3,1.5,1,1.4,2]]){const px=x+ox,pz=z+oz,y=tY(px,pz);
+  const m=deco(rg,rm,px,y-.25,pz,ry);m.scale.set(sx,sy,sz);m.castShadow=m.receiveShadow=true;m.userData.dyn=1;m.updateMatrix();rockCollide(rg,m.matrix,rg);
+  solid(px,y-1,pz,sx*1.35,sy*.95+.75,sz*1.35)}}
 /* ---------- ворота в джунгли ---------- */
 function jungleGate(){const M=L4.M,y=1.25,g=grp(0,y,-1);const st=rockMat();
  for(const s of[-1,1]){gm(g,BX(1.3,4.4,1.3),M.stone,s*3.75,2.2,0);gm(g,BX(1.6,.4,1.6),M.stone,s*3.75,4.55,0);const fc=tikiFace();fc.position.set(s*3.75,2.6,.7);g.add(fc)}
