@@ -1,4 +1,5 @@
-import sys;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys;sys.path.insert(0,TOOLS)
 from base import *
 with sync_playwright() as p:
     b,pg,errs=open_page(p,1280,720)
@@ -8,5 +9,5 @@ with sync_playwright() as p:
     pg.keyboard.down('KeyW')
     for i in range(6):
         pg.wait_for_timeout(250);print(J(pg,"()=>__eval('[selfHero.cape.air.toArray().map(v=>v.toFixed(1)),P.vel.toArray().map(v=>v.toFixed(1)),selfHero.root.rotation.y.toFixed(2)]')"))
-    pg.screenshot(path='/tmp/an/g_run.png');pg.keyboard.up('KeyW')
+    pg.screenshot(path=OUT+'/g_run.png');pg.keyboard.up('KeyW')
     b.close()

@@ -1,4 +1,5 @@
-import sys;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys;sys.path.insert(0,TOOLS)
 from base import *
 def F(pg,n=30):pg.evaluate("()=>new Promise(r=>{let n=0;const f=()=>{if(++n>%d)r();else requestAnimationFrame(f)};f()})"%n)
 with sync_playwright() as p:
@@ -9,8 +10,8 @@ with sync_playwright() as p:
     J(pg,"()=>__eval(`P.pos.set(0,2.9,-80);const q=enemies.find(e=>e.type==='queen');q.st='idle';q.inv=false;q.hp=3;q.pos.y=-1;drainT=5;damage(q,2.5,99,'x')`)")
     while J(pg,"()=>__eval('GZ.cut?GZ.cut.t:99')")<3.4:F(pg,1)
     J(pg,"()=>{window.__frz=1}")
-    pg.screenshot(path='/tmp/an/w0.png')
+    pg.screenshot(path=OUT+'/w0.png')
     print(J(pg,"()=>__eval(`(()=>{const q=GZ.cut.q,u=q.g.userData.q;return [q.flash,u.heart.visible,u.glow.material.opacity,u.heartM.emissiveIntensity,u.heart.scale.x,q.qs,GZ_ST.map(m=>m.scale.x.toFixed(3)+'/'+m.scale.y.toFixed(2)).join(' ')]})()`)"))
-    J(pg,"()=>__eval(`GZ_ST.forEach(m=>m.visible=false)`)");pg.wait_for_timeout(300);pg.screenshot(path='/tmp/an/w1.png')
-    J(pg,"()=>__eval(`GZ.cut.q.g.visible=false`)");pg.wait_for_timeout(300);pg.screenshot(path='/tmp/an/w2.png')
+    J(pg,"()=>__eval(`GZ_ST.forEach(m=>m.visible=false)`)");pg.wait_for_timeout(300);pg.screenshot(path=OUT+'/w1.png')
+    J(pg,"()=>__eval(`GZ.cut.q.g.visible=false`)");pg.wait_for_timeout(300);pg.screenshot(path=OUT+'/w2.png')
     b.close()

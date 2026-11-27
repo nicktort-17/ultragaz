@@ -1,4 +1,5 @@
-import sys;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys;sys.path.insert(0,TOOLS)
 from base import *
 def F(pg,n=30):pg.evaluate("()=>new Promise(r=>{let n=0;const f=()=>{if(++n>%d)r();else requestAnimationFrame(f)};f()})"%n)
 with sync_playwright() as p:
@@ -9,6 +10,6 @@ with sync_playwright() as p:
     print(J(pg,"()=>__eval(`(()=>{const q=enemies.find(e=>e.type==='queen');return q?[q.st,!!q.g.userData.q.model,q.pos.toArray().map(v=>v.toFixed(1))]:null})()`)"))
     for i,ac in enumerate([0,2,1,8]):
         J(pg,"""()=>__eval(`(()=>{const q=enemies.find(e=>e.type==='queen');q.cd=99;q.st='x';q.ac=%d;q.pos.set(0,0,-104);gunScene.visible=false;const P=__ug.P;P.iT=1e9;P.pos.set(%f,3.5,-93.5);const dx=q.pos.x-P.pos.x,dz=q.pos.z-P.pos.z;P.yaw=Math.atan2(-dx,-dz);P.pitch=.3})()`)"""%(ac,[0,3,-4,1][i]))
-        F(pg,25);pg.screenshot(path='/tmp/an/qv_%d.png'%i)
+        F(pg,25);pg.screenshot(path=OUT+'/qv_%d.png'%i)
     print([e for e in errs if 'ReadPixels' not in e and 'ERR_FAILED' not in e][:5])
     b.close()

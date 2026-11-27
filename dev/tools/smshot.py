@@ -1,4 +1,5 @@
-import sys,json;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys,json;sys.path.insert(0,TOOLS)
 from base import *
 def F(pg,n=30):pg.evaluate("()=>new Promise(r=>{let n=0;const f=()=>{if(++n>%d)r();else requestAnimationFrame(f)};f()})"%n)
 E=lambda pg,s:pg.evaluate("()=>__eval(%s)"%json.dumps(s))
@@ -11,13 +12,13 @@ with sync_playwright() as p:
         E(pg,"(()=>{P.iT=1e9;styleV=%d;feed.length=0;if(%d>0){addStyle('УБИЙСТВО',1);addStyle('ПАРИРОВАНИЕ',1);styleV=%d}})()"%(v,v,v));F(pg,3)
         pg.wait_for_timeout(int(sys.argv[2]) if len(sys.argv)>2 else 600);E(pg,"(()=>{styleV=%d})()"%v);F(pg,2)
         bx=pg.evaluate("()=>{const r=document.getElementById('smBox').getBoundingClientRect();return [r.left,r.top,r.width,r.height]}")
-        pg.screenshot(path='/tmp/tour/sm%d.png'%i,clip={'x':max(0,bx[0]-30),'y':0,'width':min(W-max(0,bx[0]-30),bx[2]+30),'height':bx[3]+bx[1]+20})
-    pg.screenshot(path='/tmp/tour/smfull.png')
+        pg.screenshot(path=OUT+'/tour/sm%d.png'%i,clip={'x':max(0,bx[0]-30),'y':0,'width':min(W-max(0,bx[0]-30),bx[2]+30),'height':bx[3]+bx[1]+20})
+    pg.screenshot(path=OUT+'/tour/smfull.png')
     print([e for e in errs if 'ReadPixels' not in e and 'ERR_FAILED' not in e][:5])
     b.close()
 from PIL import Image
-ims=[Image.open('/tmp/tour/sm%d.png'%i) for i in range(8)]
+ims=[Image.open(OUT+'/tour/sm%d.png'%i) for i in range(8)]
 w=max(i.width for i in ims);h=max(i.height for i in ims)
 o=Image.new('RGB',(w*2,h*4))
 for k,im in enumerate(ims):o.paste(im,((k%2)*w,(k//2)*h))
-o.save('/tmp/tour/smsheet.png');print(o.size)
+o.save(OUT+'/tour/smsheet.png');print(o.size)

@@ -1,7 +1,8 @@
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
 # Метр стиля «бутылка»: панель в правом верхнем углу HUD.
 # Идемпотентен: заменяет старый блок или ранее вставленный регион SMETER.
 import re,sys
-P='/home/claude/ultra/index.html'
+P=INDEX
 s=open(P,encoding='utf-8').read()
 
 CSS=r'''/*SMETER-CSS*/

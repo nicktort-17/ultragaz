@@ -1,3 +1,4 @@
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
 import struct,json,base64,shutil
 def conv(src,dst):
     b=open(src,'rb').read();assert b[:4]==b'glTF'
@@ -8,6 +9,5 @@ def conv(src,dst):
         elif T==b'BIN\x00':BIN=d
     J['buffers'][0]['uri']='data:application/octet-stream;base64,'+base64.b64encode(BIN).decode()
     open(dst,'w').write(json.dumps(J,ensure_ascii=False,separators=(',',':')))
-conv('/tmp/pep/pep.glb','/home/claude/ultra/models/pep.json')
-shutil.copy('/home/claude/ultra/models/pep.json','/home/claude/ultragaz/models/pep.json')
-import os;print('ok',os.path.getsize('/home/claude/ultra/models/pep.json'))
+conv(TMP+'/pep/pep.glb',MODELS+'/pep.json')
+import os;print('ok',os.path.getsize(MODELS+'/pep.json'))

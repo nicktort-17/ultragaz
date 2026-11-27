@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
 """Вклейка parts/gz.js (/*GZ-BEGIN*/../*GZ-END*/) и разовые хуки /*GZ1*/ в index.html."""
 import os,re,sys
-H=os.path.join(os.path.dirname(__file__),'..','index.html')
+H=INDEX
 s=open(H).read();mod=open(os.path.join(os.path.dirname(__file__),'gz.js')).read().strip()
 if '/*GZ-BEGIN*/' in s:
     a=s.index('/*GZ-BEGIN*/');b=s.index('/*GZ-END*/')+len('/*GZ-END*/');s=s[:a]+mod+s[b:]

@@ -4,7 +4,7 @@
 # голова (0,10.45,0), плечи (±2.45,8.1,0), локоть −3 по y от плеча, кисть −2.9 от локтя, сердце (0,6.9,1.78).
 import bpy, bmesh, math, sys, os, random
 from mathutils import Vector
-out = sys.argv[1] if len(sys.argv) > 1 else '/tmp/queen'
+out = sys.argv[1] if len(sys.argv) > 1 else __import__('tempfile').gettempdir()+'/queen'
 RENDER = len(sys.argv) > 2
 os.makedirs(out, exist_ok=True)
 random.seed(5)

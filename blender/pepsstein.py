@@ -6,7 +6,7 @@
 import bpy, bmesh, math, os, sys, random
 from mathutils import Vector as V, Matrix, Euler, Quaternion
 
-OUT = sys.argv[1] if len(sys.argv) > 1 else '/tmp/pep'
+OUT = sys.argv[1] if len(sys.argv) > 1 else __import__('tempfile').gettempdir()+'/pep'
 VIEWS = sys.argv[2] if len(sys.argv) > 2 else ''
 os.makedirs(OUT, exist_ok=True)
 random.seed(134)

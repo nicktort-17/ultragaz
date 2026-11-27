@@ -1,4 +1,5 @@
-import sys,json;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys,json;sys.path.insert(0,TOOLS)
 from base import *
 def F(pg,n=30):pg.evaluate("()=>new Promise(r=>{let n=0;const f=()=>{if(++n>%d)r();else requestAnimationFrame(f)};f()})"%n)
 st="()=>({ph:__ug.story.phase,room:__ug.story.room,en:__ug.enemies.map(e=>e.type).join(','),doors:__ug.doors.map(d=>d.open?1:0).join(''),hud:document.getElementById('left').textContent,state:__ug.state,mark:document.getElementById('objm')?document.getElementById('objm').textContent:null})"
@@ -12,7 +13,7 @@ with sync_playwright() as p:
             if s['ph']!='fight' and k>2:break
             J(pg,"()=>{for(const e of __ug.enemies){if(!e.inv)__ug.damage(e,e.maxHp*.3+50,99,'x')}__ug.P.iT=1e9;__ug.P.hp=100}")
         F(pg,60);print(lv,'after boss',J(pg,st))
-        J(pg,"()=>{window.__norender=0}");F(pg,3);pg.screenshot(path='/tmp/an/exit_%s.png'%lv);J(pg,"()=>{window.__norender=1}")
+        J(pg,"()=>{window.__norender=0}");F(pg,3);pg.screenshot(path=OUT+'/exit_%s.png'%lv);J(pg,"()=>{window.__norender=1}")
         if lv=='l3':J(pg,"()=>{__ug.P.pos.set(3,-3.5,-100);__ug.P.vel.set(0,0,0)}")
         else:J(pg,"()=>{const e=__ug.story.lv.exitTrig;__ug.P.pos.set(0,e[4]+.05,(e[2]+e[3])/2);__ug.P.vel.set(0,0,0)}")
         F(pg,40);print(lv,'at exit',J(pg,st));F(pg,240);print(lv,'end',J(pg,st)['state'])

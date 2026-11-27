@@ -1,5 +1,6 @@
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
 import sys
-p='/home/claude/ultra/index.html'
+p=INDEX
 s=open(p).read()
 def rep(a,b,n=1):
     global s

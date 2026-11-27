@@ -1,6 +1,7 @@
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
 # Циферблат перезарядки крышечек на задней крышке «Шипучки».
 import re
-P='/home/claude/ultra/index.html'
+P=INDEX
 s=open(P,encoding='utf-8').read()
 JS=r'''/*CAPDIAL*/
 const CD={mesh:null,cv:null,g:null,tex:null,key:'',flash:0,fi:-1,prev:4};

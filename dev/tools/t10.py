@@ -1,4 +1,5 @@
-import sys;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys;sys.path.insert(0,TOOLS)
 from crop import *
 with sync_playwright() as p:
     b,pg,errs=open_page(p,1000,560)
@@ -8,7 +9,7 @@ with sync_playwright() as p:
         J(pg,"()=>{__ug.switchW(%d);__ug.setFire(true,false)}"%w);pg.wait_for_timeout(1500)
         J(pg,"()=>{__ug.setFire(false,true)}");pg.wait_for_timeout(700);J(pg,"()=>{__ug.setFire(false,false);__ug.punch();__ug.inspect()}");pg.wait_for_timeout(700)
     J(pg,"()=>{__ug.tp=true}");pg.wait_for_timeout(1500);J(pg,"()=>{__ug.P.iT=99}")
-    J(pg,"()=>{__ug.P.pos.set(0,1.3,10);__ug.P.yaw=.3}");pg.wait_for_timeout(1500);pg.locator('#screen').screenshot(path='/tmp/an/tp3.png')
+    J(pg,"()=>{__ug.P.pos.set(0,1.3,10);__ug.P.yaw=.3}");pg.wait_for_timeout(1500);pg.locator('#screen').screenshot(path=OUT+'/tp3.png')
     J(pg,"()=>{__ug.tp=false}")
     st=J(pg,"()=>({state:__ug.state,hp:__ug.P.hp,cur:__ug.cur,heroes:__ug.heroes.size,vmparts:__ug.guns.map(g=>!!g.userData.hand),fps:0})")
     print(st)

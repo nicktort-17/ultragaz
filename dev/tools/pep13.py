@@ -1,6 +1,7 @@
-import sys,json;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys,json;sys.path.insert(0,TOOLS)
 from base import *
-exec(open('/tmp/an/pep3.py').read().split("mode=sys.argv")[0].split("from base import *")[1])
+exec(open(TOOLS+'/pep3.py').read().split("mode=sys.argv")[0].split("from base import *")[1])
 with sync_playwright() as p:
     b,pg,errs=open_page(p,800,450)
     J(pg,"()=>__ug.begin('solo','l4')");pg.wait_for_timeout(1500);J(pg,"()=>{window.__dt=1/30;window.__norender=1}")

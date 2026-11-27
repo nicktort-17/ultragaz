@@ -339,13 +339,13 @@ function updQuakes(dt){for(const q of quakes){const pt=q.t;q.t+=dt;
   if(q.m){const k=q.t<.12?q.t/.12:q.t>1.3?Math.max(.01,1-(q.t-1.3)/.3):1;q.m.scale.set(1,k,1)}}
  quakes=quakes.filter(q=>{const end=q.t>1.6;if(end){if(q.m)scene.remove(q.m);if(q.c)scene.remove(q.c)}return!end})}
 const WR_G=new THREE.CylinderGeometry(.97,1,1,96,1,true);WR_G.translate(0,.5,0);
-function waveRing(x,y,z,dmg){const m=new THREE.Mesh(WR_G,new THREE.MeshStandardMaterial({color:0xd8801f,roughness:.08,metalness:.1,transparent:true,opacity:.85,envMap:ENV,emissive:0x5a2000,side:THREE.DoubleSide,depthWrite:false}));
- m.position.set(x,y,z);scene.add(m);wrings.push({x,y,z,R:3,m,dmg,hit:new Set()})}
-function updWrings(dt){for(const w of wrings){w.R+=14*dt;const yl=syrupLvl(w.x,w.z);if(yl>-50)w.y=Math.max(yl,0);w.m.position.y=w.y-.1;w.m.scale.set(w.R,1.5,w.R);w.m.material.opacity=Math.max(0,.85-Math.pow(w.R/36,3));
-  if(Math.random()<dt*36){const a=Math.random()*6.28;puff(new V3(w.x+Math.sin(a)*w.R,w.y+1.2,w.z+Math.cos(a)*w.R),2,0xffd08a,3,.5,8)}
+function waveRing(x,y,z,dmg,o){o=o||{};const m=new THREE.Mesh(WR_G,new THREE.MeshStandardMaterial({color:o.col||0xd8801f,roughness:.08,metalness:.1,transparent:true,opacity:.85,envMap:ENV,emissive:o.em||0x5a2000,side:THREE.DoubleSide,depthWrite:false}));
+ m.position.set(x,y,z);scene.add(m);wrings.push({x,y,z,R:3,m,dmg,hit:new Set(),max:o.max||36,sp:o.sp||14,d:o.d||26,pc:o.pc||0xffd08a,fixY:!!o.max})}
+function updWrings(dt){for(const w of wrings){w.R+=w.sp*dt;const yl=w.fixY?-99:syrupLvl(w.x,w.z);if(yl>-50)w.y=Math.max(yl,0);w.m.position.y=w.y-.1;w.m.scale.set(w.R,w.fixY?1.1:1.5,w.R);w.m.material.opacity=Math.max(0,.85-Math.pow(w.R/w.max,3));
+  if(Math.random()<dt*36){const a=Math.random()*6.28;puff(new V3(w.x+Math.sin(a)*w.R,w.y+1.2,w.z+Math.cos(a)*w.R),2,w.pc,3,.5,8)}
   if(w.dmg)for(const c of targets()){const key=c.local?'me':c.peer;if(w.hit.has(key))continue;const d=Math.hypot(c.pos.x-w.x,c.pos.z-w.z);
-   if(Math.abs(d-w.R)<1.1&&c.pos.y<w.y+1.3){w.hit.add(key);hitTarget(c,26,new V3(c.pos.x-w.x,0,c.pos.z-w.z).normalize().multiplyScalar(15).setY(9))}}}
- wrings=wrings.filter(w=>{const end=w.R>36;if(end)scene.remove(w.m);return!end})}
+   if(Math.abs(d-w.R)<1.1&&c.pos.y<w.y+1.3&&c.pos.y>w.y-2.5){w.hit.add(key);hitTarget(c,w.d,new V3(c.pos.x-w.x,0,c.pos.z-w.z).normalize().multiplyScalar(15).setY(9))}}}
+ wrings=wrings.filter(w=>{const end=w.R>w.max;if(end)scene.remove(w.m);return!end})}
 function qfx(sub,...a){if(mp()&&isHost)pushFx(['q',0,sub,...a.map(r1)])}
 function clearStoryFx(){queenSyrupReset();for(const k of kmarks){scene.remove(k.m);scene.remove(k.f)}kmarks=[];goo.forEach(g=>scene.remove(g.m));goo=[];quakes.forEach(q=>{if(q.m)scene.remove(q.m);if(q.c)scene.remove(q.c)});quakes=[];wrings.forEach(w=>scene.remove(w.m));wrings=[];
  for(const p of proj)if(p.mark){scene.remove(p.mark);p.mark=null}$('syr').style.opacity=0}
@@ -367,12 +367,16 @@ function buildCan(g,mm){const lc=document.createElement('canvas');lc.width=512;l
  const tab=new THREE.Mesh(new THREE.TorusGeometry(.12,.035,6,14),sil);tab.rotation.x=Math.PI/2;tab.position.set(.14,.8,0);can.add(tab);
  g.userData.roll=roll;g.userData.can=can;return new THREE.MeshBasicMaterial({color:0xffffff})}
 function canAI(e,t,to,dist,dt){if(e.shk>0){e.shk-=dt;e.ac=1;e.vel.x*=.8;e.vel.z*=.8;if(Math.random()<dt*30)puff(new V3(e.pos.x,e.pos.y+1.4,e.pos.z),2,0xf6eee2,4,.4,-4);if(e.shk<=0)canBurst(e,true);return}
+ if(e.blue){if(e.rw>0){e.rw-=dt;e.ac=1;e.vel.x*=.7;e.vel.z*=.7;if(Math.random()<dt*40)puff(new V3(e.pos.x,e.pos.y+.8,e.pos.z),2,BLUE_L,5,.4,-2);if(e.rw<=0){e.rush=.95;e.rdir=to.clone();sfx('jet',.5)}return}
+  if(e.rush>0){e.rush-=dt;e.ac=0;e.vel.x=e.rdir.x*25;e.vel.z=e.rdir.z*25;if(Math.random()<dt*30)puff(new V3(e.pos.x,e.pos.y+.4,e.pos.z),2,0xe6f2ff,3,.35);
+   for(const c of targets()){if(Math.hypot(c.pos.x-e.pos.x,c.pos.z-e.pos.z)<2.1&&Math.abs(c.pos.y-e.pos.y)<2.4){e.rush=0;canBurst(e,true);return}}if(e.rush<=0)e.cdR=rnd(4,6);return}
+  e.cdR=(e.cdR??rnd(1.5,3))-dt;if(e.cdR<=0&&dist>6&&dist<17&&e.onGround){e.rw=.5;sfx('hiss',Math.max(.3,sndV(e.pos.x,e.pos.y,e.pos.z)));return}}
  e.ac=0;const sp=e.speed*(e.wet>0?.75:1),side=Math.sin(T*3+e.seed)*3;e.vel.x+=(to.x*sp-to.z*side-e.vel.x)*Math.min(1,dt*3);e.vel.z+=(to.z*sp+to.x*side-e.vel.z)*Math.min(1,dt*3);
  if(dist<3.4&&Math.abs(t.pos.y-e.pos.y)<2.4&&e.onGround){e.shk=.75;sfx('hiss',Math.max(.3,sndV(e.pos.x,e.pos.y,e.pos.z)))}
  if(Math.random()<dt*5){const s=e.g.userData.can;puff(new V3(e.pos.x,e.pos.y+.6,e.pos.z),2,0xf6eee2,3,.4,-3)}}
 function canAnim(e,dt){const u=e.g.userData,roll=u.roll,can=u.can;if(!roll)return;const k=Math.min(1,dt*10);
  if(e.ac===1){can.rotation.z+=(0-can.rotation.z)*k;const tw=Math.round(roll.rotation.x/(Math.PI*2))*Math.PI*2;roll.rotation.x+=(tw-roll.rotation.x)*k;roll.position.y+=(.74-roll.position.y)*k;
-  can.position.set(rnd(-.07,.07),0,rnd(-.07,.07));const b=1+(.75-Math.max(0,e.shk||0))*.35;can.scale.set(b,1+(b-1)*.4,b);e.mats.forEach(m=>m.emissive.setHex(Math.sin(T*40)>0?0x883322:0x331111))}
+  can.position.set(rnd(-.07,.07),0,rnd(-.07,.07));const b=1+(.75-Math.max(0,e.shk||0))*.35;can.scale.set(b,1+(b-1)*.4,b);e.mats.forEach(m=>m.emissive.setHex(Math.sin(T*40)>0?(e.blue?0x224a99:0x883322):(e.blue?0x0a1838:0x331111)))}
  else{can.rotation.z+=(Math.PI/2-can.rotation.z)*k;roll.position.y+=(.62-roll.position.y)*k;can.position.set(0,0,0);can.scale.set(1,1,1);
   const sp=e.remote?(e.lp?Math.hypot(e.pos.x-e.lp.x,e.pos.z-e.lp.z)/Math.max(dt,1e-3):0):Math.hypot(e.vel.x,e.vel.z);roll.rotation.x+=sp/.6*dt}
  if(e.remote){e.lp=e.lp||new V3();e.lp.copy(e.pos)}}

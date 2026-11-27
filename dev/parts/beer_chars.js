@@ -747,9 +747,14 @@ function buildKeto(g,mm){const red=mm(0xb8102a,{roughness:.35,metalness:.2,envMa
  g.userData.keto=K;return eyes}
 function ketoAI(e,t,to,dist,dt,tg){e.st=e.st||'run';e.stT=(e.stT||0)+dt;const go=s=>{e.st=s;e.stT=0};e.cdJ=(e.cdJ??rnd(1.5,3))-dt;const tp=t.pos;
  if(e.st==='crouch'){e.ac=2;e.vel.x*=.7;e.vel.z*=.7;if(e.stT>.3){const T_=.8,lx=tp.x+t.vel.x*.5,lz=tp.z+t.vel.z*.5,dy=tp.y-e.pos.y;e.vel.set((lx-e.pos.x)/T_,(dy+.5*26*T_*T_)/T_,(lz-e.pos.z)/T_);go('air');sfx('jet',.4)}return}
- if(e.st==='air'){e.ac=3;if(e.onGround&&e.stT>.2){go('run');e.cdJ=rnd(3.5,5.5);ketoMark(e.pos.x,e.pos.y,e.pos.z,true);sfx('slam',.6*Math.max(.3,sndV(e.pos.x,e.pos.y,e.pos.z)));puff(new V3(e.pos.x,e.pos.y+.2,e.pos.z),26,0xf2efe8,7,.5)}return}
+ if(e.st==='air'){e.ac=3;if(e.onGround&&e.stT>.2){go('run');e.cdJ=rnd(3.5,5.5);ketoMark(e.pos.x,e.pos.y,e.pos.z,true,e.blue?BLUE:0);sfx('slam',.6*Math.max(.3,sndV(e.pos.x,e.pos.y,e.pos.z)));puff(new V3(e.pos.x,e.pos.y+.2,e.pos.z),26,0xf2efe8,7,.5)}return}
  if(e.wind>0){e.wind-=dt;e.ac=1;e.vel.x*=.8;e.vel.z*=.8;if(e.wind<=0){for(const c of tg){const d=Math.hypot(c.pos.x-e.pos.x,c.pos.z-e.pos.z);if(d<2.8&&Math.abs(c.pos.y-e.pos.y)<2.2)hitTarget(c,16,to.clone().multiplyScalar(13).setY(5))}e.cd=1}return}
+ if(e.kw>0){e.kw-=dt;e.ac=2;e.vel.x*=.6;e.vel.z*=.6;if(e.kw<=0){e.kd=.34;e.kdir=to.clone();e.khit=0;sfx('dash',.7)}return}
+ if(e.kd>0){e.kd-=dt;e.ac=3;e.vel.x=e.kdir.x*27;e.vel.z=e.kdir.z*27;if(Math.random()<dt*40)puff(new V3(e.pos.x,e.pos.y+.3,e.pos.z),2,BLUE_L,3,.4);
+  if(!e.khit)for(const c of tg){if(Math.hypot(c.pos.x-e.pos.x,c.pos.z-e.pos.z)<1.9&&Math.abs(c.pos.y-e.pos.y)<2.4){e.khit=1;hitTarget(c,20,e.kdir.clone().multiplyScalar(20).setY(7));shake=Math.max(shake,.25);sfx('slam',.5)}}
+  if(e.kd<=0){e.vel.x*=.2;e.vel.z*=.2;e.cdK=rnd(3.5,5.5)}return}
  e.ac=0;e.vel.x+=(to.x*e.speed-e.vel.x)*Math.min(1,dt*6);e.vel.z+=(to.z*e.speed-e.vel.z)*Math.min(1,dt*6);
+ if(e.blue&&e.onGround&&dist>3.5&&dist<9&&(e.cdK=(e.cdK??rnd(1,2.5))-dt)<=0){e.kw=.4;sfx('charge',.4);return}
  if(dist<2.4&&e.cd<=0)e.wind=.35;else if(e.onGround&&e.cdJ<=0&&dist>4.5&&dist<17)go('crouch')}
 function ketoAnim(e,dt){const K=e.g.userData.keto;if(!K)return;const hs=e.remote?(e.hs||0):Math.hypot(e.vel.x,e.vel.z);if(e.remote){e.hs=e.lp?Math.min(16,e.pos.distanceTo(e.lp)/Math.max(dt,1e-3)):0;e.lp=(e.lp||new V3()).copy(e.pos)}
  const ac=e.ac||0,k=Math.min(1,dt*12);e.rt=(e.rt||0)+dt*(3+hs*.9);const run=Math.min(1,hs/9);
@@ -757,8 +762,8 @@ function ketoAnim(e,dt){const K=e.g.userData.keto;if(!K)return;const hs=e.remote
  const by=ac===2?1.05:1.45+Math.abs(Math.sin(e.rt))*.15*run;K.body.position.y+=(by-K.body.position.y)*k;K.legs.forEach(l=>l.hip.position.y=K.body.position.y);K.body.rotation.x+=((ac===1?.35:ac===3?-.2:.08*run)-K.body.rotation.x)*k;
  e.eyes.color.setHex(ac===1||ac===2?0xffffff:0xffcc33)}
 let kmarks=[];
-function ketoMark(x,y,z,host){const m=new THREE.Mesh(MARK_G,new THREE.MeshBasicMaterial({color:0xff2a3a,transparent:true,opacity:.8,depthWrite:false,side:THREE.DoubleSide}));m.position.set(x,y+.08,z);m.scale.setScalar(3.2);scene.add(m);
- const f=new THREE.Mesh(GOO_G,new THREE.MeshBasicMaterial({color:0xff2a3a,transparent:true,opacity:.2,depthWrite:false}));f.position.copy(m.position);f.scale.setScalar(.1);scene.add(f);kmarks.push({m,f,x,y,z,t:1,host});if(host&&mp())pushFx(['A',0,9,r1(x),r1(y),r1(z)])}
+function ketoMark(x,y,z,host,hex){hex=hex||(curMap==='l4'?BLUE:0xff2a3a);const m=new THREE.Mesh(MARK_G,new THREE.MeshBasicMaterial({color:hex,transparent:true,opacity:.8,depthWrite:false,side:THREE.DoubleSide}));m.position.set(x,y+.08,z);m.scale.setScalar(3.2);scene.add(m);
+ const f=new THREE.Mesh(GOO_G,new THREE.MeshBasicMaterial({color:hex,transparent:true,opacity:.2,depthWrite:false}));f.position.copy(m.position);f.scale.setScalar(.1);scene.add(f);kmarks.push({m,f,x,y,z,t:1,host});if(host&&mp())pushFx(['A',0,9,r1(x),r1(y),r1(z)])}
 function updKmarks(dt){for(const k of kmarks){k.t-=dt;const a=1-Math.max(0,k.t);k.f.scale.setScalar(3.2*a);k.m.material.opacity=.5+.4*Math.sin(T*24);
   if(k.t<=0){scene.remove(k.m);scene.remove(k.f);const p=new V3(k.x,k.y+.2,k.z);ring(p,3.6,0xff5a3a);puff(p,40,0xf2efe8,9,.6);sfx('slam',.7*Math.max(.3,sndV(k.x,k.y,k.z)));shake=Math.max(shake,.3*sndV(k.x,k.y,k.z));
    if(k.host)for(const c of targets()){const d=Math.hypot(c.pos.x-k.x,c.pos.z-k.z);if(d<3.2&&Math.abs(c.pos.y-k.y)<1.6)hitTarget(c,20,new V3(c.pos.x-k.x,0,c.pos.z-k.z).normalize().multiplyScalar(10).setY(7))}}}

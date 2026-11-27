@@ -1,4 +1,5 @@
-import sys;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys;sys.path.insert(0,TOOLS)
 from base import *
 with sync_playwright() as p:
     b,pg,errs=open_page(p,900,600)
@@ -8,6 +9,6 @@ with sync_playwright() as p:
     for i,(ac,ry) in enumerate([(0,0),(0,2.4),(2,0.6),(3,-.5)]):
         J(pg,"""()=>__eval(`window.__frz=0;for(const e of [__B,__K]){e.ac=%d;e.st='x';e.vel.set(0,0,0);e.g.rotation.y=%f}`)"""%(ac,ry))
         J(pg,"()=>__eval(`for(let k=0;k<30;k++){bambAnim(__B,1/30)}window.__frz=1;__B.pos.set(0,0,-33);__B.g.position.copy(__B.pos);__B.g.rotation.y=%f`)"%ry)
-        pg.wait_for_timeout(400);pg.screenshot(path='/tmp/an/bamb_%d.png'%i)
+        pg.wait_for_timeout(400);pg.screenshot(path=OUT+'/bamb_%d.png'%i)
     print([e for e in errs if 'ReadPixels' not in e and 'ERR_FAILED' not in e][:5])
     b.close()

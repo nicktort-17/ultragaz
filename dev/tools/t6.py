@@ -1,4 +1,5 @@
-import sys,base64;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys,base64;sys.path.insert(0,TOOLS)
 from crop import *
 from PIL import Image
 import io
@@ -16,7 +17,7 @@ with sync_playwright() as p:
     rows=[]
     for w in range(4):
         J(pg,"()=>{__ug.switchW(%d);__ug.VM.draw=1}"%w);J(pg,"()=>{window.__frz=false}");pg.wait_for_timeout(500);J(pg,"()=>{window.__frz=true}");pg.wait_for_timeout(200)
-        rows.append([grab(pg,[w,[1,.1,.1],1.25],'/tmp/an/g%d_r.png'%w),grab(pg,[w,[-1,.1,.1],1.25],'/tmp/an/g%d_l.png'%w),grab(pg,[w,[.25,.1,1],1.0],'/tmp/an/g%d_b.png'%w)])
-    for w,r in enumerate(rows):sheet(r,'/tmp/an/gs%d.png'%w,300)
+        rows.append([grab(pg,[w,[1,.1,.1],1.25],OUT+'/g%d_r.png'%w),grab(pg,[w,[-1,.1,.1],1.25],OUT+'/g%d_l.png'%w),grab(pg,[w,[.25,.1,1],1.0],OUT+'/g%d_b.png'%w)])
+    for w,r in enumerate(rows):sheet(r,OUT+'/gs%d.png'%w,300)
     print([e for e in errs if 'ReadPixels' not in e and 'ERR_FAILED' not in e][:8])
     b.close()

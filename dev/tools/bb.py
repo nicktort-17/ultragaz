@@ -1,3 +1,4 @@
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
 import json,sys,numpy as np,itertools
 def q2m(q):
     x,y,z,w=q
@@ -10,7 +11,7 @@ def local(n):
 LEN=dict(shipuchka=.44,shaker=.6,mentos=.6,gazyava=.52)
 OFF=dict(shipuchka=[0,0,-.06],shaker=[0,-.02,-.16],mentos=[.02,-.04,-.16],gazyava=[0,-.02,-.12])
 for f in ['shipuchka','shaker','mentos','gazyava']:
-    g=json.load(open('/home/claude/ultra/models/%s.json'%f))
+    g=json.load(open(MODELS+'/%s.json'%f))
     nodes=g['nodes'];res={}
     def walk(i,P,path):
         n=nodes[i];W=P@local(n);nm=n.get('name','?')

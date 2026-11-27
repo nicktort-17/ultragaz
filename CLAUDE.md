@@ -13,12 +13,28 @@
   - `patch_style.py` (метр стиля «бутылка»), `patch_capdial.py` (циферблат крышечек на Шипучке), `patch_blue.py` (синие враги острова) — правят `index.html` напрямую.
   - `NOTES.md` — журнал изменений и устройство систем. Читать перед крупной правкой.
 - `dev/tools/` — тесты и утилиты на Playwright (Chrome + swiftshader):
-  - `prep2.py` — делает тестовую копию игры с хуками (`window.__eval`, `__ug`, `__dt`, `__norender`) в `/tmp/srv`; `srv.sh` — поднимает её на порту 8765.
+  - `prep2.py` — делает тестовую копию игры с хуками (`window.__eval`, `__ug`, `__dt`, `__norender`) в `dev/.srv`; `srv.py` — поднимает её на порту 8765 (`--stop` — остановить, `--fg` — в текущем окне).
   - `base.py` — открыть страницу; `tour.py views.json out.jpg` — скриншоты карты (`[имя,x,y,z,yaw°,pitch°]`, y ≥ 100 → высота от рельефа);
   - регрессии: `l4flow.py`, `flowexit.py`, `pepsim.py`, `pep9.py`, `coop3.py`, `bluechk.py`, `smshot.py`, `cdshot.py`, `fountchk.py`, `audit.py` и др.
 
-## ВАЖНО: пути
-Скрипты писались в облачной среде, где рабочая копия была `/home/claude/ultra` (index.html + `parts/` + `models/`), тесты лежали в `/tmp/an`, three.js для тестов — в `/tmp/t/node_modules/three`, заглушка сети — `/tmp/fakemqtt.js`, Chrome — `/usr/bin/google-chrome`. На новом компьютере эти пути надо поправить (или завести переменные) перед первым запуском. Рабочий порядок теперь: правишь `dev/parts/*.js` → запускаешь нужный `patch_*.py` (поправив в нём путь к `index.html` на корень репозитория) → проверяешь в браузере → коммит.
+## Пути и тестовое окружение
+Все пути — в `dev/ugenv.py` (скрипты подключают его первой строкой; переопределяются переменными `UG_INDEX`, `UG_OUT`, `UG_CHROME`, `UG_PORT`, `UG_THREE`…):
+`INDEX` = `index.html` в корне, `PARTS`/`TOOLS` = `dev/parts`/`dev/tools`, `MODELS` = `models/`, `SRV` = `dev/.srv` (тестовая копия), `OUT` = `dev/out` (скриншоты, листы `pt/`, `tour/`; в .gitignore), `CHROME` — установленный Chrome, `TMP` — системный temp (вывод Blender-скриптов).
+`ugenv` также ставит `open()` по умолчанию в UTF-8 без перевода строк (на Windows иначе cp1251 и `\r\n`). `.gitattributes` держит LF в рабочей копии — патчи ищут якоря с `\n`.
+Нужно: Python 3.12 + `pip install playwright` (браузер не качать — берётся установленный Chrome). three.js по умолчанию грузится с CDN (нужен интернет); для офлайна — `npm i three@0.128.0` в `dev/tools` (подхватится сам).
+`UG_GPU=1` — рендер на видеокарте вместо swiftshader, `UG_HEADED=1` — видимое окно браузера.
+
+Запуск тестов (из корня репозитория):
+```
+python dev/tools/prep2.py      # после каждой правки index.html
+python dev/tools/srv.py
+cd dev/tools && python l4flow.py && python flowexit.py
+python tour.py sweep.json ../out/tour/sweep.jpg 640
+```
+Рабочий порядок: правишь `dev/parts/*.js` → `python dev/parts/patch_*.py` → `prep2.py` → тесты/скриншоты → коммит.
+Проверить патч, не трогая игру: `UG_INDEX=<копия> python dev/parts/patch_x.py`, затем сравнить с `index.html`.
+
+Патчи, которые правят `index.html` напрямую (`patch_blue/style/capdial`), могут менять код внутри регионов STORY/BEER/ISLE/PEP/GZ. После такой правки перенеси её в соответствующий `.js`, иначе следующий `patch_story`/`patch_beer` её сотрёт. Проверка: каждый `patch_*.py`, запущенный на копии `index.html`, должен дать файл байт в байт (сейчас так для всех восьми).
 
 ## Правила проекта
 - Никаких логотипов Coca-Cola/Pepsi и маскота Pepsi; Пепсштейн — строго сатира на корпорацию-монополиста газировки.

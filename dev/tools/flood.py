@@ -1,4 +1,5 @@
-import sys;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys;sys.path.insert(0,TOOLS)
 from base import *
 def F(pg,n=30):pg.evaluate("()=>new Promise(r=>{let n=0;const f=()=>{if(++n>%d)r();else requestAnimationFrame(f)};f()})"%n)
 with sync_playwright() as p:
@@ -10,7 +11,7 @@ with sync_playwright() as p:
     for k in range(16):
         F(pg,15);r=J(pg,"()=>__eval(`(()=>{const q=enemies.find(e=>e.type==='queen');const p=qPool();P.hp=100;return [q.st,+q.pos.y.toFixed(1),+p.y.toFixed(2),+QS.flood.toFixed(2),+P.pos.y.toFixed(1),+(P.syr||0).toFixed(1)]})()`)")
         print(k,r)
-        if k==8:pg.screenshot(path='/tmp/an/fl_1.png')
-        if k==13:pg.screenshot(path='/tmp/an/fl_2.png')
+        if k==8:pg.screenshot(path=OUT+'/fl_1.png')
+        if k==13:pg.screenshot(path=OUT+'/fl_2.png')
     print([e for e in errs if 'ReadPixels' not in e and 'ERR_FAILED' not in e][:8])
     b.close()

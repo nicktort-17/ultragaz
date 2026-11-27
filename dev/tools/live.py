@@ -1,4 +1,5 @@
-import sys,json;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys,json;sys.path.insert(0,TOOLS)
 from base import *
 def F(pg,n=30):pg.evaluate("()=>new Promise(r=>{let n=0;const f=()=>{if(++n>%d)r();else requestAnimationFrame(f)};f()})"%n)
 MON="""window.__viol=[];window.__ext=null;window.__mon=setInterval(()=>__eval(`if(!window.__ext){const e={x0:1e9,x1:-1e9,z0:1e9,z1:-1e9};for(const b of boxes){if(b.max.y-b.min.y<2)continue;e.x0=Math.min(e.x0,b.min.x);e.x1=Math.max(e.x1,b.max.x);e.z0=Math.min(e.z0,b.min.z);e.z1=Math.max(e.z1,b.max.z)}window.__ext=e}

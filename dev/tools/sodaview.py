@@ -1,4 +1,5 @@
-import sys;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys;sys.path.insert(0,TOOLS)
 from base import *
 def F(pg,n=30):pg.evaluate("()=>new Promise(r=>{let n=0;const f=()=>{if(++n>%d)r();else requestAnimationFrame(f)};f()})"%n)
 with sync_playwright() as p:
@@ -8,11 +9,11 @@ with sync_playwright() as p:
     F(pg,20)
     for i in range(40):
         J(pg,"()=>__eval(`gas=100;camera.getWorldDirection(aim);soda(false)`)");F(pg,2)
-        if i in (10,39):pg.screenshot(path='/tmp/an/soda_%d.png'%i)
+        if i in (10,39):pg.screenshot(path=OUT+'/soda_%d.png'%i)
     J(pg,"()=>__eval(`const P=__ug.P;P.pitch=.35`)")
     for i in range(30):
         J(pg,"()=>__eval(`gas=100;camera.getWorldDirection(aim);soda(false)`)");F(pg,2)
-    pg.screenshot(path='/tmp/an/soda_up.png')
+    pg.screenshot(path=OUT+'/soda_up.png')
     print(J(pg,"()=>__eval(`[SODA.d.filter(d=>!d.dead).length,enemies.filter(e=>!e.dead).map(e=>e.type+':'+(e.wet||0).toFixed(1)).join(','),puddles.length]`)"))
     print([e for e in errs if 'ReadPixels' not in e and 'ERR_FAILED' not in e][:5])
     b.close()

@@ -1,3 +1,4 @@
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
 import struct,json,base64,sys
 def conv(src,dst):
     b=open(src,'rb').read();assert b[:4]==b'glTF'
@@ -8,5 +9,5 @@ def conv(src,dst):
         elif T==b'BIN\x00':BIN=d
     J['buffers'][0]['uri']='data:application/octet-stream;base64,'+base64.b64encode(BIN).decode()
     open(dst,'w').write(json.dumps(J,ensure_ascii=False,separators=(',',':')))
-for n in ['shipuchka','shaker','mentos','gazyava']:conv('/tmp/an/out4/%s.glb'%n,'/tmp/an/out4/%s.json'%n)
+for n in ['shipuchka','shaker','mentos','gazyava']:conv(OUT+'/out4/%s.glb'%n,OUT+'/out4/%s.json'%n)
 print('ok')

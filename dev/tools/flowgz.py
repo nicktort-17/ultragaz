@@ -1,4 +1,5 @@
-import sys,json;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys,json;sys.path.insert(0,TOOLS)
 from base import *
 def F(pg,n=30):pg.evaluate("()=>new Promise(r=>{let n=0;const f=()=>{if(++n>%d)r();else requestAnimationFrame(f)};f()})"%n)
 st="()=>({ph:__ug.story.phase,room:__ug.story.room,en:__ug.enemies.filter(e=>!e.dead).map(e=>e.type).join(','),mode:__eval('GZ.mode'),cut:__eval('!!GZ.cut'),state:__ug.state})"

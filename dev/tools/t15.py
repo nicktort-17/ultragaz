@@ -1,4 +1,5 @@
-import sys,base64,io;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys,base64,io;sys.path.insert(0,TOOLS)
 from crop import *
 from PIL import Image
 STEP="(n)=>new Promise(r=>{window.__frz=false;let k=0;const f=()=>{if(++k>=n){window.__frz=true;setTimeout(r,60)}else requestAnimationFrame(f)};requestAnimationFrame(f)})"
@@ -11,6 +12,6 @@ with sync_playwright() as p:
     pg.evaluate(STEP,6)
     out=[]
     for i,a in enumerate([[0,9,0],[.9,9,1],[2.8,9,1],[0.3,5,-1.2]]):
-        d=pg.evaluate(VIEW,a);Image.open(io.BytesIO(base64.b64decode(d.split(',')[1]))).convert('RGB').save('/tmp/an/bv%d.png'%i);out.append('/tmp/an/bv%d.png'%i)
-    sheet(out[:2],'/tmp/an/bossv1.png',420);sheet(out[2:],'/tmp/an/bossv2.png',420)
+        d=pg.evaluate(VIEW,a);Image.open(io.BytesIO(base64.b64decode(d.split(',')[1]))).convert('RGB').save(OUT+'/bv%d.png'%i);out.append(OUT+'/bv%d.png'%i)
+    sheet(out[:2],OUT+'/bossv1.png',420);sheet(out[2:],OUT+'/bossv2.png',420)
     b.close()

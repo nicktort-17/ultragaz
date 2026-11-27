@@ -1,4 +1,5 @@
-import sys,json,time;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys,json,time;sys.path.insert(0,TOOLS)
 from base import *
 def F(pg,n=30):pg.evaluate("()=>new Promise(r=>{let n=0;const f=()=>{if(++n>%d)r();else requestAnimationFrame(f)};f()})"%n)
 st="()=>{const e=__ug.enemies.find(x=>x.type==='alt');return e?{st:e.st,ph:e.ph,ac:e.ac,hp:Math.round(e.hp),pos:e.pos.toArray().map(v=>+v.toFixed(1)),inv:!!e.inv,php:Math.round(__ug.P.hp)}:null}"
@@ -41,6 +42,6 @@ with sync_playwright() as p:
         F(pg,60)
     print('end2',J(pg,"()=>{const E=__eval('L3.end');return E?{t:+E.t.toFixed(2),chute:!!E.chute,sat:!!E.sat,gp:E.girl.g.getWorldPosition(new THREE.Vector3()).toArray().map(v=>+v.toFixed(1))}:null}"),J(pg,"()=>({ph:__ug.story.phase,state:__ug.state})"))
     J(pg,"()=>{window.__norender=0;const P=__ug.P;P.pos.set(0,0,-92);P.yaw=Math.PI;P.pitch=-.15}");F(pg,3)
-    pg.screenshot(path='/tmp/an/boss_end.png')
+    pg.screenshot(path=OUT+'/boss_end.png')
     print('err',[e for e in errs if 'ReadPixels' not in e and 'ERR_FAILED' not in e][:8])
     b.close()

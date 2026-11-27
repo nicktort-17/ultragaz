@@ -1,3 +1,4 @@
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
 X = math.radians(90)
 M.update(dict(
     gray=mat("Сталь корпуса", "#8d8f95", .75, .34), gray2=mat("Тёмная сталь", "#55575d", .8, .3),
@@ -143,5 +144,5 @@ def export(out, render=True):
             cd.ortho_scale = .5 if name not in ("front", "back") else .32
             scene.render.filepath = os.path.join(out, f"v_{name}.png"); bpy.ops.render.render(write_still=True)
 
-out = sys.argv[sys.argv.index("--") + 1] if "--" in sys.argv else "/tmp/ship4"
+out = sys.argv[sys.argv.index("--") + 1] if "--" in sys.argv else TMP+"/ship4"
 export(out); print("Готово:", out)

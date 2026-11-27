@@ -1,4 +1,5 @@
-import sys;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys;sys.path.insert(0,TOOLS)
 from base import *
 def F(pg,n=30):pg.evaluate("()=>new Promise(r=>{let n=0;const f=()=>{if(++n>%d)r();else requestAnimationFrame(f)};f()})"%n)
 with sync_playwright() as p:
@@ -11,5 +12,5 @@ with sync_playwright() as p:
      const t=new THREE.Mesh(new THREE.BoxGeometry(.3,.3,.3),new THREE.MeshBasicMaterial({color:0x00ff00}));t.position.set(v[0][0],v[0][1],v[0][2]);scene.add(t);
      const m2=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:0xff00ff,side:THREE.DoubleSide,depthTest:false}));m2.frustumCulled=false;scene.add(m2);
      return JSON.stringify({v,cnt:g.drawRange.count,attrs:Object.keys(g.attributes)})})()`)"""))
-    F(pg,3);pg.screenshot(path='/tmp/an/soda_dbg.png')
+    F(pg,3);pg.screenshot(path=OUT+'/soda_dbg.png')
     b.close()

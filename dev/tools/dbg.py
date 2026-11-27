@@ -1,15 +1,16 @@
-import sys;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys;sys.path.insert(0,TOOLS)
 from base import *
 def F(pg,n=30):pg.evaluate("()=>new Promise(r=>{let n=0;const f=()=>{if(++n>%d)r();else requestAnimationFrame(f)};f()})"%n)
 with sync_playwright() as p:
     b,pg,errs=open_page(p,1280,720)
     J(pg,"()=>{const i=document.getElementById('nick');i.value='Torch';i.dispatchEvent(new Event('change'))}");pg.wait_for_timeout(1200)
-    pg.screenshot(path='/tmp/an/dbg_menu.png')
+    pg.screenshot(path=OUT+'/dbg_menu.png')
     pg.click('#dbgP [data-k=god]');pg.click('#dbgP [data-k=fps]');pg.select_option('#dbgP select[data-k=dmg]','10')
     pg.click('#dbgP [data-go="l2:2"]');pg.wait_for_timeout(3500)
     print(J(pg,"()=>__eval(`[story.lv.id,story.room,story.phase,P.pos.toArray().map(v=>+v.toFixed(1)),DBG.god,DBG.dmg,GZ.mode]`)"))
     F(pg,30);print(J(pg,"()=>__eval(`[story.room,story.phase,enemies.map(e=>e.type+':'+Math.round(e.hp)).join(',')]`)"))
     pg.keyboard.press('F2');F(pg,5);print(J(pg,"()=>__eval(`enemies.map(e=>e.type+':'+Math.round(e.hp)).join(',')`)"))
-    pg.screenshot(path='/tmp/an/dbg_game.png')
+    pg.screenshot(path=OUT+'/dbg_game.png')
     print([e for e in errs if 'ReadPixels' not in e and 'ERR_FAILED' not in e][:5])
     b.close()

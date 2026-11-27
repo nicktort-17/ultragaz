@@ -6,7 +6,7 @@
 import bpy, bmesh, math, sys, os, random
 from mathutils import Vector
 
-out = sys.argv[1] if len(sys.argv) > 1 else '/tmp/girls'
+out = sys.argv[1] if len(sys.argv) > 1 else __import__('tempfile').gettempdir()+'/girls'
 KIND = sys.argv[2] if len(sys.argv) > 2 else 'alt'
 PREVIEW = len(sys.argv) > 3
 ALT = KIND == 'alt'

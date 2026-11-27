@@ -1,4 +1,5 @@
-import sys;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys;sys.path.insert(0,TOOLS)
 from base import *
 def F(pg,n=30):pg.evaluate("()=>new Promise(r=>{let n=0;const f=()=>{if(++n>%d)r();else requestAnimationFrame(f)};f()})"%n)
 with sync_playwright() as p:
@@ -15,5 +16,5 @@ with sync_playwright() as p:
     pg.wait_for_timeout(40000)
     ft=J(pg,"()=>__ft")
     big=[(i,x) for i,x in enumerate(ft) if x[0]>450]
-    print(len(ft),'big',big[:20]);import json;json.dump({'new':J(pg,'()=>__new'),'old':J(pg,"()=>__eval('renderer.info.programs.map(p=>p.name+\" | \"+p.cacheKey)')")},open('/tmp/an/progs.json','w'));print('median',sorted(x[0] for x in ft)[len(ft)//2])
+    print(len(ft),'big',big[:20]);import json;json.dump({'new':J(pg,'()=>__new'),'old':J(pg,"()=>__eval('renderer.info.programs.map(p=>p.name+\" | \"+p.cacheKey)')")},open(TOOLS+'/progs.json','w'));print('median',sorted(x[0] for x in ft)[len(ft)//2])
     b.close()

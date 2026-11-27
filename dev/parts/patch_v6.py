@@ -1,5 +1,6 @@
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
 # v6: пороги дверей и окантовка без мерцания
-p='/home/claude/ultra/index.html';s=open(p).read()
+p=INDEX;s=open(p).read()
 if '/*v6*/' in s: print('v6 already'); raise SystemExit
 def rep(a,b,n=1):
     global s

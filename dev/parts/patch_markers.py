@@ -1,4 +1,5 @@
-p='/home/claude/ultra/parts/story.js';s=open(p).read()
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+p=PARTS+'/story.js';s=open(p).read()
 i=s.index("function addBeacon(di){");j=s.index("beacons.push({d:di,g,ar,bm,h:d.h})}")+len("beacons.push({d:di,g,ar,bm,h:d.h})}")
 new=r"""/* маркер выхода: неоновая рамка шлюза, бегущие шевроны на полу, голо-табличка и метка на экране */
 let MKT=null;
@@ -45,7 +46,7 @@ assert s.count(a)==1;s=s.replace(a,"if(spec.boss){const p=new V3(...R.bossAt);te
 a="for(const p of proj)if(p.mark){scene.remove(p.mark);p.mark=null}$('syr').style.opacity=0}"
 assert s.count(a)==1;s=s.replace(a,"for(const p of proj)if(p.mark){scene.remove(p.mark);p.mark=null}$('syr').style.opacity=0;$('wp').hidden=true}")
 open(p,'w').write(s)
-p='/home/claude/ultra/index.html';t=open(p).read()
+p=INDEX;t=open(p).read()
 rep=[("  const pos=sp.clone().add(new V3(rnd(-2,2),0,rnd(-2,2)));const m=new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.2,14,16,1,true),new THREE.MeshBasicMaterial({color:0xff2a3a,transparent:true,opacity:.35,side:THREE.DoubleSide,depthWrite:false}));\n  m.position.set(pos.x,pos.y+7,pos.z);scene.add(m);telegraphs.push({m,pos,type,t:.8});spawnT=.55}",
 "  const pos=sp.clone().add(new V3(rnd(-2,2),0,rnd(-2,2)));if(!ENEMY[type].fly)pos.y=groundAt(pos.x,pos.z,pos.y+.6);telegraphs.push({m:makeTele(pos,type==='boss'||type==='golem'),pos,type,t:.8});spawnT=.55}"),
 (" for(const t of telegraphs){t.t-=dt;t.m.scale.x=t.m.scale.z=.3+t.t;if(t.t<=0)"," for(const t of telegraphs){t.t-=dt;teleAnim(t,dt);if(t.t<=0)"),

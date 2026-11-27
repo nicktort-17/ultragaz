@@ -1,4 +1,5 @@
-import sys;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys;sys.path.insert(0,TOOLS)
 from base import *
 def F(pg,n=30):pg.evaluate("()=>new Promise(r=>{let n=0;const f=()=>{if(++n>%d)r();else requestAnimationFrame(f)};f()})"%n)
 with sync_playwright() as p:
@@ -8,6 +9,6 @@ with sync_playwright() as p:
     for i in range(30):
         J(pg,"()=>__eval(`enemies.forEach(e=>{e.dead=1;scene.remove(e.g)});toSpawn.length=0;gas=100;camera.getWorldDirection(aim);soda(false)`)");F(pg,5)
     J(pg,"()=>__eval(`window.__frz=1;const m=SODA.mesh;m.material.depthTest=false;m.renderOrder=999`)")
-    F(pg,3);pg.screenshot(path='/tmp/an/soda_dbg.png')
+    F(pg,3);pg.screenshot(path=OUT+'/soda_dbg.png')
     print(J(pg,"()=>__eval(`[SODA.mesh.geometry.drawRange.count,SODA.d.filter(d=>!d.dead).length]`)"))
     b.close()

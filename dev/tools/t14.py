@@ -1,4 +1,5 @@
-import sys;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys;sys.path.insert(0,TOOLS)
 from crop import *
 from PIL import Image
 STEP="(n)=>new Promise(r=>{window.__frz=false;let k=0;const f=()=>{if(++k>=n){window.__frz=true;setTimeout(r,60)}else requestAnimationFrame(f)};requestAnimationFrame(f)})"
@@ -11,7 +12,7 @@ with sync_playwright() as p:
     for i,ry in enumerate([0,.9,2.6]):
         J(pg,"()=>{const e=__ug.enemies.find(x=>x.type==='boss');e.pos.set(0,2.4,14.5);e.g.rotation.y=%s;e.vel.set(0,0,0);window.__frz=true}"%ry);pg.evaluate(STEP,1)
         J(pg,"()=>{const e=__ug.enemies.find(x=>x.type==='boss');e.pos.set(0,2.4,14.5);e.g.rotation.y=%s}"%ry);pg.wait_for_timeout(200)
-        pg.locator('#screen').screenshot(path='/tmp/an/_b.png');im=Image.open('/tmp/an/_b.png');W,H=im.size;im.crop((int(W*.25),0,int(W*.75),H)).save('/tmp/an/bm%d.png'%i);out.append('/tmp/an/bm%d.png'%i)
-    sheet(out,'/tmp/an/bossmodel.png',520)
+        pg.locator('#screen').screenshot(path=OUT+'/_b.png');im=Image.open(OUT+'/_b.png');W,H=im.size;im.crop((int(W*.25),0,int(W*.75),H)).save(OUT+'/bm%d.png'%i);out.append(OUT+'/bm%d.png'%i)
+    sheet(out,OUT+'/bossmodel.png',520)
     print([e for e in errs if 'ReadPixels' not in e and 'ERR_FAILED' not in e][:8])
     b.close()

@@ -1,4 +1,5 @@
-import sys;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys;sys.path.insert(0,TOOLS)
 from base import *
 def F(pg,n=30):pg.evaluate("()=>new Promise(r=>{let n=0;const f=()=>{if(++n>%d)r();else requestAnimationFrame(f)};f()})"%n)
 with sync_playwright() as p:
@@ -14,6 +15,6 @@ with sync_playwright() as p:
     J(pg,"()=>{window.__norender=0}")
     for k in range(85):
         r=J(pg,aim);F(pg,3)
-        if k in shots: pg.screenshot(path='/tmp/an/ad_%02d.png'%k);print(k,r)
+        if k in shots: pg.screenshot(path=OUT+'/ad_%02d.png'%k);print(k,r)
     print([e for e in errs if 'ReadPixels' not in e and 'ERR_FAILED' not in e][:5])
     b.close()

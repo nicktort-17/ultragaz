@@ -1,4 +1,5 @@
-import sys;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys;sys.path.insert(0,TOOLS)
 from base import *
 def F(pg,n=30):pg.evaluate("()=>new Promise(r=>{let n=0;const f=()=>{if(++n>%d)r();else requestAnimationFrame(f)};f()})"%n)
 with sync_playwright() as p:
@@ -11,7 +12,7 @@ with sync_playwright() as p:
     J(pg,"()=>__ug.setFire(true,false)")
     for k in range(4):
         F(pg,10);J(pg,"()=>__eval(`const q=enemies.find(e=>e.type==='queen');q.cd=99;const dx=q.pos.x-P.pos.x,dz=q.pos.z-P.pos.z;P.yaw=Math.atan2(-dx,-dz);P.pitch=Math.atan2(q.pos.y+q.cy-(P.pos.y+1.6),Math.hypot(dx,dz))+.03`)")
-    pg.screenshot(path='/tmp/an/l2_water.png');J(pg,"()=>__ug.setFire(false,false)")
+    pg.screenshot(path=OUT+'/l2_water.png');J(pg,"()=>__ug.setFire(false,false)")
     q1=J(pg,"()=>__eval('enemies.find(e=>e.type===\"queen\").hp')");print('queen hp',q0,q1)
-    J(pg,"()=>__eval(`drainT=12;const q=enemies.find(e=>e.type==='queen');q.dead=1;q.g.visible=false;P.pitch=-.45`)");F(pg,120);pg.screenshot(path='/tmp/an/l2_drain.png')
+    J(pg,"()=>__eval(`drainT=12;const q=enemies.find(e=>e.type==='queen');q.dead=1;q.g.visible=false;P.pitch=-.45`)");F(pg,120);pg.screenshot(path=OUT+'/l2_drain.png')
     b.close()

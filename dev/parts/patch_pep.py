@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
 """Вклейка parts/pep.js (/*PEP-BEGIN*/../*PEP-END*/) — финальный босс Пепсштейн — и разовые хуки /*PEP1*/ в index.html."""
 import os,sys
-H=os.path.join(os.path.dirname(__file__),'..','index.html')
+H=INDEX
 s=open(H).read();mod=open(os.path.join(os.path.dirname(__file__),'pep.js')).read().strip()
 if '/*PEP-BEGIN*/' in s:
     a=s.index('/*PEP-BEGIN*/');b=s.index('/*PEP-END*/')+len('/*PEP-END*/');s=s[:a]+mod+s[b:]

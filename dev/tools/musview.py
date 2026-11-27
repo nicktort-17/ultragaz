@@ -1,4 +1,5 @@
-import sys;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys;sys.path.insert(0,TOOLS)
 from base import *
 out=sys.argv[1] if len(sys.argv)>1 else 'mv'
 with sync_playwright() as p:
@@ -18,10 +19,10 @@ with sync_playwright() as p:
             js="for(let i=0;i<3;i++){const h=__MV[i];h.root.rotation.y=Math.PI+%f;const s=%s;s.yaw=h.root.rotation.y;const v=s.vz||0;s.vx=-Math.sin(s.yaw)*v;s.vz=-Math.cos(s.yaw)*v;for(let k=0;k<50;k++){h.root.position.x+=s.vx/30*0;animHero(h,s,1/30)}%s}"%(ang,'%s',"if(%s)h.ph=%s;" % ('1' if isinstance(ph,list) else '0', '[0,1.2,2.4][i]' if isinstance(ph,list) else '0'))
             js2="const SS=[%s];"%(",".join(st(x) for x in sts))+js.replace("const s=%s","const s=SS[i]")
             J(pg,"()=>__eval(`%s`)"%js2.replace('`','\\`'))
-            pg.wait_for_timeout(300);pg.screenshot(path='/tmp/an/%s_%s_%s.png'%(out,name,tag))
+            pg.wait_for_timeout(300);pg.screenshot(path=OUT+'/%s_%s_%s.png'%(out,name,tag))
     # плащ: снять
     J(pg,"()=>__eval(`for(const h of __MV){h.root.rotation.y=Math.PI+2.6}capeToggle(__MV[1]);capeToggle(__MV[2]);for(let k=0;k<14;k++)for(const h of __MV)animHero(h,{vx:0,vz:0,vy:0,yaw:h.root.rotation.y,air:false,slide:false,dash:false,slam:false,pitch:0,hp:100,alive:true,w:0},1/30);for(let k=0;k<40;k++)animHero(__MV[2],{vx:0,vz:0,vy:0,yaw:0,air:false,slide:false,dash:false,slam:false,pitch:0,hp:100,alive:true,w:0},1/30)`)")
-    pg.wait_for_timeout(300);pg.screenshot(path='/tmp/an/%s_cape.png'%out)
+    pg.wait_for_timeout(300);pg.screenshot(path=OUT+'/%s_cape.png'%out)
     print('info',J(pg,"()=>__eval('({calls:renderer.info.render.calls,tris:renderer.info.render.triangles})')"))
     print([e for e in errs if 'ReadPixels' not in e and 'ERR_FAILED' not in e][:6])
     b.close()

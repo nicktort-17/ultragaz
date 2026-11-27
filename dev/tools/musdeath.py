@@ -1,4 +1,5 @@
-import sys;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys;sys.path.insert(0,TOOLS)
 from base import *
 with sync_playwright() as p:
     b,pg,errs=open_page(p,1100,620)
@@ -10,6 +11,6 @@ with sync_playwright() as p:
       const S=a=>Object.assign({vx:0,vz:0,vy:0,yaw:Math.PI+.9,air:false,slide:false,dash:false,slam:false,pitch:0,hp:100,alive:true,w:1},a);
       for(let k=0;k<60;k++){animHero(__MV[0],S({alive:false,hp:0}),1/30);animHero(__MV[2],S({slam:true,air:true,vy:-40}),1/30);animHero(__MV[1],S({pitch:.4}),1/30)}
       heroPunch(__MV[1]);for(let k=0;k<4;k++)animHero(__MV[1],S({pitch:.4}),1/30)})()`)""")
-    pg.wait_for_timeout(300);pg.screenshot(path='/tmp/an/md.png')
+    pg.wait_for_timeout(300);pg.screenshot(path=OUT+'/md.png')
     print([e for e in errs if 'ReadPixels' not in e and 'ERR_FAILED' not in e][:6])
     b.close()

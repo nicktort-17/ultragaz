@@ -1,5 +1,6 @@
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
 import re,sys
-p='/home/claude/ultra/index.html'
+p=INDEX
 s=open(p).read()
 def rep(a,b,n=1):
     global s
@@ -8,7 +9,7 @@ def rep(a,b,n=1):
         print('ANCHOR FAIL',c,repr(a[:90]));sys.exit(1)
     s=s.replace(a,b)
 
-story=open('/home/claude/ultra/parts/story.js').read()
+story=open(PARTS+'/story.js').read()
 # A. модуль сюжета перед загрузкой первой карты
 if '/*STORY-BEGIN*/' in s:
     s=re.sub(r'/\*STORY-BEGIN\*/.*?/\*STORY-END\*/\n?',lambda m:story,s,flags=re.S)

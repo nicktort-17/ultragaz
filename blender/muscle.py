@@ -8,7 +8,7 @@ import bpy, bmesh, math, sys, os, random
 from mathutils import Vector, Matrix, Euler
 from mathutils.bvhtree import BVHTree
 
-out = sys.argv[1] if len(sys.argv) > 1 else '/tmp/mus'
+out = sys.argv[1] if len(sys.argv) > 1 else __import__('tempfile').gettempdir()+'/mus'
 PREVIEW = len(sys.argv) > 2
 os.makedirs(out, exist_ok=True)
 random.seed(7)

@@ -1,11 +1,12 @@
-import sys,json;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys,json;sys.path.insert(0,TOOLS)
 from base import *
 def F(pg,n=30):pg.evaluate("()=>new Promise(r=>{let n=0;const f=()=>{if(++n>%d)r();else requestAnimationFrame(f)};f()})"%n)
 E=lambda pg,s:pg.evaluate("()=>__eval(%s)"%json.dumps(s))
 LOOK="(()=>{const e=enemies.find(x=>x.type==='pep');P.iT=1e9;P.hp=100;const c=e?center(e,new V3()):new V3(0,12,-129);const d=c.clone().sub(new V3(P.pos.x,P.pos.y+1.6,P.pos.z));P.yaw=Math.atan2(-d.x,-d.z);P.pitch=Math.atan2(d.y,Math.hypot(d.x,d.z))+%f})()"
 shots=[]
 def S(pg,name,pit=0.0):
-    E(pg,LOOK%pit);F(pg,1);pg.screenshot(path='/tmp/pt/%s.png'%name);shots.append(name)
+    E(pg,LOOK%pit);F(pg,1);pg.screenshot(path=OUT+'/pt/%s.png'%name);shots.append(name)
 def force(pg,st,ac,extra='',frames=30,name=None,pit=0.0,ppos=None):
     if ppos:E(pg,"P.pos.set(%f,9.05,%f);P.vel.set(0,0,0)"%ppos)
     E(pg,"(()=>{const e=enemies.find(x=>x.type==='pep');e.inv=false;pepSet(e,'%s',%d);%s})()"%(st,ac,extra))
@@ -58,7 +59,7 @@ with sync_playwright() as p:
     print([e for e in errs if 'ReadPixels' not in e and 'ERR_FAILED' not in e][:8])
     b.close()
     from PIL import Image
-    ims=[Image.open('/tmp/pt/%s.png'%n).resize((480,270)) for n in shots]
+    ims=[Image.open(OUT+'/pt/%s.png'%n).resize((480,270)) for n in shots]
     cols=4;rows=(len(ims)+cols-1)//cols;out=Image.new('RGB',(480*cols,270*rows))
     for k,im in enumerate(ims):out.paste(im,((k%cols)*480,(k//cols)*270))
-    out.save('/tmp/pt/sheet.png');print(shots)
+    out.save(OUT+'/pt/sheet.png');print(shots)

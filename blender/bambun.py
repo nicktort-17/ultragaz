@@ -3,7 +3,7 @@
 # Запуск: python3 bambun.py out_dir  (bpy как модуль) — сохраняет bambun.glb и preview.png
 import bpy, bmesh, math, sys, os, random
 from mathutils import Vector, Matrix
-out = sys.argv[1] if len(sys.argv) > 1 else '/tmp/bambun'
+out = sys.argv[1] if len(sys.argv) > 1 else __import__('tempfile').gettempdir()+'/bambun'
 os.makedirs(out, exist_ok=True)
 random.seed(7)
 bpy.ops.wm.read_factory_settings(use_empty=True)

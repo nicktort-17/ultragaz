@@ -1,4 +1,5 @@
-import sys;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys;sys.path.insert(0,TOOLS)
 from base import *
 def F(pg,n=30):pg.evaluate("()=>new Promise(r=>{let n=0;const f=()=>{if(++n>%d)r();else requestAnimationFrame(f)};f()})"%n)
 with sync_playwright() as p:
@@ -10,5 +11,5 @@ with sync_playwright() as p:
     J(pg,"()=>__eval(`const mm=new THREE.MeshBasicMaterial({color:0x00ff00,side:THREE.DoubleSide});mm.uniforms={uT:{value:0}};SODA.mesh.material=mm`)")
     for i in range(10):
         J(pg,"()=>__eval(`gas=100;camera.getWorldDirection(aim);soda(false)`)");F(pg,2)
-    pg.screenshot(path='/tmp/an/soda_dbg.png')
+    pg.screenshot(path=OUT+'/soda_dbg.png')
     b.close()

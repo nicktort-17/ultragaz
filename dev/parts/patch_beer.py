@@ -1,5 +1,6 @@
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
 import re,sys
-p='/home/claude/ultra/index.html'
+p=INDEX
 s=open(p).read()
 def rep(a,b,n=1):
     global s
@@ -8,7 +9,7 @@ def rep(a,b,n=1):
         print('ANCHOR FAIL',c,repr(a[:100]));sys.exit(1)
     s=s.replace(a,b)
 
-beer=open('/home/claude/ultra/parts/beer_world.js').read()+'\n'+open('/home/claude/ultra/parts/beer_chars.js').read()
+beer=open(PARTS+'/beer_world.js').read()+'\n'+open(PARTS+'/beer_chars.js').read()
 if '/*BEER-BEGIN*/' in s:
     s=re.sub(r'/\*BEER-BEGIN\*/.*?/\*BEER-END\*/\n?',lambda m:beer+'\n',s,flags=re.S)
     open(p,'w').write(s);print('beer re-spliced');sys.exit(0)

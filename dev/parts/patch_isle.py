@@ -1,7 +1,8 @@
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
 # остров (уровень 4): модули рельефа, растительности, построек и сборки между /*ISLE-BEGIN*/ и /*ISLE-END*/ + разовые крючки
 import re,sys
-p='/home/claude/ultra/index.html';s=open(p).read()
-src=''.join(open('/home/claude/ultra/parts/'+f).read()+'\n' for f in ['isle_terrain.js','isle_veg.js','isle_props.js','island.js'])
+p=INDEX;s=open(p).read()
+src=''.join(open(PARTS+'/'+f).read()+'\n' for f in ['isle_terrain.js','isle_veg.js','isle_props.js','island.js'])
 isle='/*ISLE-BEGIN*/\n'+src+'\n/*ISLE-END*/'
 def rep(a,b,n=1):
     global s

@@ -1,17 +1,18 @@
-import sys,json;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys,json;sys.path.insert(0,TOOLS)
 from base import *
 def F(pg,n=30):pg.evaluate("()=>new Promise(r=>{let n=0;const f=()=>{if(++n>%d)r();else requestAnimationFrame(f)};f()})"%n)
 st="()=>({host:window.__isHost&&__isHost(),ph:__ug.story.phase,room:__ug.story.room,en:__ug.enemies.map(e=>e.type).join(','),doors:__ug.doors.map(d=>d.open?1:0).join(''),hud:document.getElementById('left').textContent,state:__ug.state,pos:[__ug.P.pos.x,__ug.P.pos.y,__ug.P.pos.z].map(v=>+v.toFixed(1)),lvT:+__ug.lvT.toFixed(2),rem:__ug.remotes.size})"
 with sync_playwright() as p:
-    b=p.chromium.launch(executable_path='/usr/bin/google-chrome',args=['--use-gl=swiftshader','--enable-unsafe-swiftshader','--disable-background-timer-throttling','--disable-renderer-backgrounding','--disable-backgrounding-occluded-windows'])
+    b=launch(p)
     ctx=b.new_context(viewport={'width':480,'height':270});pages=[];errs=[]
     for i in range(2):
         pg=ctx.new_page();pg.on('pageerror',lambda e:errs.append(str(e)))
-        pg.route('**/three@0.128.0/examples/js/**',lambda r:r.fulfill(path='/tmp/t/node_modules/three/examples/js/'+r.request.url.split('/examples/js/')[1],content_type='text/javascript'))
-        pg.route('**/three.min.js',lambda r:r.fulfill(path='/tmp/t/node_modules/three/build/three.min.js',content_type='text/javascript'))
-        pg.route('**/mqtt.min.js',lambda r:r.fulfill(path='/tmp/fakemqtt.js',content_type='text/javascript'))
+        HAVE_THREE and pg.route('**/three@0.128.0/examples/js/**',lambda r:r.fulfill(path=THREE_DIR+'/examples/js/'+r.request.url.split('/examples/js/')[1],content_type='text/javascript'))
+        HAVE_THREE and pg.route('**/three.min.js',lambda r:r.fulfill(path=THREE_DIR+'/build/three.min.js',content_type='text/javascript'))
+        pg.route('**/mqtt.min.js',lambda r:r.fulfill(path=FAKEMQTT,content_type='text/javascript'))
         pg.route('**/peerjs.min.js',lambda r:r.abort());pg.route('**/fonts.googleapis.com/**',lambda r:r.abort())
-        pg.goto('http://localhost:8765/index.html');pages.append(pg)
+        pg.goto(URL);pages.append(pg)
     pages[0].wait_for_timeout(3000)
     for i,pg in enumerate(pages):
         J(pg,"()=>{document.getElementById('nick').value='P%d';document.getElementById('code').value='zz9';window.__norender=1;__ug.begin('coop','l1')}"%i)

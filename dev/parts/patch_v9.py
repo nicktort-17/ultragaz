@@ -1,5 +1,6 @@
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
 # v9: новая модель Царицы
-p='/home/claude/ultra/index.html';s=open(p).read()
+p=INDEX;s=open(p).read()
 if '/*v9*/' in s: print('v9 already'); raise SystemExit
 def rep(a,b):
     global s

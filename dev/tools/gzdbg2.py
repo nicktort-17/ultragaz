@@ -1,4 +1,5 @@
-import sys;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys;sys.path.insert(0,TOOLS)
 from base import *
 def F(pg,n=30):pg.evaluate("()=>new Promise(r=>{let n=0;const f=()=>{if(++n>%d)r();else requestAnimationFrame(f)};f()})"%n)
 with sync_playwright() as p:
@@ -13,5 +14,5 @@ with sync_playwright() as p:
             if c>=t:break
             F(pg,1)
         info=J(pg,"()=>__eval(`(()=>{const C=GZ.cut;if(!C)return null;const r={t:+C.t.toFixed(2),st:C.st};if(C.vc)r.vc=C.vc.position.toArray().map(v=>+v.toFixed(3));if(C.cube)r.cube=C.cube.position.toArray().map(v=>+v.toFixed(2));r.cam=camera.position.toArray().map(v=>+v.toFixed(2));r.h=C.h.toArray().map(v=>+v.toFixed(2));return r})()`)")
-        print(info);pg.screenshot(path='/tmp/an/cd_%.1f.png'%t)
+        print(info);pg.screenshot(path=OUT+'/cd_%.1f.png'%t)
     b.close()

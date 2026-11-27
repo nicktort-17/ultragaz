@@ -1,4 +1,5 @@
-import sys;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys;sys.path.insert(0,TOOLS)
 from base import *
 with sync_playwright() as p:
     b,pg,errs=open_page(p,900,700)
@@ -9,6 +10,6 @@ with sync_playwright() as p:
       P.pitch=0.12;window.__frz=1;camera.fov=22;camera.updateProjectionMatrix();gunScene.visible=false;document.querySelectorAll('body>div').forEach(d=>{if(!d.querySelector('canvas'))d.style.visibility='hidden'})})()`)""")
     for ang,tag in [(0,'f'),(2.8,'b'),(.7,'s')]:
         J(pg,"()=>__eval(`const h=__H;h.root.rotation.y=%f;for(let k=0;k<60;k++)animHero(h,{vx:0,vz:0,vy:0,yaw:h.root.rotation.y,air:false,slide:false,dash:false,slam:false,pitch:0,hp:100,alive:true,w:0},1/30)`)"%ang)
-        pg.wait_for_timeout(300);pg.screenshot(path='/tmp/an/mz_%s.png'%tag)
+        pg.wait_for_timeout(300);pg.screenshot(path=OUT+'/mz_%s.png'%tag)
     print([e for e in errs if 'ReadPixels' not in e and 'ERR_FAILED' not in e][:6])
     b.close()

@@ -1,4 +1,5 @@
-import sys;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys;sys.path.insert(0,TOOLS)
 from base import *
 with sync_playwright() as p:
     b,pg,errs=open_page(p,1600,900)
@@ -6,5 +7,5 @@ with sync_playwright() as p:
     J(pg,"()=>{__ug.enemies.forEach(e=>e.dead=1);__ug.P.iT=1e9;__ug.switchW(3)}");pg.wait_for_timeout(900)
     for g in [100,0]:
         J(pg,"()=>__eval('gas=%d;gasIdle=99')"%g);pg.wait_for_timeout(1500)
-        pg.screenshot(path='/tmp/an/gz_%d.png'%g)
+        pg.screenshot(path=OUT+'/gz_%d.png'%g)
     b.close()

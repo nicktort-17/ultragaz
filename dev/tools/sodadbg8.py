@@ -1,4 +1,5 @@
-import sys;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys;sys.path.insert(0,TOOLS)
 from base import *
 def F(pg,n=30):pg.evaluate("()=>new Promise(r=>{let n=0;const f=()=>{if(++n>%d)r();else requestAnimationFrame(f)};f()})"%n)
 with sync_playwright() as p:
@@ -8,5 +9,5 @@ with sync_playwright() as p:
     for i in range(30):
         J(pg,"()=>__eval(`enemies.forEach(e=>{e.dead=1;scene.remove(e.g)});toSpawn.length=0;gas=100;camera.getWorldDirection(aim);soda(false)`)");F(pg,5)
     J(pg,"()=>__eval(`window.__frz=1;const P=__ug.P;P.pos.set(8,0,2);P.yaw=1.3;P.pitch=-.05;gunScene.visible=false`)")
-    F(pg,4);pg.screenshot(path='/tmp/an/soda_side.png')
+    F(pg,4);pg.screenshot(path=OUT+'/soda_side.png')
     b.close()

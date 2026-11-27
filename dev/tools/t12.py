@@ -1,4 +1,5 @@
-import sys;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys;sys.path.insert(0,TOOLS)
 from crop import *
 STEP="(n)=>new Promise(r=>{window.__frz=false;let k=0;const f=()=>{if(++k>=n){window.__frz=true;setTimeout(r,60)}else requestAnimationFrame(f)};requestAnimationFrame(f)})"
 with sync_playwright() as p:
@@ -8,6 +9,6 @@ with sync_playwright() as p:
     pg.evaluate(STEP,40)
     J(pg,"()=>{const u=__ug;u.enemies.forEach(e=>{e.speed=0;e.vel.set(0,0,0);e.cd=99;e.cd2=99})}")
     J(pg,"()=>{const u=__ug,es=u.enemies;es[0].pos.set(-1.6,.1,15);es[1].pos.set(2.2,.1,14);es[0].wet=3}")
-    pg.evaluate(STEP,25);pg.locator('#screen').screenshot(path='/tmp/an/wet.png')
+    pg.evaluate(STEP,25);pg.locator('#screen').screenshot(path=OUT+'/wet.png')
     print([e for e in errs if 'ReadPixels' not in e and 'ERR_FAILED' not in e][:5])
     b.close()

@@ -1,4 +1,5 @@
-import sys,json,time;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys,json,time;sys.path.insert(0,TOOLS)
 from base import *
 def F(pg,n=30):pg.evaluate("()=>new Promise(r=>{let n=0;const f=()=>{if(++n>%d)r();else requestAnimationFrame(f)};f()})"%n)
 with sync_playwright() as p:
@@ -19,7 +20,7 @@ with sync_playwright() as p:
         e=J(pg,"()=>{const E=__eval('L3.end');const c=__eval('L3.car');return E?{t:+E.t.toFixed(1),st:E.st||null,free:!!__eval('L3.carFree'),br:!!__eval('L3.chainBroken'),car:c.position.toArray().map(v=>+v.toFixed(1)),door:+c.userData.door.rotation.y.toFixed(2)}:null}")
         print(e)
         if e and e['st'] in ('side','in','close') or (e and e['st']=='drive' and e['br'] and k%3==0) or k in (10,20):
-            J(pg,"()=>{window.__norender=0}");F(pg,2);pg.screenshot(path='/tmp/an/end_%02d.png'%k);J(pg,"()=>{window.__norender=1}")
+            J(pg,"()=>{window.__norender=0}");F(pg,2);pg.screenshot(path=OUT+'/end_%02d.png'%k);J(pg,"()=>{window.__norender=1}")
         if e and e['car'][2]<-150:break
     print('errs',errs[:5])
     b.close()

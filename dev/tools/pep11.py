@@ -1,11 +1,12 @@
-import sys,json;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys,json;sys.path.insert(0,TOOLS)
 from base import *
-exec(open('/tmp/an/pep3.py').read().split("mode=sys.argv")[0].split("from base import *")[1])
+exec(open(TOOLS+'/pep3.py').read().split("mode=sys.argv")[0].split("from base import *")[1])
 def SP(pg,name,dist,ang,h,aim=0.0):
     # камера: игрок на расстоянии dist под углом ang от фронта босса
     E(pg,"(()=>{const e=enemies.find(x=>x.type==='pep');e.inv=true;const y=e.g.rotation.y+%f;P.pos.set(e.pos.x+Math.sin(y)*%f,9.05,e.pos.z+Math.cos(y)*%f);P.vel.set(0,0,0)})()"%(ang,dist,dist))
     F(pg,2);E(pg,"(()=>{const e=enemies.find(x=>x.type==='pep');const c=new V3(e.pos.x,e.pos.y+%f,e.pos.z);const d=c.clone().sub(new V3(P.pos.x,P.pos.y+1.6,P.pos.z));P.yaw=Math.atan2(-d.x,-d.z);P.pitch=Math.atan2(d.y,Math.hypot(d.x,d.z))})()"%h)
-    J(pg,"()=>{window.__norender=0}");F(pg,1);pg.screenshot(path='/tmp/pt/%s.png'%name);J(pg,"()=>{window.__norender=1}");shots.append(name)
+    J(pg,"()=>{window.__norender=0}");F(pg,1);pg.screenshot(path=OUT+'/pt/%s.png'%name);J(pg,"()=>{window.__norender=1}");shots.append(name)
 with sync_playwright() as p:
     b,pg,errs=open_page(p,960,540)
     J(pg,"()=>__ug.begin('solo','l4')");pg.wait_for_timeout(1500);J(pg,"()=>{window.__dt=1/30;window.__norender=1}")
@@ -33,7 +34,7 @@ with sync_playwright() as p:
     print([e for e in errs if 'ReadPixels' not in e and 'ERR_FAILED' not in e][:8])
     b.close()
     from PIL import Image
-    ims=[Image.open('/tmp/pt/%s.png'%n).resize((640,360)) for n in shots]
+    ims=[Image.open(OUT+'/pt/%s.png'%n).resize((640,360)) for n in shots]
     cols=3;rows=(len(ims)+cols-1)//cols;out=Image.new('RGB',(640*cols,360*rows))
     for k,im in enumerate(ims):out.paste(im,((k%cols)*640,(k//cols)*360))
-    out.save('/tmp/pt/sheet11.png');print(shots)
+    out.save(OUT+'/pt/sheet11.png');print(shots)

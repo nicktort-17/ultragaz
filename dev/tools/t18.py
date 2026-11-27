@@ -1,17 +1,18 @@
-import sys;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys;sys.path.insert(0,TOOLS)
 from crop import *
 def setup(pg,nick):
     pg.evaluate("(n)=>{document.querySelector('[data-q=low]').click();const i=document.getElementById('nick');i.value=n;i.dispatchEvent(new Event('change'));const c=document.getElementById('code');c.value='cos1';c.dispatchEvent(new Event('change'))}",nick)
 with sync_playwright() as p:
-    b=p.chromium.launch(executable_path='/usr/bin/google-chrome',args=['--use-gl=swiftshader','--enable-unsafe-swiftshader','--disable-background-timer-throttling','--disable-renderer-backgrounding','--disable-backgrounding-occluded-windows'])
+    b=launch(p)
     ctx=b.new_context(viewport={'width':800,'height':460});pages=[];errs=[]
     for i in range(2):
         pg=ctx.new_page();pg.on('pageerror',lambda e:errs.append(str(e)))
-        pg.route('**/three@0.128.0/examples/js/**',lambda r:r.fulfill(path='/tmp/t/node_modules/three/examples/js/'+r.request.url.split('/examples/js/')[1],content_type='text/javascript'))
-        pg.route('**/three.min.js',lambda r:r.fulfill(path='/tmp/t/node_modules/three/build/three.min.js',content_type='text/javascript'))
-        pg.route('**/mqtt.min.js',lambda r:r.fulfill(path='/tmp/fakemqtt.js',content_type='text/javascript'))
+        HAVE_THREE and pg.route('**/three@0.128.0/examples/js/**',lambda r:r.fulfill(path=THREE_DIR+'/examples/js/'+r.request.url.split('/examples/js/')[1],content_type='text/javascript'))
+        HAVE_THREE and pg.route('**/three.min.js',lambda r:r.fulfill(path=THREE_DIR+'/build/three.min.js',content_type='text/javascript'))
+        pg.route('**/mqtt.min.js',lambda r:r.fulfill(path=FAKEMQTT,content_type='text/javascript'))
         pg.route('**/peerjs.min.js',lambda r:r.abort());pg.route('**/fonts.googleapis.com/**',lambda r:r.abort())
-        pg.goto('http://localhost:8765/index.html');pages.append(pg)
+        pg.goto(URL);pages.append(pg)
     pages[1].wait_for_timeout(3000);A,B=pages
     setup(A,'Альфа');setup(B,'Бета')
     A.evaluate("()=>{Object.assign(__ug.myCos,{crest:2,wings:1,pattern:3})}")

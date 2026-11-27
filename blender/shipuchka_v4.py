@@ -285,5 +285,5 @@ def export(out, render=True):
             cd.ortho_scale = .5 if name not in ("front", "back") else .32
             scene.render.filepath = os.path.join(out, f"v_{name}.png"); bpy.ops.render.render(write_still=True)
 
-out = sys.argv[sys.argv.index("--") + 1] if "--" in sys.argv else "/tmp/ship4"
+out = sys.argv[sys.argv.index("--") + 1] if "--" in sys.argv else __import__('tempfile').gettempdir()+'/ship4'
 export(out); print("Готово:", out)

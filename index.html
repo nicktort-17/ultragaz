@@ -1221,10 +1221,6 @@ function canAI(e,t,to,dist,dt){if(e.shk>0){e.shk-=dt;e.ac=1;e.vel.x*=.8;e.vel.z*
   if(e.rush>0){e.rush-=dt;e.ac=0;e.vel.x=e.rdir.x*25;e.vel.z=e.rdir.z*25;if(Math.random()<dt*30)puff(new V3(e.pos.x,e.pos.y+.4,e.pos.z),2,0xe6f2ff,3,.35);
    for(const c of targets()){if(Math.hypot(c.pos.x-e.pos.x,c.pos.z-e.pos.z)<2.1&&Math.abs(c.pos.y-e.pos.y)<2.4){e.rush=0;canBurst(e,true);return}}if(e.rush<=0)e.cdR=rnd(4,6);return}
   e.cdR=(e.cdR??rnd(1.5,3))-dt;if(e.cdR<=0&&dist>6&&dist<17&&e.onGround){e.rw=.5;sfx('hiss',Math.max(.3,sndV(e.pos.x,e.pos.y,e.pos.z)));return}}
- if(e.blue){if(e.rw>0){e.rw-=dt;e.ac=1;e.vel.x*=.7;e.vel.z*=.7;if(Math.random()<dt*40)puff(new V3(e.pos.x,e.pos.y+.8,e.pos.z),2,BLUE_L,5,.4,-2);if(e.rw<=0){e.rush=.95;e.rdir=to.clone();sfx('jet',.5)}return}
-  if(e.rush>0){e.rush-=dt;e.ac=0;e.vel.x=e.rdir.x*25;e.vel.z=e.rdir.z*25;if(Math.random()<dt*30)puff(new V3(e.pos.x,e.pos.y+.4,e.pos.z),2,0xe6f2ff,3,.35);
-   for(const c of targets()){if(Math.hypot(c.pos.x-e.pos.x,c.pos.z-e.pos.z)<2.1&&Math.abs(c.pos.y-e.pos.y)<2.4){e.rush=0;canBurst(e,true);return}}if(e.rush<=0)e.cdR=rnd(4,6);return}
-  e.cdR=(e.cdR??rnd(1.5,3))-dt;if(e.cdR<=0&&dist>6&&dist<17&&e.onGround){e.rw=.5;sfx('hiss',Math.max(.3,sndV(e.pos.x,e.pos.y,e.pos.z)));return}}
  e.ac=0;const sp=e.speed*(e.wet>0?.75:1),side=Math.sin(T*3+e.seed)*3;e.vel.x+=(to.x*sp-to.z*side-e.vel.x)*Math.min(1,dt*3);e.vel.z+=(to.z*sp+to.x*side-e.vel.z)*Math.min(1,dt*3);
  if(dist<3.4&&Math.abs(t.pos.y-e.pos.y)<2.4&&e.onGround){e.shk=.75;sfx('hiss',Math.max(.3,sndV(e.pos.x,e.pos.y,e.pos.z)))}
  if(Math.random()<dt*5){const s=e.g.userData.can;puff(new V3(e.pos.x,e.pos.y+.6,e.pos.z),2,0xf6eee2,3,.4,-3)}}
@@ -5097,10 +5093,8 @@ function updEnemies(dt){const pc=new V3(),tmp=new V3(),tg=targets();
     if(e.lw<=0){e.g.scale.y=1;e.eyes.color.setHex(0xffcc33);e.leaping=true;e.rammed=false;e.leapT=0;const fl=.85;e.vel.set(to.x*dist/fl,11,to.z*dist/fl);e.cd2=rnd(3,5);sfx('throw')}}
    else if(e.wind>0){e.wind-=dt;e.eyes.color.setHex(0xffffff);if(e.wind<=0){e.eyes.color.setHex(0xffcc33);for(const c of tg){const d=Math.hypot(c.pos.x-e.pos.x,c.pos.z-e.pos.z);if(d<2.8&&Math.abs(c.pos.y-e.pos.y)<2.2)hitTarget(c,18,to.clone().multiplyScalar(14).setY(5))}e.cd=1.1}}
    else if(e.vw>0){e.vw-=dt;e.eyes.color.setHex(Math.sin(T*40)>0?0xffffff:0x59b0ff);if(e.vw<=0){e.eyes.color.setHex(0xffcc33);const f=pc.set(e.pos.x,e.pos.y+1.5,e.pos.z),d=aimDir(f,t,23);for(const a of[-.2,0,.2])enemyShotDir(f,d.clone().applyAxisAngle(_UP,a),23,12,.3,BLUE);sfx('orb',.8);puff(f,14,BLUE_L,6,.4);e.cd4=rnd(4.5,6.5)}}
-   else if(e.vw>0){e.vw-=dt;e.eyes.color.setHex(Math.sin(T*40)>0?0xffffff:0x59b0ff);if(e.vw<=0){e.eyes.color.setHex(0xffcc33);const f=pc.set(e.pos.x,e.pos.y+1.5,e.pos.z),d=aimDir(f,t,23);for(const a of[-.2,0,.2])enemyShotDir(f,d.clone().applyAxisAngle(_UP,a),23,12,.3,BLUE);sfx('orb',.8);puff(f,14,BLUE_L,6,.4);e.cd4=rnd(4.5,6.5)}}
    else if(dist<2.4&&e.cd<=0)e.wind=.4;
    else if(dist>4.5&&dist<12&&e.cd2<=0&&e.onGround)e.lw=.35;
-   else if(e.blue&&dist>5&&dist<19&&(e.cd4=(e.cd4??rnd(1.5,3))-dt)<=0&&los(center(e,pc),new V3(t.pos.x,t.pos.y+1,t.pos.z))){e.vw=.6;sfx('charge',.45)}
    else if(e.blue&&dist>5&&dist<19&&(e.cd4=(e.cd4??rnd(1.5,3))-dt)<=0&&los(center(e,pc),new V3(t.pos.x,t.pos.y+1,t.pos.z))){e.vw=.6;sfx('charge',.45)}
    if(!e.leaping&&!(e.stun>0)){const want=e.wind>0||e.lw>0||e.vw>0?0:e.speed;e.vel.x+=(to.x*want-e.vel.x)*Math.min(1,dt*5);e.vel.z+=(to.z*want-e.vel.z)*Math.min(1,dt*5)}
   }else if(e.type==='golem'){

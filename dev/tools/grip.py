@@ -1,6 +1,7 @@
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
 import json,base64,numpy as np,struct
 for f,nm in [('shipuchka','Рукоять'),('shaker','Рукоять.001'),('mentos','Рукоять.002'),('gazyava','Рукоять.003')]:
-    g=json.load(open('/tmp/an/out4/%s.json'%f))
+    g=json.load(open(OUT+'/out4/%s.json'%f))
     buf=base64.b64decode(g['buffers'][0]['uri'].split(',')[1])
     n=[x for x in g['nodes'] if x.get('name')==nm][0]
     pr=g['meshes'][n['mesh']]['primitives'][0];a=g['accessors'][pr['attributes']['POSITION']];bv=g['bufferViews'][a['bufferView']]

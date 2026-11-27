@@ -1,4 +1,5 @@
-import sys,json;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys,json;sys.path.insert(0,TOOLS)
 from base import *
 def F(pg,n=30):pg.evaluate("()=>new Promise(r=>{let n=0;const f=()=>{if(++n>%d)r();else requestAnimationFrame(f)};f()})"%n)
 E=lambda pg,s:pg.evaluate("()=>__eval(%s)"%json.dumps(s))
@@ -18,7 +19,7 @@ with sync_playwright() as p:
     b,pg,errs=open_page(p,640,360)
     J(pg,"()=>__ug.begin('solo','l4')");pg.wait_for_timeout(2500);J(pg,"()=>{window.__dt=1/30;window.__norender=1}");F(pg,10)
     r=json.loads(E(pg,JS))
-    open('/tmp/an/audit.json','w').write(json.dumps(r))
+    open(TOOLS+'/audit.json','w').write(json.dumps(r))
     from collections import Counter
     c=Counter(x[0] for x in r);print(len(r));
     for k,n in c.most_common(40):print(n,k)

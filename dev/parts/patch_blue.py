@@ -1,10 +1,11 @@
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
 # Остров Пепсштейна: синие (усиленные) версии обычных врагов + по одной новой атаке.
 import re
-P='/home/claude/ultra/index.html'
+P=INDEX
 s=open(P,encoding='utf-8').read()
 def rep(a,b,cnt=1):
     global s
-    if b in s and a not in s: return
+    if b in s: return  # уже применено (раньше проверялось ещё «a not in s» — вставки, где a входит в b, дублировались)
     assert s.count(a)==cnt,('anchor',a[:90],s.count(a));s=s.replace(a,b)
 
 JS=r'''/*BLUE4*/

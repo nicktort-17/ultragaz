@@ -1,4 +1,5 @@
-import sys,json;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys,json;sys.path.insert(0,TOOLS)
 from base import *
 lv=sys.argv[1];ri=int(sys.argv[2])
 def F(pg,n=30):pg.evaluate("()=>new Promise(r=>{let n=0;const f=()=>{if(++n>%d)r();else requestAnimationFrame(f)};f()})"%n)
@@ -15,7 +16,7 @@ with sync_playwright() as p:
         if k>=4:J(pg,"()=>{for(const e of __ug.enemies){if(e.type==='boss'||e.type==='queen'){if(!e.inv)__ug.damage(e,e.maxHp*.12,99,'x')}else __ug.damage(e,9999,99,'x')}__ug.P.iT=1e9;__ug.P.hp=100}")
     print('after',J(pg,st))
     F(pg,240);print('end',J(pg,st));J(pg,"()=>{window.__norender=0}");F(pg,4)
-    pg.screenshot(path='/tmp/an/fl2_%s.png'%lv)
+    pg.screenshot(path=OUT+'/fl2_%s.png'%lv)
     print(J(pg,"()=>JSON.stringify(__ug.prog)"))
     print([e for e in errs if 'ReadPixels' not in e and 'ERR_FAILED' not in e][:8])
     b.close()

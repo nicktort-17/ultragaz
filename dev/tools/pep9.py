@@ -1,7 +1,8 @@
-import sys,json;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys,json;sys.path.insert(0,TOOLS)
 from base import *
-exec(open('/tmp/an/pep3.py').read().split("mode=sys.argv")[0].split("from base import *")[1])
-import os;os.makedirs('/tmp/pt',exist_ok=True)
+exec(open(TOOLS+'/pep3.py').read().split("mode=sys.argv")[0].split("from base import *")[1])
+import os;os.makedirs(OUT+'/pt',exist_ok=True)
 with sync_playwright() as p:
     b,pg,errs=open_page(p,800,450)
     J(pg,"()=>__ug.begin('solo','l4')");pg.wait_for_timeout(1500);J(pg,"()=>{window.__dt=1/30;window.__norender=1}")
@@ -32,11 +33,11 @@ with sync_playwright() as p:
     E(pg,"P.pos.set(3,9.05,-104)");run(pg,90,.15);S(pg,'e_count',.12)
     run(pg,200,.12);S(pg,'e_boom',.12)
     print('after',E(pg,"JSON.stringify({ph:story.phase,win:!!story.pepWin,en:enemies.length,fx:PEP.fx.map(f=>f.k)})"))
-    E(pg,"(()=>{story.endT=T;showResults()})()");F(pg,5);pg.screenshot(path='/tmp/pt/f_res.png');shots.append('f_res')
+    E(pg,"(()=>{story.endT=T;showResults()})()");F(pg,5);pg.screenshot(path=OUT+'/pt/f_res.png');shots.append('f_res')
     print([e for e in errs if 'ReadPixels' not in e and 'ERR_FAILED' not in e][:8])
     b.close()
     from PIL import Image
-    ims=[Image.open('/tmp/pt/%s.png'%n).resize((480,270)) for n in shots]
+    ims=[Image.open(OUT+'/pt/%s.png'%n).resize((480,270)) for n in shots]
     cols=4;rows=(len(ims)+cols-1)//cols;out=Image.new('RGB',(480*cols,270*rows))
     for k,im in enumerate(ims):out.paste(im,((k%cols)*480,(k//cols)*270))
-    out.save('/tmp/pt/sheet9.png');print(shots)
+    out.save(OUT+'/pt/sheet9.png');print(shots)

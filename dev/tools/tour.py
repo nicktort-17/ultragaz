@@ -1,4 +1,5 @@
-import sys,json;sys.path.insert(0,'/tmp/an')
+import os,sys;sys.path.insert(0,os.path.join(os.path.dirname(os.path.abspath(__file__)),'..'));from ugenv import *  # пути окружения
+import sys,json;sys.path.insert(0,TOOLS)
 from base import *
 def F(pg,n=30):pg.evaluate("()=>new Promise(r=>{let n=0;const f=()=>{if(++n>%d)r();else requestAnimationFrame(f)};f()})"%n)
 E=lambda pg,s:pg.evaluate("()=>__eval(%s)"%json.dumps(s))
@@ -13,14 +14,14 @@ with sync_playwright() as p:
         if y>=100: y=E(pg,"TERR.h(%f,%f)"%(x,z))+y-100
         E(pg,"(()=>{for(const e of enemies)scene.remove(e.g);enemies.length=0;P.pos.set(%f,%f,%f);P.vel.set(0,0,0);P.yaw=%f*Math.PI/180;P.pitch=%f*Math.PI/180;P.iT=1e9})()"%(x,y,z,yaw,pit))
         J(pg,"()=>{window.__norender=0}");F(pg,2);E(pg,"(()=>{P.pos.set(%f,%f,%f);P.vel.set(0,0,0)})()"%(x,y,z));F(pg,1)
-        pg.screenshot(path='/tmp/tour/%s.png'%n);J(pg,"()=>{window.__norender=1}");names.append(n)
+        pg.screenshot(path=OUT+'/tour/%s.png'%n);J(pg,"()=>{window.__norender=1}");names.append(n)
     print([e for e in errs if 'ReadPixels' not in e and 'ERR_FAILED' not in e][:5])
     b.close()
 from PIL import Image,ImageDraw,ImageFont
 import os
-FN=next((f for f in['/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf','/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf','/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf'] if os.path.exists(f)),None)
+FN=next((f for f in FONTS if os.path.exists(f)),None)
 FT=ImageFont.truetype(FN,14) if FN else None
-ims=[Image.open('/tmp/tour/%s.png'%n).resize((480,270)) for n in names]
+ims=[Image.open(OUT+'/tour/%s.png'%n).resize((480,270)) for n in names]
 cols=3;rows=(len(ims)+cols-1)//cols;o=Image.new('RGB',(480*cols,270*rows))
 for k,im in enumerate(ims):
     d=ImageDraw.Draw(im);d.rectangle((0,0,8+9*len(names[k]),20),fill=(0,0,0));d.text((4,2),names[k],fill=(255,255,0),font=FT)
