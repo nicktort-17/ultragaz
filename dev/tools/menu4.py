@@ -1,0 +1,16 @@
+import sys;sys.path.insert(0,'/tmp/an')
+from base import *
+with sync_playwright() as p:
+    b,pg,errs=open_page(p,1280,720)
+    J(pg,"()=>{__eval(\"prog={l1:{done:1,t:300,g:'A',s:1000},l2:{done:1,t:400,g:'B',s:900},l3:{done:1,t:500,g:'S',s:900}};buildLvList()\");__ug.mmView('page','story')}");pg.wait_for_timeout(1500)
+    pg.screenshot(path='/tmp/an/m_story.png')
+    J(pg,"()=>__ug.mmView('page','hero')");pg.wait_for_timeout(1500)
+    pg.screenshot(path='/tmp/an/m_hero1.png')
+    J(pg,"()=>{__eval('myCos.skin=1;rebuildSelf();buildHeroUI()')}");pg.wait_for_timeout(1500)
+    pg.screenshot(path='/tmp/an/m_hero2.png')
+    pg.locator('#cosm button').nth(1).click();pg.wait_for_timeout(1200)
+    print(J(pg,"()=>__eval('[myCape,selfHero.capeOn]')"))
+    pg.screenshot(path='/tmp/an/m_hero3.png')
+    J(pg,"()=>{__eval('myCos.skin=0;myCape=true;localStorage.clear()')}")
+    print([e for e in errs if 'ReadPixels' not in e and 'ERR_FAILED' not in e][:5])
+    b.close()

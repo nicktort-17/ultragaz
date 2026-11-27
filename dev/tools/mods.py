@@ -1,0 +1,20 @@
+import sys,json;sys.path.insert(0,'/tmp/an')
+from base import *
+def F(pg,n=30):pg.evaluate("()=>new Promise(r=>{let n=0;const f=()=>{if(++n>%d)r();else requestAnimationFrame(f)};f()})"%n)
+with sync_playwright() as p:
+    b,pg,errs=open_page(p,960,540)
+    J(pg,"()=>__ug.begin('solo','l2')");pg.wait_for_timeout(800)
+    J(pg,"()=>{document.getElementById('lvCard').hidden=true;const S=__ug.story;S.room=1;S.phase='clear';const P=__ug.P;P.pos.set(8,2.8,-86);P.iT=1e9;window.__norender=1}")
+    F(pg,200)
+    J(pg,"()=>{window.__norender=0;const P=__ug.P;P.pos.set(0,2.8,-91);P.vel.set(0,0,0);P.yaw=0;P.pitch=.32;P.iT=1e9;__ug.enemies.filter(e=>e.type!=='queen').forEach(e=>__ug.kill(e,'x',true))}")
+    F(pg,6);J(pg,"()=>{window.__frz=1}");F(pg,3)
+    pg.screenshot(path='/tmp/an/m_queen.png')
+    print(J(pg,"()=>__ug.enemies.map(e=>e.type+':'+e.st+':'+e.pos.y.toFixed(1))"))
+    # медуза и банка крупно
+    J(pg,"()=>{window.__frz=0;const P=__ug.P;P.pos.set(-11.3,2.8,-108);P.yaw=0;P.pitch=.0;__ug.spawnEnemy('jelly',new THREE.Vector3(-12.3,1.8,-112.2));__ug.spawnEnemy('can',new THREE.Vector3(-10.4,2.8,-110.5))}")
+    F(pg,12);J(pg,"()=>{window.__frz=1;const P=__ug.P;P.yaw=0.15;P.pitch=-.05;for(const e of __ug.enemies)if(e.type==='jelly'){e.pos.set(-12.4,3.6,-112.5)}else if(e.type==='can'){e.pos.set(-10.2,2.8,-110.6)}}");F(pg,3)
+    pg.screenshot(path='/tmp/an/m_mobs.png')
+    J(pg,"()=>{for(const e of __ug.enemies)if(e.type==='can'){e.shk=.4;e.ac=1}}");J(pg,"()=>{window.__frz=0}");F(pg,4);J(pg,"()=>{window.__frz=1}");F(pg,2)
+    pg.screenshot(path='/tmp/an/m_can_shake.png')
+    print([e for e in errs if 'ReadPixels' not in e and 'ERR_FAILED' not in e][:8])
+    b.close()

@@ -1,0 +1,17 @@
+import sys,json;sys.path.insert(0,'/tmp/an')
+from base import *
+def F(pg,n=30):pg.evaluate("()=>new Promise(r=>{let n=0;const f=()=>{if(++n>%d)r();else requestAnimationFrame(f)};f()})"%n)
+with sync_playwright() as p:
+    b,pg,errs=open_page(p,1280,720)
+    J(pg,"()=>{window.__norender=1;__ug.begin('solo','l2')}");pg.wait_for_timeout(800)
+    J(pg,"()=>{document.getElementById('lvCard').hidden=true;const P=__ug.P;P.pos.set(-14,3.2,14);P.yaw=-2.75;P.pitch=-.28;P.iT=1e9;__ug.lvT=12}")
+    F(pg,60);J(pg,"()=>{window.__norender=0;const P=__ug.P;P.yaw=-2.75;P.pitch=-.28;__ug.enemies.forEach(e=>e.type!=='jelly'&&__ug.kill(e,'x',true))}");F(pg,4);J(pg,"()=>{window.__frz=1}");F(pg,2)
+    pg.screenshot(path='/tmp/an/v2_syrup.png')
+    J(pg,"()=>{window.__frz=0;const P=__ug.P;P.pos.set(0,3.2,2);P.yaw=0;P.pitch=.05;__ug.enemies.forEach(e=>__ug.kill(e,'x',true));__ug.spawnEnemy('jelly',new THREE.Vector3(0,0,-3))}");F(pg,8)
+    J(pg,"()=>{window.__frz=1;for(const e of __ug.enemies)if(e.type==='jelly')e.pos.set(0,4.7,-1.6);__ug.P.yaw=0;__ug.P.pitch=.12}");F(pg,3)
+    pg.screenshot(path='/tmp/an/v2_jelly.png')
+    J(pg,"()=>{window.__frz=0;__ug.openValve(0,true)}");J(pg,"()=>{window.__norender=1}");F(pg,150);J(pg,"()=>{window.__norender=0;const P=__ug.P;P.pos.set(-14,3.2,14);P.yaw=-2.75;P.pitch=-.28}");F(pg,3)
+    pg.screenshot(path='/tmp/an/v2_drained.png')
+    print(J(pg,"()=>({d:__ug.drainT,lvl:__ug.syrupLvl(0,0)})"))
+    print([e for e in errs if 'ReadPixels' not in e and 'ERR_FAILED' not in e][:8])
+    b.close()

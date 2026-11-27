@@ -1,0 +1,391 @@
+<style>
+/* VOICE: стильное ночное меню в духе японских ролевых игр + яростный аркадный шутер.
+   IDEA: герой стоит на зеркальном море колы под огромной луной-крышкой; меню — косые плашки и крупная типографика.
+   COLOUR and TYPE: ночь #040917, синий #2a63e6, лёд #eaf5ff, циан #62e3ff, кола-красный #ff2d4d; Anton + Oswald + Rubik.
+   LAYOUT: игра на весь экран; в меню — герой слева, список справа, разделы выезжают панелями. */
+:root{color-scheme:dark;--bg:#120405;--panel:#241012;--red:#c8102e;--cream:#f6eee2;--soft:#d6bfb2;--gold:#f2b84b;
+ --ink:#040917;--navy:#0a1b45;--blu:#2a63e6;--cy:#62e3ff;--ice:#eaf5ff;--mist:#a9c6f2;--hot:#ff2d4d;--sk:-9deg}
+*{box-sizing:border-box;min-width:0}
+html,body{height:100%}
+body{margin:0;background:#02040c;color:var(--cream);font:16px/1.5 Rubik,Arial,sans-serif;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+button:disabled{cursor:not-allowed}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+#screen{position:fixed;inset:0;overflow:hidden;background:#000;user-select:none;-webkit-user-select:none;cursor:crosshair}
+#screen canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* ===== HUD ===== */
+.hud{position:absolute;inset:0;pointer-events:none;font-family:"Russo One",Arial,sans-serif}
+#cross{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px}
+#cross:before,#cross:after{content:"";position:absolute;background:var(--cream);box-shadow:0 0 3px #000}
+#cross:before{left:10px;top:0;width:2px;height:22px}#cross:after{top:10px;left:0;height:2px;width:22px}
+#hm{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border:3px solid var(--gold);transform:rotate(45deg);opacity:0;transition:opacity .12s}
+#pflash{position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.95),rgba(255,236,190,.55) 45%,rgba(255,210,120,0) 80%);opacity:0;pointer-events:none}
+#vig{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 45%,rgba(200,16,46,.75));opacity:0}
+.bl{position:absolute;left:16px;bottom:16px;width:min(340px,40%)}
+.hp{height:22px;background:rgba(0,0,0,.55);border:2px solid var(--cream);border-radius:6px;overflow:hidden}
+#hpf{height:100%;width:100%;background:linear-gradient(90deg,#c8102e,#ff4d5e)}
+.hpt{display:flex;justify-content:space-between;font-size:15px;margin-bottom:4px;text-shadow:0 1px 3px #000}
+.stam{display:flex;gap:6px;margin-top:8px}
+.stam i{flex:1;height:10px;border-radius:3px;background:rgba(0,0,0,.5);border:1px solid rgba(246,238,226,.6);overflow:hidden;position:relative}
+.stam i b{position:absolute;inset:0;background:#8fd0f5;transform-origin:left}
+.br{position:absolute;right:16px;bottom:16px;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.wp{font-size:15px;padding:5px 12px;border-radius:8px;background:rgba(0,0,0,.5);color:var(--soft)}
+.wp.on{color:#1a0507;background:var(--gold);font-size:18px}
+.gas{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--soft)}.gas i{width:120px;height:8px;border-radius:4px;background:rgba(0,0,0,.5);border:1px solid rgba(246,238,226,.5);overflow:hidden}.gas b{display:block;height:100%;width:100%;background:#a0522d}
+.top{position:absolute;left:50%;top:14px;transform:translateX(-50%);text-align:center;text-shadow:0 2px 4px #000;white-space:nowrap}
+#wave{font-size:22px}#left{font-family:Rubik,Arial,sans-serif;font-size:14px;color:var(--soft)}
+.style{position:absolute;right:16px;top:14px;width:min(270px,34%);text-align:right;text-shadow:0 2px 4px #000}
+#rank{font-size:58px;line-height:1}#rankName{font-size:18px}
+.sbar{height:6px;background:rgba(0,0,0,.5);border-radius:3px;margin-top:6px;overflow:hidden}#sbf{height:100%;width:0;background:var(--gold)}
+#feed{margin-top:10px;font-size:15px;line-height:1.5}
+.tl{position:absolute;left:16px;top:14px;text-shadow:0 2px 4px #000}
+#score{font-size:20px}#score small{display:block;font:600 13px Rubik,Arial,sans-serif;color:var(--soft)}
+#board{margin-top:10px;font:600 14px/1.55 Rubik,Arial,sans-serif;background:rgba(0,0,0,.42);border-radius:10px;padding:6px 10px;min-width:180px}
+#board:empty{display:none}
+#board .r{display:flex;justify-content:space-between;gap:14px}#board .me{color:var(--gold)}#board .dead{opacity:.45}
+#board i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+#banner{position:absolute;left:0;right:0;top:30%;text-align:center;font-size:clamp(26px,5vw,60px);color:var(--gold);text-shadow:0 4px 12px #000;opacity:0;transition:opacity .4s;padding:0 12px}
+#respawn{position:absolute;left:0;right:0;top:56%;text-align:center;font-size:24px;text-shadow:0 2px 6px #000}
+#bossBar{position:absolute;left:50%;top:84px;transform:translateX(-50%);width:min(520px,62%);text-align:center;text-shadow:0 2px 4px #000}#bossBar[hidden]{display:none}#bossBar .bn{font:400 15px/1 "Russo One",Arial,sans-serif;color:#ffd9a0;letter-spacing:.06em;margin-bottom:5px}#bossBar i{display:block;height:11px;border-radius:6px;background:rgba(0,0,0,.6);overflow:hidden;border:1px solid rgba(255,220,160,.45)}#bossBar b{display:block;height:100%;width:100%;background:linear-gradient(90deg,#c8102e,#ff6a3a);transition:width .15s}#bossBar.rage b{background:linear-gradient(90deg,#ff2a3a,#ffd23a)}#bossBar.rage .bn{color:#ff8a7a}
+/* ===== общие клавиши ===== */
+.k{display:inline-flex;align-items:center;justify-content:center;min-width:2em;height:2em;padding:0 .5em;font:600 12px/1 Rubik,Arial,sans-serif;letter-spacing:0;color:var(--ice);background:linear-gradient(#1d3f8f,#0f2257);border:1px solid rgba(98,227,255,.45);border-bottom-width:3px;border-radius:4px;white-space:nowrap;font-style:normal;text-transform:none}
+/* ===== главное меню ===== */
+.mm{position:absolute;inset:0;overflow:hidden;color:var(--ice);font-family:Oswald,"Arial Narrow",Arial,sans-serif;cursor:grab;-webkit-font-smoothing:antialiased}
+.mm[hidden]{display:none}
+.mm:active{cursor:grabbing}
+.mm button:focus-visible{outline:2px solid var(--cy);outline-offset:3px}
+.mm-fx{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.mm-bars i{position:absolute;top:-30%;height:160%;width:7vw;background:linear-gradient(90deg,transparent,rgba(98,227,255,.07),transparent);transform:skewX(-24deg);animation:mmSweep 13s linear infinite}
+.mm-bars i:nth-child(2){animation-delay:-4.5s;width:2.5vw}.mm-bars i:nth-child(3){animation-delay:-9s;width:13vw}
+@keyframes mmSweep{from{left:-25%}to{left:125%}}
+.mm-gauge{position:absolute;left:30%;top:52%;width:min(96vh,64vw);aspect-ratio:1;transform:translate(-50%,-50%);opacity:.3;mix-blend-mode:screen;transition:left 1.1s cubic-bezier(.7,0,.2,1),opacity .8s}
+.mm[data-v=title] .mm-gauge{left:70%;opacity:.22}
+.mm[data-v=page] .mm-gauge{opacity:.18}
+.mm-gauge .r1{transform-origin:100px 100px;animation:mmSpin 170s linear infinite}
+.mm-gauge .r2{transform-origin:100px 100px;animation:mmSpin 75s linear infinite reverse}
+.mm-gauge .nd{transform-origin:100px 100px;animation:mmNeedle 6s ease-in-out infinite alternate}
+@keyframes mmSpin{to{transform:rotate(360deg)}}
+@keyframes mmNeedle{from{transform:rotate(-115deg)}to{transform:rotate(100deg)}}
+.mm-big{position:absolute;left:0;bottom:-10vh;white-space:nowrap;transform:rotate(-7deg);transform-origin:0 100%}
+.mm-big span{display:inline-block;font:400 34vh/.8 Anton,Oswald,sans-serif;color:transparent;-webkit-text-stroke:1px rgba(120,180,255,.12);animation:mmDrift 90s linear infinite}
+@keyframes mmDrift{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.mm-shade{position:absolute;inset:0;background:linear-gradient(98deg,rgba(4,9,23,0) 36%,rgba(4,9,23,.45) 62%,rgba(3,7,19,.8));transition:opacity .8s}
+.mm[data-v=title] .mm-shade{opacity:.15}
+.mm-vig{position:absolute;inset:0;background:radial-gradient(130% 100% at 38% 50%,transparent 55%,rgba(1,3,10,.75))}
+.mm-wipe{position:absolute;top:-20%;bottom:-20%;left:-60%;width:60%;background:linear-gradient(90deg,transparent,rgba(98,227,255,.2) 20%,var(--ice) 46%,var(--cy) 54%,rgba(42,99,230,.4) 78%,transparent);transform:skewX(-20deg);opacity:0}
+.mm-wipe.go{animation:mmWipe .62s cubic-bezier(.6,0,.3,1)}
+@keyframes mmWipe{0%{left:-60%;opacity:.95}100%{left:130%;opacity:.95}}
+/* логотип */
+.mm-logo{position:absolute;left:5.5vw;top:50%;transform:translateY(-56%);transform-origin:0 0;transition:transform 1s cubic-bezier(.7,0,.2,1),top 1s cubic-bezier(.7,0,.2,1),left 1s cubic-bezier(.7,0,.2,1);pointer-events:none;z-index:2}
+.mm:not([data-v=title]) .mm-logo{left:2.4vw;top:2.6vh;transform:scale(.34)}
+.mm-logo .l1,.mm-logo .l2{display:block;font:400 clamp(70px,21vh,270px)/.8 Anton,Oswald,sans-serif;letter-spacing:.015em;transform:skewX(var(--sk))}
+.mm-logo .l1{color:var(--ice);text-shadow:.035em .035em 0 var(--blu),.07em .07em 0 rgba(98,227,255,.3)}
+.mm-logo .l2{position:relative;margin-left:.62em;color:var(--hot);text-shadow:.035em .035em 0 #4a0410,.07em .07em 0 rgba(255,45,77,.28)}
+.mm-logo .l2::before{content:"";position:absolute;left:-.58em;top:52%;width:.44em;height:.085em;background:var(--cy);box-shadow:0 0 .3em var(--cy)}
+.mm-logo .l3{display:block;margin:2.6vh 0 0 1vw;font:500 clamp(12px,1.9vh,19px)/1 Rubik,sans-serif;letter-spacing:.52em;color:var(--mist);text-transform:uppercase;transition:opacity .4s}
+.mm:not([data-v=title]) .mm-logo .l3{opacity:0}
+.mm[data-v=title] .mm-logo .l1{animation:mmSlam .9s cubic-bezier(.2,.9,.2,1) both}
+.mm[data-v=title] .mm-logo .l2{animation:mmSlam .9s .12s cubic-bezier(.2,.9,.2,1) both}
+.mm[data-v=title] .mm-logo .l3{animation:mmFade 1s .5s both}
+@keyframes mmSlam{from{opacity:0;transform:skewX(var(--sk)) translateX(-9vw) scale(1.12);filter:blur(10px)}to{opacity:1;transform:skewX(var(--sk));filter:none}}
+@keyframes mmFade{from{opacity:0}}
+.mm-press{position:absolute;left:50%;bottom:11vh;transform:translateX(-50%);padding:1.4vh 2vw;font:500 clamp(15px,2.3vh,24px)/1 Oswald,sans-serif;letter-spacing:.55em;color:var(--ice);text-shadow:0 0 18px rgba(98,227,255,.6);white-space:nowrap;animation:mmBlink 1.8s ease-in-out infinite}
+.mm-press::before,.mm-press::after{content:"";display:inline-block;width:6vw;height:1px;background:linear-gradient(90deg,transparent,var(--cy));vertical-align:middle;margin:0 1.6vw}
+.mm-press::after{transform:scaleX(-1)}
+@keyframes mmBlink{50%{opacity:.35}}
+.mm:not([data-v=title]) .mm-press{display:none}
+/* календарь */
+.mm-cal{position:absolute;right:2.6vw;top:2.6vh;display:flex;align-items:flex-end;gap:1vw;pointer-events:none;transition:opacity .6s,transform .6s;text-shadow:0 2px 10px rgba(0,0,0,.5)}
+.mm[data-v=title] .mm-cal{opacity:0;transform:translateY(-2vh)}
+#calMoon{width:clamp(30px,5.4vh,56px);height:clamp(30px,5.4vh,56px);align-self:center;filter:drop-shadow(0 0 8px rgba(160,210,255,.55))}
+.cal-d{font:400 clamp(44px,9.5vh,110px)/.8 Anton,sans-serif;color:var(--ice);transform:skewX(var(--sk))}
+.cal-mw{display:flex;flex-direction:column;gap:.5vh;font:700 clamp(14px,2.3vh,24px)/1 Oswald,sans-serif;transform:skewX(var(--sk))}
+.cal-mw .w{color:var(--cy)}.cal-mw .w.sat{color:#6fb5ff}.cal-mw .w.sun{color:var(--hot)}
+.cal-r{display:flex;flex-direction:column;align-items:flex-end;gap:.5vh;margin-left:.6vw;font:500 clamp(10px,1.4vh,13px)/1 Rubik,sans-serif;letter-spacing:.22em;color:var(--mist)}
+.cal-r .t{font:700 clamp(16px,2.7vh,30px)/1 Oswald,sans-serif;letter-spacing:.06em;color:var(--ice)}
+/* список */
+.mm-list{position:absolute;right:5.5vw;top:53%;transform:translateY(-50%) rotate(-4deg);display:flex;flex-direction:column;align-items:flex-end;gap:1.2vh;transition:opacity .35s,transform .55s cubic-bezier(.7,0,.2,1)}
+.mm:not([data-v=main]) .mm-list{opacity:0;pointer-events:none;transform:translateY(-50%) translateX(32vw) rotate(-4deg)}
+.mi{--o:calc(var(--i) * 2.5vw);position:relative;isolation:isolate;display:flex;align-items:center;gap:1vw;padding:.2vh 1.7vw .4vh 1.4vw;color:rgba(190,215,255,.5);transform:translateX(calc(var(--o) * -1)) skewX(var(--sk));transition:color .18s,transform .35s cubic-bezier(.2,1.3,.3,1)}
+.mi b{font:700 clamp(30px,6.6vh,80px)/1.02 Oswald,sans-serif;letter-spacing:.015em}
+.mi i{align-self:flex-start;margin-top:1vh;font:600 clamp(11px,1.6vh,15px)/1 Rubik,sans-serif;font-style:normal;color:var(--cy);opacity:.7}
+.mi small{position:absolute;right:1.7vw;top:calc(100% - .1vh);font:500 clamp(10px,1.45vh,13px)/1 Rubik,sans-serif;letter-spacing:.32em;color:var(--mist);white-space:nowrap;opacity:0;transform:translateY(-4px);transition:opacity .25s,transform .25s}
+.mi::before{content:"";position:absolute;inset:.5vh -.4vw .3vh -.4vw;background:var(--ice);transform:scaleX(0);transform-origin:100% 50%;transition:transform .26s cubic-bezier(.2,.9,.2,1);z-index:-1;box-shadow:.55vw .75vh 0 var(--cy),1.1vw 1.5vh 0 rgba(42,99,230,.55)}
+.mi:hover{color:rgba(225,238,255,.85)}
+.mi.on{color:var(--ink);transform:translateX(calc(var(--o) * -1 - 1.4vw)) skewX(var(--sk)) scale(1.1)}
+.mi.on::before{transform:scaleX(1)}
+.mi.on i{color:var(--hot);opacity:1}
+.mi.on small{opacity:1;transform:none}
+.mi.on::after{content:"";position:absolute;left:-2.5vw;top:50%;width:1.5vw;height:2.6vh;background:var(--hot);clip-path:polygon(0 0,100% 50%,0 100%);transform:translateY(-50%);animation:mmNudge .7s ease-in-out infinite alternate}
+@keyframes mmNudge{to{transform:translate(.5vw,-50%)}}
+.mm[data-v=main] .mi{animation:mmIn .55s cubic-bezier(.2,.9,.2,1) both;animation-delay:calc(var(--i) * 70ms + .2s)}
+@keyframes mmIn{from{opacity:0;translate:14vw 0}to{opacity:1;translate:0 0}}
+/* разделы */
+.pg{position:absolute;right:2.6vw;top:14vh;bottom:8.6vh;width:min(60vw,1000px);display:flex;flex-direction:column;gap:2vh;padding:3.2vh 2.4vw 2.6vh 4.8vw;font-family:Rubik,sans-serif;color:var(--ice);cursor:default;
+ background:linear-gradient(100deg,rgba(7,17,44,.9),rgba(3,8,22,.95));clip-path:polygon(3.6vw 0,100% 0,100% 100%,0 100%);overflow:auto;scrollbar-width:thin;scrollbar-color:var(--blu) transparent}
+.pg[hidden]{display:none}
+.pg.in{animation:pgIn .5s cubic-bezier(.2,.9,.2,1) both}
+@keyframes pgIn{from{clip-path:polygon(100% 0,100% 0,100% 100%,100% 100%)}to{clip-path:polygon(3.6vw 0,100% 0,100% 100%,0 100%)}}
+.pg.in>*{animation:pgItem .5s cubic-bezier(.2,.9,.2,1) both}
+.pg.in>*:nth-child(2){animation-delay:.05s}.pg.in>*:nth-child(3){animation-delay:.1s}.pg.in>*:nth-child(4){animation-delay:.15s}.pg.in>*:nth-child(5){animation-delay:.2s}.pg.in>*:nth-child(6){animation-delay:.25s}.pg.in>*:nth-child(7){animation-delay:.3s}
+@keyframes pgItem{from{opacity:0;translate:5vw 0}to{opacity:1;translate:0 0}}
+.pg-h{position:relative;display:flex;align-items:flex-end;gap:1.4vw;padding-bottom:1.6vh;border-bottom:1px solid rgba(98,227,255,.2)}
+.pg-h .n{font:400 clamp(44px,10vh,124px)/.78 Anton,sans-serif;color:transparent;-webkit-text-stroke:1.5px var(--cy);transform:skewX(var(--sk))}
+.pg-h h2{margin:0;font:700 clamp(36px,7.8vh,96px)/.86 Oswald,sans-serif;letter-spacing:.01em;transform:skewX(var(--sk));text-shadow:.05em .05em 0 var(--blu)}
+.pg-h p{margin:0 0 .8vh .4vw;font:500 clamp(10px,1.45vh,14px)/1.3 Rubik,sans-serif;letter-spacing:.28em;color:var(--mist);text-transform:uppercase}
+.pg-back{position:absolute;right:0;top:0;display:flex;align-items:center;gap:.7vw;padding:.6vh .4vw;font:600 12px/1 Rubik,sans-serif;letter-spacing:.24em;color:var(--mist)}
+.pg-back:hover{color:var(--ice)}
+.pg h3{margin:0 0 1vh;font:600 clamp(12px,1.75vh,16px)/1 Oswald,sans-serif;letter-spacing:.26em;color:var(--cy);text-transform:uppercase}
+.hs{display:flex;flex-direction:column}
+/* играть */
+.modes3{display:grid;grid-template-columns:repeat(3,1fr);gap:1vw}
+.mode{position:relative;display:flex;flex-direction:column;justify-content:flex-end;min-height:17vh;padding:5vh 1.4vw 1.8vh;text-align:left;background:rgba(42,99,230,.14);border:1px solid rgba(98,227,255,.22);clip-path:polygon(0 0,100% 0,94% 100%,0 100%);transition:background .18s,color .18s}
+.mode:hover:not(:disabled){background:rgba(42,99,230,.3)}
+.mode b{font:700 clamp(24px,4.8vh,56px)/.95 Oswald,sans-serif;transform:skewX(var(--sk));transform-origin:0 100%}
+.mode span{margin-top:.9vh;font:400 clamp(11px,1.55vh,14px)/1.45 Rubik,sans-serif;color:var(--mist)}
+.mode em{position:absolute;left:1.4vw;top:1.8vh;font:600 clamp(9px,1.25vh,12px)/1 Rubik,sans-serif;letter-spacing:.24em;color:var(--cy);font-style:normal}
+.mode.sel{background:var(--ice);color:var(--ink)}.mode.sel span{color:#2b3e66}.mode.sel em{color:var(--hot)}
+.mode:disabled{opacity:.3}
+.row2{display:grid;grid-template-columns:1.35fr 1fr;gap:1.6vw}
+.maps2{display:grid;grid-template-columns:1fr 1fr;gap:.8vw}
+.map{position:relative;display:flex;flex-direction:column;text-align:left;border:1px solid rgba(98,227,255,.22);background:rgba(3,8,22,.6);overflow:hidden;transition:border-color .18s}
+.map:hover{border-color:rgba(98,227,255,.55)}
+.map .art{display:block;height:9.5vh;min-height:54px}
+.map.z .art{background:linear-gradient(180deg,transparent 72%,rgba(0,0,0,.4) 72%),repeating-linear-gradient(135deg,#f2b84b 0 10px,#1a0d0d 10px 20px) bottom/100% 20% no-repeat,radial-gradient(circle at 20% 35%,#ffb36b 0 3px,transparent 4px),radial-gradient(circle at 46% 30%,#ffb36b 0 3px,transparent 4px),radial-gradient(circle at 72% 38%,#ffb36b 0 3px,transparent 4px),linear-gradient(180deg,#3a0b12,#7a1420)}
+.map.p .art{background:radial-gradient(circle at 78% 30%,#fff7d6 0 9%,rgba(255,247,214,.35) 10%,transparent 24%),repeating-linear-gradient(90deg,transparent 0 18px,rgba(255,255,255,.55) 18px 22px) bottom/100% 45% no-repeat,linear-gradient(180deg,#3f8fe8,#9fd2ff)}
+.map b{display:block;padding:1.1vh .9vw 0;font:700 clamp(15px,2.4vh,25px)/1.05 Oswald,sans-serif;transform:skewX(var(--sk));transform-origin:0 0}
+.map .ds{display:block;padding:.4vh .9vw 1.2vh;font:400 12px/1.35 Rubik,sans-serif;color:var(--mist)}
+.map.sel{border-color:var(--ice);box-shadow:inset 0 0 0 2px var(--ice)}
+.map.sel::after{content:"ВЫБРАНО";position:absolute;right:0;top:0;padding:.45em .8em;font:700 10px/1 Rubik,sans-serif;letter-spacing:.2em;background:var(--hot);color:#fff}
+.fields2{display:flex;flex-direction:column;gap:1.4vh}
+.fl{display:flex;flex-direction:column;gap:.6vh;font:600 11px/1 Rubik,sans-serif;letter-spacing:.24em;color:var(--mist);text-transform:uppercase;transition:opacity .2s}
+.fl input{width:100%;padding:1vh .7vw;font:500 16px Rubik,sans-serif;letter-spacing:.02em;text-transform:none;color:var(--ice);background:rgba(3,8,22,.7);border:0;border-bottom:2px solid rgba(98,227,255,.35);border-radius:0;outline:none}
+.fl input:focus{border-bottom-color:var(--cy);background:rgba(42,99,230,.16)}
+.fl.off{opacity:.35}
+.netl{margin:0;font:400 clamp(11px,1.5vh,13px)/1.5 Rubik,sans-serif;color:var(--mist)}.netl:empty{display:none}
+.go{display:flex;align-items:center;justify-content:space-between;gap:2vw;margin-top:auto;padding-top:1vh}
+#best{font:500 12px/1.3 Rubik,sans-serif;letter-spacing:.2em;color:var(--mist);text-transform:uppercase}
+.cta{display:flex;align-items:center;gap:1.2vw;padding:1.7vh 3.2vw 1.7vh 2.6vw;font:700 clamp(22px,4.2vh,46px)/1 Oswald,sans-serif;letter-spacing:.06em;color:#fff;background:var(--hot);clip-path:polygon(0 0,100% 0,95% 100%,0 100%);transition:filter .15s,transform .15s}
+.cta:hover,.cta:focus-visible{filter:brightness(1.15);transform:translateX(-.4vw)}
+.cta .k{background:rgba(0,0,0,.25);border-color:rgba(255,255,255,.55);color:#fff}
+/* герой */
+.sw{display:flex;gap:.7vw;flex-wrap:wrap}
+.sw button{width:clamp(26px,4.4vh,44px);height:clamp(26px,4.4vh,44px);border:2px solid rgba(255,255,255,.25);transform:skewX(var(--sk));transition:transform .15s}
+.sw button:hover{transform:skewX(var(--sk)) translateY(-2px)}
+.sw button.sel{outline:2px solid var(--ice);outline-offset:3px;transform:skewX(var(--sk)) scale(1.08)}
+.chips,.crow{display:flex;flex-wrap:wrap;gap:.45vw;align-items:center}
+.chips button,.crow button{padding:.75vh 1vw;font:500 clamp(11px,1.55vh,14px)/1.1 Rubik,sans-serif;color:var(--ice);background:rgba(42,99,230,.16);border:1px solid rgba(98,227,255,.25);clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);transition:background .15s}
+.chips button:hover,.crow button:hover:not(:disabled){background:rgba(42,99,230,.34)}
+.chips button.sel,.crow button.sel{background:var(--ice);color:var(--ink)}
+.crow button:disabled{opacity:.42}
+.crow span{min-width:84px;font:600 11px Rubik,sans-serif;letter-spacing:.22em;color:var(--cy);text-transform:uppercase}
+.cosm{display:flex;flex-direction:column;gap:1.1vh}
+.cosm .sp{font:400 13px Rubik,sans-serif;color:var(--mist)}.cosm .sp b{color:var(--gold)}
+.hint{margin:0;font:400 12px Rubik,sans-serif;letter-spacing:.18em;color:var(--mist);text-transform:uppercase}
+/* управление */
+.man{display:grid;grid-template-columns:clamp(130px,13vw,200px) 1fr;gap:1.8vw;flex:1;min-height:0}
+.mtabs{display:flex;flex-direction:column;gap:.7vh}
+.mtab{padding:1vh 1vw;text-align:left;font:700 clamp(15px,2.3vh,23px)/1 Oswald,sans-serif;letter-spacing:.04em;color:var(--mist);border-left:3px solid transparent;transform:skewX(var(--sk));transition:color .15s,background .15s}
+.mtab:hover{color:var(--ice)}
+.mtab.sel{background:var(--ice);color:var(--ink);border-left-color:var(--hot)}
+.mbody{overflow:auto;padding-right:.6vw;scrollbar-width:thin;scrollbar-color:var(--blu) transparent}
+.msec[hidden]{display:none}
+.mrow{display:grid;grid-template-columns:minmax(120px,30%) 1fr;gap:1.2vw;padding:1.15vh 0;border-bottom:1px solid rgba(98,227,255,.1);font:400 clamp(12px,1.65vh,15px)/1.5 Rubik,sans-serif;color:#d2e2fb}
+.mrow .ks{display:flex;flex-wrap:wrap;gap:.35vw;align-items:center;align-content:flex-start;font:600 12px Rubik,sans-serif;letter-spacing:.12em;color:var(--cy);text-transform:uppercase}
+.mrow b{color:var(--ice);font-weight:600}
+.wcards{display:grid;grid-template-columns:1fr 1fr;gap:1vw}
+.wcard{padding:1.5vh 1.2vw 1.6vh;background:rgba(42,99,230,.1);border:1px solid rgba(98,227,255,.18);clip-path:polygon(0 0,100% 0,97% 100%,0 100%)}
+.wcard.boss{background:rgba(255,45,77,.1);border-color:rgba(255,45,77,.4)}
+.wcard h4{display:flex;align-items:baseline;gap:.7vw;margin:0 0 .5vh;font:700 clamp(18px,2.8vh,28px)/1 Oswald,sans-serif;transform:skewX(var(--sk));transform-origin:0 100%}
+.wcard h4 i{font:600 12px Rubik,sans-serif;font-style:normal;color:var(--hot)}
+.wcard h4 small{font:500 11px Rubik,sans-serif;letter-spacing:.2em;color:var(--mist);text-transform:uppercase}
+.wcard p{margin:.6vh 0 0;font:400 clamp(12px,1.55vh,14px)/1.5 Rubik,sans-serif;color:#c9daf6}
+.wcard p .k{height:1.75em;min-width:1.75em;font-size:11px;margin-right:.35em}
+.mnote{margin:1.4vh 0 0;font:400 13px/1.5 Rubik,sans-serif;color:var(--mist)}
+/* настройки */
+.set{display:grid;grid-template-columns:1fr auto;align-items:center;gap:2vw;padding:1.9vh .4vw;border-bottom:1px solid rgba(98,227,255,.12)}
+.set b{display:block;font:700 clamp(16px,2.6vh,26px)/1 Oswald,sans-serif;letter-spacing:.03em;transform:skewX(var(--sk));transform-origin:0 100%}
+.set span{display:block;margin-top:.6vh;font:400 13px/1.4 Rubik,sans-serif;color:var(--mist)}
+.seg{display:flex;gap:.35vw}
+.seg button{padding:1vh 1.3vw;font:600 13px/1 Rubik,sans-serif;letter-spacing:.1em;color:var(--mist);background:rgba(42,99,230,.14);border:1px solid rgba(98,227,255,.22);clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)}
+.seg button:hover{color:var(--ice)}
+.seg button.sel{background:var(--ice);color:var(--ink)}
+.rng{display:flex;align-items:center;gap:1vw;font:600 15px Rubik,sans-serif;color:var(--ice)}
+.rng input{width:min(260px,22vw);accent-color:var(--cy)}
+/* подвал */
+.mm-foot{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:space-between;gap:2vw;padding:1.7vh 2.6vw;background:linear-gradient(0deg,rgba(2,5,14,.92),rgba(2,5,14,0));font:500 clamp(10px,1.45vh,13px)/1 Rubik,sans-serif;letter-spacing:.16em;color:var(--mist);text-transform:uppercase;pointer-events:none;transition:opacity .5s}
+.mm[data-v=title] .mm-foot{opacity:0}
+.mm-foot .keys{display:flex;gap:2vw;flex-wrap:wrap}
+.mm-foot .keys span{display:flex;align-items:center;gap:.45vw}
+.mm-foot .k{height:1.9em;min-width:1.9em;font-size:11px}
+.mm-foot .me{display:flex;align-items:center;gap:1vw;white-space:nowrap}
+.mm-foot .pc{width:11px;height:11px;transform:skewX(var(--sk))}
+.mm-foot .dot{width:8px;height:8px;border-radius:50%;background:#5f6e8a}
+.mm-foot .dot.on{background:#46e08a;box-shadow:0 0 8px #46e08a}
+.mm-foot .sep{width:1px;height:1.6em;background:rgba(169,198,242,.3)}
+@media(max-width:900px){.mm-list{right:4vw}.pg{left:3vw;right:3vw;width:auto;top:12vh;padding-left:4vw;clip-path:none}.pg.in{animation:none}.modes3,.row2,.wcards{grid-template-columns:1fr}.man{grid-template-columns:1fr}.mtabs{flex-direction:row;flex-wrap:wrap}.mm-gauge,.mm-cal{display:none}}
+/* ===== пауза и экран поражения ===== */
+.ov{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:1.2vh;padding:0 0 0 8vw;text-align:left;pointer-events:auto;overflow:auto;color:var(--ice);font-family:Oswald,"Arial Narrow",Arial,sans-serif;
+ background:linear-gradient(100deg,rgba(4,9,23,.95) 0%,rgba(4,9,23,.84) 44%,rgba(4,9,23,.3) 100%);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.ov[hidden]{display:none}
+.ov::after{content:"";position:absolute;left:0;top:0;bottom:0;width:.5vw;background:linear-gradient(var(--cy),var(--blu));pointer-events:none}
+.ps-t{margin:0;font:400 clamp(70px,17vh,210px)/.8 Anton,Oswald,sans-serif;color:var(--ice);transform:skewX(var(--sk));text-shadow:.04em .04em 0 var(--blu)}
+.ps-t em{font-style:normal;color:var(--hot);text-shadow:.04em .04em 0 #4a0410}
+.ov .note,.ov #deadInfo{margin:0;font:400 clamp(12px,1.7vh,15px)/1.5 Rubik,sans-serif;letter-spacing:.06em;color:var(--mist)}
+.ov .big{font:400 clamp(60px,14vh,170px)/.9 Anton,sans-serif;color:var(--ice);transform:skewX(var(--sk));text-shadow:.04em .04em 0 var(--blu)}
+.ps-list{display:flex;flex-direction:column;align-items:flex-start;gap:.8vh;margin:1.6vh 0}
+.psb{position:relative;isolation:isolate;display:flex;align-items:center;gap:1vw;padding:.5vh 1.8vw .6vh 1vw;font:700 clamp(26px,5.6vh,64px)/1 Oswald,sans-serif;color:rgba(200,222,255,.62);transform:skewX(var(--sk));transition:color .15s,transform .25s cubic-bezier(.2,1.3,.3,1)}
+.psb i{font:600 13px Rubik,sans-serif;font-style:normal;color:var(--cy)}
+.psb::before{content:"";position:absolute;inset:0;background:var(--ice);transform:scaleX(0);transform-origin:0 50%;transition:transform .22s cubic-bezier(.2,.9,.2,1);z-index:-1;box-shadow:.5vw .6vh 0 var(--cy)}
+.psb:hover,.psb:focus-visible{color:var(--ink);transform:skewX(var(--sk)) translateX(1vw);outline:none}
+.psb:hover::before,.psb:focus-visible::before{transform:scaleX(1)}
+.psb:hover i,.psb:focus-visible i{color:var(--hot)}
+.ov label.sens{display:flex;gap:1vw;align-items:center;font:500 12px Rubik,sans-serif;letter-spacing:.2em;color:var(--mist);text-transform:uppercase}
+.ov input[type=range]{accent-color:var(--cy);width:200px}
+.ps-keys{margin-top:1vh;font:500 12px Rubik,sans-serif;letter-spacing:.16em;color:var(--mist);text-transform:uppercase;display:flex;gap:1.6vw;align-items:center}
+.ps-keys span{display:flex;gap:.5vw;align-items:center}
+</style>
+</head>
+<body>
+<div id="screen">
+<canvas id="c"></canvas>
+<div class="hud">
+<div id="vig"></div><div id="pflash"></div>
+<div id="cross"></div><div id="hm"></div>
+<div class="tl"><div id="score"><small id="scl">Счёт</small><span id="sc">0</span></div><div id="board"></div></div>
+<div class="top"><div id="wave">ВОЛНА 1</div><div id="left"></div></div>
+<div id="bossBar" hidden><div class="bn">ГЕНЕРАЛЬНЫЙ ДИРЕКТОР ГАЗ-АДА</div><i><b id="bossF"></b></i></div>
+<div class="style"><div id="rank">D</div><div id="rankName">ТЁПЛЕНЬКО</div><div class="sbar"><div id="sbf"></div></div><div id="feed"></div></div>
+<div id="banner"></div><div id="respawn"></div>
+<div class="bl"><div class="hpt"><span>ЗДОРОВЬЕ</span><span id="hpt">100</span></div><div class="hp"><div id="hpf"></div></div><div class="stam"><i><b></b></i><i><b></b></i><i><b></b></i></div></div>
+<div class="br"><div class="wp on" id="w0">1 · Шипучка <span id="coinsH"></span></div><div class="wp" id="w1">2 · Шейкер</div><div class="wp" id="w2">3 · Ментос-пушка</div><div class="wp" id="w3">4 · Газява</div><div class="gas"><span>ДАВЛЕНИЕ</span><i><b id="gasf"></b></i></div></div>
+</div>
+<div class="mm" id="menu" data-v="title">
+ <div class="mm-fx" aria-hidden="true">
+  <div class="mm-bars"><i></i><i></i><i></i></div>
+  <svg class="mm-gauge" id="mmGauge" viewBox="0 0 200 200"></svg>
+  <div class="mm-big"><span>ULTRAGAS ULTRAGAS ULTRAGAS ULTRAGAS </span></div>
+  <div class="mm-shade"></div><div class="mm-vig"></div>
+  <div class="mm-wipe" id="mmWipe"></div>
+ </div>
+ <h1 class="sr">ULTRAGAS</h1>
+ <div class="mm-logo" aria-hidden="true"><span class="l1">ULTRA</span><span class="l2">GAS</span><span class="l3">газированный ад · шутер</span></div>
+ <button class="mm-press" id="mmPress">НАЖМИ ЛЮБУЮ КЛАВИШУ</button>
+ <div class="mm-cal" aria-hidden="true"><canvas id="calMoon" width="64" height="64"></canvas><div class="cal-d" id="calD">1</div><div class="cal-mw"><span id="calM">ЯНВ</span><span class="w" id="calW">ПН</span></div><div class="cal-r"><span class="t" id="calT">00:00</span><span id="calS">НОЧНАЯ СМЕНА</span><span id="calPh"></span></div></div>
+ <nav class="mm-list" id="mmList" aria-label="Главное меню">
+  <button class="mi" style="--i:0" data-go="play"><i>01</i><b>ИГРАТЬ</b><small>соло · кооп · арена</small></button>
+  <button class="mi" style="--i:1" data-go="hero"><i>02</i><b>ГЕРОЙ</b><small>цвет · облик · анимации</small></button>
+  <button class="mi" style="--i:2" data-go="manual"><i>03</i><b>УПРАВЛЕНИЕ</b><small>клавиши · оружие · враги</small></button>
+  <button class="mi" style="--i:3" data-go="settings"><i>04</i><b>НАСТРОЙКИ</b><small>мышь · графика · звук</small></button>
+ </nav>
+ <section class="pg" id="pg-play" hidden aria-label="Играть">
+  <header class="pg-h"><span class="n">01</span><h2>ИГРАТЬ</h2><p>режим · карта · комната</p><button class="pg-back" data-back>‹ НАЗАД <span class="k">Esc</span></button></header>
+  <div class="hs"><h3>Режим</h3><div class="modes3" role="radiogroup" aria-label="Режим игры">
+   <button class="mode" id="mSolo" data-m="solo" role="radio"><em>PVE · ОФЛАЙН</em><b>СОЛО</b><span>Бесконечные волны врагов. Каждая 5-я волна — босс.</span></button>
+   <button class="mode" id="mCoop" data-m="coop" role="radio"><em>PVE · ОНЛАЙН</em><b>КООП</b><span>Отбивайтесь от волн вместе. Огня по своим нет.</span></button>
+   <button class="mode" id="mPvp" data-m="pvp" role="radio"><em>PVP · ОНЛАЙН</em><b>АРЕНА</b><span>Все против всех, считаются фраги.</span></button>
+  </div></div>
+  <div class="row2">
+   <div class="hs"><h3>Карта</h3><div class="maps2" role="radiogroup" aria-label="Карта">
+    <button id="mapZ" class="map z" role="radio"><span class="art"></span><b>ЗАВОД «ГАЗ-АД»</b><span class="ds">Цеха, конвейеры, балконы</span></button>
+    <button id="mapP" class="map p" role="radio"><span class="art"></span><b>ПЛОЩАДЬ ФОНТАНА</b><span class="ds">Открытое небо и гейзеры</span></button>
+   </div></div>
+   <div class="hs"><h3>Игрок</h3><div class="fields2">
+    <label class="fl" for="nick">Ник<input id="nick" maxlength="14" autocomplete="off" spellcheck="false"></label>
+    <label class="fl" id="codeL" for="code">Комната для онлайна<input id="code" maxlength="20" autocomplete="off" spellcheck="false"></label>
+   </div></div>
+  </div>
+  <div><p class="netl" id="netNote">Проверяю, доступен ли мультиплеер…</p><p class="netl" id="online"></p></div>
+  <div class="go"><span id="best"></span><button class="cta" id="startBtn">НАЧАТЬ <span class="k">Enter</span></button></div>
+ </section>
+ <section class="pg" id="pg-hero" hidden aria-label="Герой">
+  <header class="pg-h"><span class="n">02</span><h2>ГЕРОЙ</h2><p>Г-1 «Газировщик» · боевая машина завода</p><button class="pg-back" data-back>‹ НАЗАД <span class="k">Esc</span></button></header>
+  <div class="hs"><h3>Цвет брони</h3><div class="sw" id="sw" role="radiogroup" aria-label="Цвет брони"></div></div>
+  <div class="hs"><h3>Облик</h3><div class="cosm" id="cosm"></div></div>
+  <div class="hs"><h3>Анимации</h3><div class="chips" id="anB" role="radiogroup" aria-label="Показать анимацию героя"></div></div>
+  <p class="hint">Перетащи героя мышью, чтобы повернуть</p>
+ </section>
+ <section class="pg" id="pg-manual" hidden aria-label="Управление">
+  <header class="pg-h"><span class="n">03</span><h2>УПРАВЛЕНИЕ</h2><p>руководство бойца завода</p><button class="pg-back" data-back>‹ НАЗАД <span class="k">Esc</span></button></header>
+  <div class="man">
+   <div class="mtabs" role="tablist" aria-label="Разделы руководства">
+    <button class="mtab sel" role="tab" data-t="move">ДВИЖЕНИЕ</button><button class="mtab" role="tab" data-t="fight">БОЙ</button><button class="mtab" role="tab" data-t="guns">ОРУЖИЕ</button><button class="mtab" role="tab" data-t="foes">ВРАГИ</button><button class="mtab" role="tab" data-t="modes">РЕЖИМЫ</button><button class="mtab" role="tab" data-t="keys">КЛАВИШИ</button>
+   </div>
+   <div class="mbody">
+    <div class="msec" id="ms-move" role="tabpanel">
+     <div class="mrow"><div class="ks"><span class="k">W</span><span class="k">A</span><span class="k">S</span><span class="k">D</span></div><div><b>Бег.</b> Герой очень быстрый — не стой на месте, двигайся всё время.</div></div>
+     <div class="mrow"><div class="ks"><span class="k">Мышь</span></div><div><b>Обзор и прицел.</b> Чувствительность меняется в настройках.</div></div>
+     <div class="mrow"><div class="ks"><span class="k">Пробел</span></div><div><b>Прыжок.</b> В прыжке у стены — отскок от неё, до 3 раз подряд.</div></div>
+     <div class="mrow"><div class="ks"><span class="k">Shift</span></div><div><b>Рывок с неуязвимостью.</b> 3 заряда — синие полоски под здоровьем, они восстанавливаются сами.</div></div>
+     <div class="mrow"><div class="ks"><span class="k">C</span> на земле</div><div><b>Подкат.</b> Быстро и низко, проскальзываешь под атаками.</div></div>
+     <div class="mrow"><div class="ks"><span class="k">C</span> в воздухе</div><div><b>Удар с неба.</b> Падаешь камнем и бьёшь по площади. Упадёшь прямо на автомат — сломаешь его сразу.</div></div>
+     <div class="mrow"><div class="ks">Гейзеры</div><div>Бирюзовые площадки на полу подбрасывают высоко вверх.</div></div>
+    </div>
+    <div class="msec" id="ms-fight" role="tabpanel" hidden>
+     <div class="mrow"><div class="ks"><span class="k">ЛКМ</span><span class="k">ПКМ</span></div><div><b>Огонь.</b> Основной и альтернативный режим текущего оружия.</div></div>
+     <div class="mrow"><div class="ks"><span class="k">F</span></div><div><b>Удар кулаком и парирование.</b> Ударь по летящему снаряду — он полетит обратно с двойным уроном, а удар сразу будет готов снова. Удачное парирование лечит.</div></div>
+     <div class="mrow"><div class="ks">Здоровье</div><div>Убитые враги роняют красные сгустки — подбирай их.</div></div>
+     <div class="mrow"><div class="ks">Стиль</div><div>Убивай разнообразно и без пауз — ранг растёт от <b>D</b> до <b>SSS</b>. Очки стиля копятся между играми и открывают новый облик героя.</div></div>
+     <div class="mrow"><div class="ks">Кола</div><div>Облитые Газявой враги получают <b>+35% урона</b>. Ракета Ментос-пушки по облитому врагу — <b>гейзер колы</b>. На лужах колы враги поскальзываются.</div></div>
+    </div>
+    <div class="msec" id="ms-guns" role="tabpanel" hidden>
+     <div class="wcards">
+      <div class="wcard"><h4><i>1</i>ШИПУЧКА <small>револьвер</small></h4><p><span class="k">ЛКМ</span>Точный выстрел.</p><p><span class="k">ПКМ</span>Подбросить крышку-монетку (4 шт., восполняются сами). Выстрели в неё — пуля срикошетит во врага с двойным уроном, иногда сразу в двоих. Крышку можно отбивать кулаком сколько угодно.</p></div>
+      <div class="wcard"><h4><i>2</i>ШЕЙКЕР <small>дробовик</small></h4><p><span class="k">ЛКМ</span>Заряд дроби — страшен вблизи.</p><p><span class="k">ПКМ</span>Бутылка-граната. Выстрели в неё в воздухе — будет взрыв.</p></div>
+      <div class="wcard"><h4><i>3</i>МЕНТОС-ПУШКА <small>ракеты</small></h4><p><span class="k">ЛКМ</span>Ракета.</p><p><span class="k">ПКМ</span>Подорвать все свои ракеты прямо в воздухе.</p></div>
+      <div class="wcard"><h4><i>4</i>ГАЗЯВА <small>боевой сифон</small></h4><p><span class="k">ЛКМ</span>Длинная струя колы. Не ранит, но облитые враги уязвимее, а на полу остаются лужи.</p><p><span class="k">ПКМ</span>Реактивный рывок на газе. Давление видно на манометре.</p></div>
+     </div>
+     <p class="mnote"><span class="k">1</span>–<span class="k">4</span> выбор · <span class="k">Q</span> прошлое оружие · <span class="k">Колесо</span> листать · <span class="k">V</span> осмотреть</p>
+    </div>
+    <div class="msec" id="ms-foes" role="tabpanel" hidden>
+     <div class="wcards">
+      <div class="wcard"><h4>АВТОМАТ <small>газировки</small></h4><p>Бежит и бросается вперёд головой, как таран. Прыжок можно отбить кулаком, а после прыжка ему нужна секунда, чтобы встать.</p></div>
+      <div class="wcard"><h4>МЯТНЫЙ ДРОН <small>летает</small></h4><p>Стреляет снарядами — их можно отбить. Сбитый дрон падает прямо на тебя: отбей его кулаком, и он взорвётся в стороне.</p></div>
+      <div class="wcard"><h4>САХАРНЫЙ ГОЛЕМ <small>тяжёлый</small></h4><p>Живучий громила. Его рывок нельзя парировать — уходи от него рывком.</p></div>
+      <div class="wcard"><h4>МАКСИМИ БАНАНИНИ <small>редкий</small></h4><p>Быстрый гость, приходит примерно в каждую десятую волну. Роняет кожуру — наступишь и поскользнёшься.</p></div>
+      <div class="wcard boss"><h4>ГЕНЕРАЛЬНЫЙ ДИРЕКТОР <small>босс</small></h4><p>Приходит каждую 5-ю волну. Отбивай залпы, лови его рывок с открывашкой ударом кулака, а при «Падении акций» перепрыгни ударную волну.</p></div>
+     </div>
+    </div>
+    <div class="msec" id="ms-modes" role="tabpanel" hidden>
+     <div class="mrow"><div class="ks">Соло</div><div>Бесконечные волны. Лучший счёт сохраняется.</div></div>
+     <div class="mrow"><div class="ks">Кооп</div><div>Волны вместе с друзьями. Огня по своим нет, возрождение через 5 секунд.</div></div>
+     <div class="mrow"><div class="ks">Арена</div><div>Все против всех на выбранной карте. Возрождение через 3 секунды.</div></div>
+     <div class="mrow"><div class="ks">С друзьями</div><div>Отправь ссылку на игру. Все вводят одинаковую комнату и выбирают тот же режим и карту.</div></div>
+    </div>
+    <div class="msec" id="ms-keys" role="tabpanel" hidden>
+     <div class="mrow"><div class="ks"><span class="k">Esc</span></div><div>Пауза</div></div>
+     <div class="mrow"><div class="ks"><span class="k">Tab</span></div><div>Таблица игроков в онлайне</div></div>
+     <div class="mrow"><div class="ks"><span class="k">T</span></div><div>Вид от третьего лица</div></div>
+     <div class="mrow"><div class="ks"><span class="k">V</span></div><div>Осмотреть оружие</div></div>
+     <div class="mrow"><div class="ks"><span class="k">M</span></div><div>Звук вкл/выкл</div></div>
+     <div class="mrow"><div class="ks"><span class="k">Q</span><span class="k">Колесо</span></div><div>Прошлое оружие / листать оружие</div></div>
+    </div>
+   </div>
+  </div>
+ </section>
+ <section class="pg" id="pg-settings" hidden aria-label="Настройки">
+  <header class="pg-h"><span class="n">04</span><h2>НАСТРОЙКИ</h2><p>мышь · графика · звук · экран</p><button class="pg-back" data-back>‹ НАЗАД <span class="k">Esc</span></button></header>
+  <div class="set"><div><b>Чувствительность мыши</b><span>Как быстро поворачивается камера</span></div><label class="rng"><input type="range" id="sens" min="0.4" max="3" step="0.1" value="1.2" aria-label="Чувствительность мыши"><span id="sensV">1.2</span></label></div>
+  <div class="set"><div><b>Графика</b><span>Тени, свечение и чёткость. Если игра тормозит — понизь</span></div><div class="seg" role="radiogroup" aria-label="Графика"><button class="qb" data-q="high">ВЫСОКАЯ</button><button class="qb" data-q="mid">СРЕДНЯЯ</button><button class="qb" data-q="low">НИЗКАЯ</button></div></div>
+  <div class="set"><div><b>Звук</b><span>Эффекты в игре и меню. Клавиша M — быстро выключить</span></div><div class="seg"><button id="sndOn">ВКЛ</button><button id="sndOff">ВЫКЛ</button></div></div>
+  <div class="set"><div><b>Музыка в меню</b><span>Тихий синтезаторный эмбиент</span></div><div class="seg"><button id="musOn">ВКЛ</button><button id="musOff">ВЫКЛ</button></div></div>
+  <div class="set"><div><b>Полный экран</b><span>Растянуть игру на весь монитор</span></div><div class="seg"><button id="fsBtn">ВКЛЮЧИТЬ</button></div></div>
+ </section>
+ <footer class="mm-foot"><div class="keys" id="mmKeys"></div><div class="me"><span class="pc" id="mmPc"></span><span id="mmNick"></span><span class="sep"></span><span id="mmSp"></span><span class="sep"></span><span class="dot" id="netDot"></span><span id="netShort">…</span></div></footer>
+</div>
+<div class="ov" id="pause" hidden>
+ <h2 class="ps-t">ПАУЗА</h2>
+ <p class="note" id="pauseNote"></p>
+ <div class="ps-list"><button id="resume" class="psb"><i>01</i>ПРОДОЛЖИТЬ</button><button id="quit" class="psb"><i>02</i>ВЫЙТИ В МЕНЮ</button></div>
+ <label class="sens">Чувствительность мыши <input type="range" id="sens2" min="0.4" max="3" step="0.1" value="1.2"></label>
+ <div class="ps-keys"><span><span class="k">Esc</span>пауза</span><span><span class="k">M</span>звук</span><span><span class="k">T</span>третье лицо</span></div>
+</div>
+<div class="ov" id="dead" hidden>
+ <h2 class="ps-t">ТЫ <em>ВЫДОХСЯ</em></h2>
+ <p id="deadInfo"></p>
+ <div class="big" id="deadScore">0</div>
+ <p class="note" id="deadBest"></p>
+ <div class="ps-list"><button id="again" class="psb"><i>01</i>ЕЩЁ РАЗ</button><button id="toMenu" class="psb"><i>02</i>В МЕНЮ</button></div>
+ <div class="ps-keys"><span><span class="k">Enter</span>ещё раз</span></div>
+</div>
+</div>

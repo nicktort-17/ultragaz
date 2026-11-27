@@ -1,0 +1,20 @@
+import sys
+p='/home/claude/ultra/index.html';s=open(p).read()
+def rep(a,b,n=1):
+    global s
+    c=s.count(a)
+    if c!=n:print('ANCHOR FAIL',c,repr(a[:100]));sys.exit(1)
+    s=s.replace(a,b)
+if "bambun:{" in s:print('v4 already');sys.exit(0)
+rep("const ENEMY={alt:{","const ENEMY={bambun:{hp:24,r:1,cy:2.2,speed:9.5,noslip:1},keto:{hp:6,r:.9,cy:1.6,speed:13,noslip:1},alt:{")
+rep("'queen','alt'];","'queen','alt','bambun','keto'];")
+rep("else if(type==='alt')eyes=buildAlt(g,mm,mats);","else if(type==='alt')eyes=buildAlt(g,mm,mats);else if(type==='bambun')eyes=buildBambun(g,mm,mats);else if(type==='keto')eyes=buildKeto(g,mm);")
+rep("  else if(e.type==='alt'){altAI(e,t,to,dist,dt,tg);altAnim(e,dt)}","  else if(e.type==='alt'){altAI(e,t,to,dist,dt,tg);altAnim(e,dt)}\n  else if(e.type==='bambun'){bambAI(e,t,to,dist,dt,tg);bambAnim(e,dt)}\n  else if(e.type==='keto'){ketoAI(e,t,to,dist,dt,tg);ketoAnim(e,dt)}")
+rep("e.type==='golem'?4.5:2.5","(e.type==='golem'?4.5:e.type==='bambun'?4.2:e.type==='keto'?3.9:2.5)",2)
+rep("const hh=type==='golem'||type==='boss'?4.6:2.5","const hh=type==='golem'||type==='boss'||type==='bambun'?4.6:type==='keto'?3.9:2.5")
+rep("if(e.type==='alt')altAnim(e,dt);if(e.type==='vend')","if(e.type==='alt')altAnim(e,dt);if(e.type==='bambun')bambAnim(e,dt);if(e.type==='keto')ketoAnim(e,dt);if(e.type==='vend')")
+rep("if(e.type==='banan'){pts=300;lbl='БАНАНИНИ ПОВЕРЖЕН';","if(e.type==='bambun'){pts=200;lbl='БАМБУН ЛОПНУЛ'}if(e.type==='keto'){pts=120;lbl='КЕТОНАЛЬЩИК ОТБЕГАЛСЯ'}if(e.type==='banan'){pts=300;lbl='БАНАНИНИ ПОВЕРЖЕН';")
+rep("function kill(e,src,quiet){e.dead=true;","function kill(e,src,quiet){e.dead=true;if(e.type==='bambun'&&!e.remote)setTimeout(()=>bambBoom(center(e,new V3()),true),0);")
+rep("  if(e.type==='alt'&&e.st==='ram'&&e.ph===3&&!e.remote","  if(e.type==='bambun'&&(e.st==='swH'||e.st==='swV')&&!e.hitDone&&!e.remote&&L<5.2&&tmpC.copy(to).normalize().dot(aim)>.1){e.st='stun';e.stT=0;e.wind=0;e.vel.copy(aim).multiplyScalar(8).setY(3);damage(e,4,1,'parry');heal(30);addStyle('ПАРИРОВАНИЕ ВЕСЛА',160);parryOk();did=true;continue}\n  if(e.type==='alt'&&e.st==='ram'&&e.ph===3&&!e.remote")
+rep("loadGunModels();","loadGunModels();loadBambun();",1)
+open(p,'w').write(s);print('v4 ok')
