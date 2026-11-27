@@ -11,3 +11,4 @@ def conv(src,dst):
     open(dst,'w').write(json.dumps(J,ensure_ascii=False,separators=(',',':')))
 conv(TMP+'/pep/pep.glb',MODELS+'/pep.json')
 import os;print('ok',os.path.getsize(MODELS+'/pep.json'))
+import models_js;models_js.main()

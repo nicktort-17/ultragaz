@@ -778,7 +778,7 @@ function updSpouts(dt){for(const s of QS.spouts){const pt=s.t;s.t+=dt;if(s.r)s.r
 function queenSyrupReset(){QS.fill=0;QS.flood=0;{const p=qPool();if(p)p.fl=0}QS.feedT=0;QS.wasDrain=false;QS.told=false;for(const s of QS.spouts){if(s.r)scene.remove(s.r);if(s.c)scene.remove(s.c)}QS.spouts=[];if(QS.vortex){scene.remove(QS.vortex);QS.vortex=null}const p=qPool();if(p&&p.hi0!=null)p.hi=p.hi0}
 /* ---------- Карамельная Царица из Blender (queen.py): тело, голова с короной, кисти; руки — текучие трубки сиропа ---------- */
 let QUEEN_T=null;
-function loadQueen(){if(QUEEN_T||!THREE.GLTFLoader)return;QUEEN_T='load';new THREE.GLTFLoader().load('models/queen.json',gl=>{gl.scene.updateMatrixWorld(true);QUEEN_T=gl.scene},undefined,()=>{QUEEN_T=null})}
+function loadQueen(){if(QUEEN_T||!THREE.GLTFLoader)return;QUEEN_T='load';ugModel('models/queen.json',gl=>{gl.scene.updateMatrixWorld(true);QUEEN_T=gl.scene},undefined,()=>{QUEEN_T=null})}
 function buildQueenM(g,mm){const E={envMap:ENV,envMapIntensity:1.1};
  const MT={caramel:mm(0xd8801f,{roughness:.1,metalness:.05,transparent:true,opacity:.88,...E}),caramelDark:mm(0xa8500e,{roughness:.14,metalness:.05,transparent:true,opacity:.93,...E}),gold:mm(0xf2c14b,{metalness:1,roughness:.2,...E}),
   gem:mm(0xff7ab8,{roughness:.05,emissive:0xff2a80,emissiveIntensity:.6,...E}),lip:mm(0x5a1604,{roughness:.2}),rockCandy:mm(0xffd9a0,{roughness:.05,transparent:true,opacity:.8,emissive:0x6a3000,...E})};

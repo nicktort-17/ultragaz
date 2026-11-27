@@ -1628,7 +1628,7 @@ function updSpouts(dt){for(const s of QS.spouts){const pt=s.t;s.t+=dt;if(s.r)s.r
 function queenSyrupReset(){QS.fill=0;QS.flood=0;{const p=qPool();if(p)p.fl=0}QS.feedT=0;QS.wasDrain=false;QS.told=false;for(const s of QS.spouts){if(s.r)scene.remove(s.r);if(s.c)scene.remove(s.c)}QS.spouts=[];if(QS.vortex){scene.remove(QS.vortex);QS.vortex=null}const p=qPool();if(p&&p.hi0!=null)p.hi=p.hi0}
 /* ---------- Карамельная Царица из Blender (queen.py): тело, голова с короной, кисти; руки — текучие трубки сиропа ---------- */
 let QUEEN_T=null;
-function loadQueen(){if(QUEEN_T||!THREE.GLTFLoader)return;QUEEN_T='load';new THREE.GLTFLoader().load('models/queen.json',gl=>{gl.scene.updateMatrixWorld(true);QUEEN_T=gl.scene},undefined,()=>{QUEEN_T=null})}
+function loadQueen(){if(QUEEN_T||!THREE.GLTFLoader)return;QUEEN_T='load';ugModel('models/queen.json',gl=>{gl.scene.updateMatrixWorld(true);QUEEN_T=gl.scene},undefined,()=>{QUEEN_T=null})}
 function buildQueenM(g,mm){const E={envMap:ENV,envMapIntensity:1.1};
  const MT={caramel:mm(0xd8801f,{roughness:.1,metalness:.05,transparent:true,opacity:.88,...E}),caramelDark:mm(0xa8500e,{roughness:.14,metalness:.05,transparent:true,opacity:.93,...E}),gold:mm(0xf2c14b,{metalness:1,roughness:.2,...E}),
   gem:mm(0xff7ab8,{roughness:.05,emissive:0xff2a80,emissiveIntensity:.6,...E}),lip:mm(0x5a1604,{roughness:.2}),rockCandy:mm(0xffd9a0,{roughness:.05,transparent:true,opacity:.8,emissive:0x6a3000,...E})};
@@ -2312,7 +2312,7 @@ function buildGirlP(o){const S=o.scale||1,root=new THREE.Group(),J={},mats=[];co
 /* ---------- модели девушек из Blender (girls.py): гладкое тело на скелете, одежда, волосы прядями ---------- */
 let GIRL_T={};
 function loadGirls(){if(!THREE.GLTFLoader)return;for(const k of['alt','beach']){if(GIRL_T[k])continue;GIRL_T[k]='load';
- new THREE.GLTFLoader().load('models/girl_'+k+'.json',gl=>{gl.scene.updateMatrixWorld(true);GIRL_T[k]=gl.scene},undefined,()=>{GIRL_T[k]=null})}}
+ ugModel('models/girl_'+k+'.json',gl=>{gl.scene.updateMatrixWorld(true);GIRL_T[k]=gl.scene},undefined,()=>{GIRL_T[k]=null})}}
 function strandTex(){if(GT.strand)return GT.strand;const t=cTex(256,256,(g,w,h)=>{g.fillStyle='#fff';g.fillRect(0,0,w,h);let sd=5;const rn=()=>(sd=(sd*16807)%2147483647)/2147483647;
   for(let i=0;i<340;i++){const x=rn()*w;g.strokeStyle=rn()<.55?`rgba(0,0,0,${.08+rn()*.18})`:`rgba(255,255,255,${.1+rn()*.2})`;g.lineWidth=.8+rn()*2.2;g.beginPath();g.moveTo(x,0);g.bezierCurveTo(x+rn()*4-2,h*.4,x+rn()*4-2,h*.7,x+rn()*5-2.5,h);g.stroke()}
   const sh=g.createLinearGradient(0,0,0,h);sh.addColorStop(0,'rgba(0,0,0,.25)');sh.addColorStop(.12,'rgba(255,255,255,0)');sh.addColorStop(.2,'rgba(255,255,255,.4)');sh.addColorStop(.3,'rgba(255,255,255,0)');sh.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=sh;g.fillRect(0,0,w,h)});
@@ -2851,7 +2851,7 @@ function altFx(n){const s2=n[0];if(s2===10){if(L3)waveReverse(n[1],n[2],n[3],fal
 /* ================= мобы моря пива ================= */
 /* Бамбун — моряк-великан с веслом и бочкой пива. Модель — из Blender (models/bambun.json), части собираются в риг. */
 let BAMB_T=null;
-function loadBambun(){loadGirls();if(typeof loadQueen==='function')loadQueen();if(BAMB_T||!THREE.GLTFLoader)return;BAMB_T='load';new THREE.GLTFLoader().load('models/bambun.json',gl=>{BAMB_T=gl.scene;BAMB_T.updateMatrixWorld(true)},undefined,()=>{BAMB_T=null})}
+function loadBambun(){loadGirls();if(typeof loadQueen==='function')loadQueen();if(BAMB_T||!THREE.GLTFLoader)return;BAMB_T='load';ugModel('models/bambun.json',gl=>{BAMB_T=gl.scene;BAMB_T.updateMatrixWorld(true)},undefined,()=>{BAMB_T=null})}
 function buildBambun(g,mm,mats){const J={},cl=new Map(),part=n=>{const o=BAMB_T&&BAMB_T!=='load'?BAMB_T.getObjectByName(n):null;if(!o)return null;const c=o.clone();c.position.set(0,0,0);c.rotation.set(0,0,0);
   c.traverse(m=>{if(m.isMesh){m.castShadow=true;let k=cl.get(m.material);if(!k){k=m.material.clone();k.envMap=ENV;k.envMapIntensity=.35;cl.set(m.material,k);mats.push(k)}m.material=k}});return c};
  const gp=(par,x,y,z)=>{const o=new THREE.Group();o.position.set(x,y,z);par.add(o);return o};
@@ -4088,8 +4088,17 @@ function partPivot(m,re,pv){const objs=[];m.traverse(o=>{if(o.isMesh&&re.test(o.
  p.userData.base=p.position.clone();p.userData.box=bx;return p}
 function boxIn(m,re,space){const objs=[];m.traverse(o=>{if(o.isMesh&&re.test(o.name))objs.push(o)});if(!objs.length)return null;
  const bx=new THREE.Box3(),inv=space?space.matrixWorld.clone().invert():null;for(const o of objs){const b=new THREE.Box3().setFromObject(o);if(inv)b.applyMatrix4(inv);bx.union(b)}return bx}
-function loadGunModels(){if(!THREE.GLTFLoader)return;const L=new THREE.GLTFLoader();
- GUN_CFG.forEach((cf,i)=>L.load('models/'+cf.f+'.json',gl=>{try{setupGun(i,gl.scene)}catch(e){console.warn('gun',i,e)}},undefined,()=>{}))}
+/*UGMODEL*/
+// Загрузка glTF-модели. С сайта (http) — models/<имя>.json; при открытии файла с диска (file://)
+// Chrome блокирует XHR, поэтому подключаем models/js/<имя>.js (его делает dev/tools/models_js.py).
+function ugModel(url,onLoad,onProg,onErr){if(location.protocol!=='file:'){new THREE.GLTFLoader().load(url,onLoad,onProg,onErr);return}
+ const n=url.replace(/^.*\//,'').replace(/\.json$/,''),dir=url.replace(/[^\/]*$/,''),U=window.__UGM||(window.__UGM={}),
+  fail=e=>{console.warn('model',n,e);if(onErr)onErr(e)},go=()=>{const d=U[n];delete U[n];try{new THREE.GLTFLoader().parse(d,dir,onLoad,fail)}catch(e){fail(e)}};
+ if(U[n])return go();const s=document.createElement('script');s.src=dir+'js/'+n+'.js';
+ s.onload=()=>{s.remove();U[n]?go():fail('no data')};s.onerror=e=>{s.remove();fail(e)};document.head.appendChild(s)}
+/*UGMODEL-END*/
+function loadGunModels(){if(!THREE.GLTFLoader)return;
+ GUN_CFG.forEach((cf,i)=>ugModel('models/'+cf.f+'.json',gl=>{try{setupGun(i,gl.scene)}catch(e){console.warn('gun',i,e)}},undefined,()=>{}))}
 function setupGun(i,m){const cf=GUN_CFG[i],drop=[];
  m.traverse(o=>{if(/Монетка[ _]в[ _]полёте/.test(o.name))drop.push(o);if(o.isMesh){const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(mt=>{const n=mt.name||'';
   if(/Свечение/.test(n)){mt.emissiveIntensity=2}mt.envMap=ENV;mt.envMapIntensity=1.1;
@@ -4453,7 +4462,7 @@ function heroPunch(h){h.punchT=.3}
 /* ================= скин «Качок»: модель из Blender (blender/muscle.py) + плащ-ткань ================= */
 let MUSCLE_T=null;let myCape=true;try{myCape=localStorage.getItem('ug-cape')!=='0'}catch(e){}
 function loadMuscle(){if(MUSCLE_T||!THREE.GLTFLoader)return;MUSCLE_T='load';
- new THREE.GLTFLoader().load('models/muscle.json',gl=>{gl.scene.updateMatrixWorld(true);MUSCLE_T=gl.scene;
+ ugModel('models/muscle.json',gl=>{gl.scene.updateMatrixWorld(true);MUSCLE_T=gl.scene;
   if(myCos.skin===1)rebuildSelf();for(const r of remotes.values())r.cos='?';lastPeers=null},undefined,()=>{MUSCLE_T=null})}
 function isMuscle(c){return!!(c&&COS.skin[c.skin||0]&&COS.skin[c.skin||0][0]==='muscle')}
 const MUS_MAT={};
@@ -6037,7 +6046,7 @@ function pepSnd(k,v=1){if(!ac||muted)return;try{
  else if(k==='zap'){nz(.15,'highpass',3000,.5*v);tone(.12,'square',900,300,.1*v)}}catch(_){}}
 
 /* ---------- модель ---------- */
-function loadPep(){if(PEP_T||!THREE.GLTFLoader)return;PEP_T='load';new THREE.GLTFLoader().load('models/pep.json',gl=>{gl.scene.updateMatrixWorld(true);PEP_T=gl.scene;pepOnLoad()},undefined,()=>{PEP_T=null})}
+function loadPep(){if(PEP_T||!THREE.GLTFLoader)return;PEP_T='load';ugModel('models/pep.json',gl=>{gl.scene.updateMatrixWorld(true);PEP_T=gl.scene;pepOnLoad()},undefined,()=>{PEP_T=null})}
 function pepFacet(m){m.onBeforeCompile=sh=>{sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vPO;').replace('#include <begin_vertex>','#include <begin_vertex>\nvPO=position;');
   sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vPO;').replace('#include <color_fragment>','#include <color_fragment>\n{vec3 fn=normalize(cross(dFdx(vPO),dFdy(vPO)));diffuseColor.rgb*=.86+.14*fract(sin(dot(floor(fn*23.+.5),vec3(12.9898,78.233,37.719)))*43758.5453);}')};
  m.customProgramCacheKey=()=>'pepFacet';return m}

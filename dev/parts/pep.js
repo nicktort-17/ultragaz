@@ -36,7 +36,7 @@ function pepSnd(k,v=1){if(!ac||muted)return;try{
  else if(k==='zap'){nz(.15,'highpass',3000,.5*v);tone(.12,'square',900,300,.1*v)}}catch(_){}}
 
 /* ---------- модель ---------- */
-function loadPep(){if(PEP_T||!THREE.GLTFLoader)return;PEP_T='load';new THREE.GLTFLoader().load('models/pep.json',gl=>{gl.scene.updateMatrixWorld(true);PEP_T=gl.scene;pepOnLoad()},undefined,()=>{PEP_T=null})}
+function loadPep(){if(PEP_T||!THREE.GLTFLoader)return;PEP_T='load';ugModel('models/pep.json',gl=>{gl.scene.updateMatrixWorld(true);PEP_T=gl.scene;pepOnLoad()},undefined,()=>{PEP_T=null})}
 function pepFacet(m){m.onBeforeCompile=sh=>{sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vPO;').replace('#include <begin_vertex>','#include <begin_vertex>\nvPO=position;');
   sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vPO;').replace('#include <color_fragment>','#include <color_fragment>\n{vec3 fn=normalize(cross(dFdx(vPO),dFdy(vPO)));diffuseColor.rgb*=.86+.14*fract(sin(dot(floor(fn*23.+.5),vec3(12.9898,78.233,37.719)))*43758.5453);}')};
  m.customProgramCacheKey=()=>'pepFacet';return m}

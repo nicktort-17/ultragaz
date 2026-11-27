@@ -5,6 +5,7 @@
 ## Где что лежит
 - `index.html` — игра целиком. Её же отдаёт GitHub Pages (https://nicktort-17.github.io/ultragaz/).
 - `models/*.json` — glTF-модели (пушки, Пепсштейн, Бамбун, девушки и т.д.), `models/*.glb` — их бинарные версии.
+- `models/js/*.js` — копии моделей в виде скриптов для запуска игры двойным кликом по `index.html` (file://: Chrome блокирует XHR к `.json`). Грузит их `ugModel()` в `index.html` — все модели загружать только через неё. После любого изменения `models/*.json` запускать `python dev/tools/models_js.py` (`--check` — проверка свежести; `pep2json.py` вызывает его сам).
 - `blender/*.py` — скрипты Blender, которые генерируют модели; экспорт в `models/` (см. `dev/tools/pep2json.py`).
 - `art/` — исходные картинки.
 - `dev/parts/` — исходники крупных подсистем и патч-скрипты, которыми они вклеиваются в `index.html`:

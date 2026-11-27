@@ -153,7 +153,7 @@ function buildGirlP(o){const S=o.scale||1,root=new THREE.Group(),J={},mats=[];co
 /* ---------- модели девушек из Blender (girls.py): гладкое тело на скелете, одежда, волосы прядями ---------- */
 let GIRL_T={};
 function loadGirls(){if(!THREE.GLTFLoader)return;for(const k of['alt','beach']){if(GIRL_T[k])continue;GIRL_T[k]='load';
- new THREE.GLTFLoader().load('models/girl_'+k+'.json',gl=>{gl.scene.updateMatrixWorld(true);GIRL_T[k]=gl.scene},undefined,()=>{GIRL_T[k]=null})}}
+ ugModel('models/girl_'+k+'.json',gl=>{gl.scene.updateMatrixWorld(true);GIRL_T[k]=gl.scene},undefined,()=>{GIRL_T[k]=null})}}
 function strandTex(){if(GT.strand)return GT.strand;const t=cTex(256,256,(g,w,h)=>{g.fillStyle='#fff';g.fillRect(0,0,w,h);let sd=5;const rn=()=>(sd=(sd*16807)%2147483647)/2147483647;
   for(let i=0;i<340;i++){const x=rn()*w;g.strokeStyle=rn()<.55?`rgba(0,0,0,${.08+rn()*.18})`:`rgba(255,255,255,${.1+rn()*.2})`;g.lineWidth=.8+rn()*2.2;g.beginPath();g.moveTo(x,0);g.bezierCurveTo(x+rn()*4-2,h*.4,x+rn()*4-2,h*.7,x+rn()*5-2.5,h);g.stroke()}
   const sh=g.createLinearGradient(0,0,0,h);sh.addColorStop(0,'rgba(0,0,0,.25)');sh.addColorStop(.12,'rgba(255,255,255,0)');sh.addColorStop(.2,'rgba(255,255,255,.4)');sh.addColorStop(.3,'rgba(255,255,255,0)');sh.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=sh;g.fillRect(0,0,w,h)});
@@ -692,7 +692,7 @@ function altFx(n){const s2=n[0];if(s2===10){if(L3)waveReverse(n[1],n[2],n[3],fal
 /* ================= мобы моря пива ================= */
 /* Бамбун — моряк-великан с веслом и бочкой пива. Модель — из Blender (models/bambun.json), части собираются в риг. */
 let BAMB_T=null;
-function loadBambun(){loadGirls();if(typeof loadQueen==='function')loadQueen();if(BAMB_T||!THREE.GLTFLoader)return;BAMB_T='load';new THREE.GLTFLoader().load('models/bambun.json',gl=>{BAMB_T=gl.scene;BAMB_T.updateMatrixWorld(true)},undefined,()=>{BAMB_T=null})}
+function loadBambun(){loadGirls();if(typeof loadQueen==='function')loadQueen();if(BAMB_T||!THREE.GLTFLoader)return;BAMB_T='load';ugModel('models/bambun.json',gl=>{BAMB_T=gl.scene;BAMB_T.updateMatrixWorld(true)},undefined,()=>{BAMB_T=null})}
 function buildBambun(g,mm,mats){const J={},cl=new Map(),part=n=>{const o=BAMB_T&&BAMB_T!=='load'?BAMB_T.getObjectByName(n):null;if(!o)return null;const c=o.clone();c.position.set(0,0,0);c.rotation.set(0,0,0);
   c.traverse(m=>{if(m.isMesh){m.castShadow=true;let k=cl.get(m.material);if(!k){k=m.material.clone();k.envMap=ENV;k.envMapIntensity=.35;cl.set(m.material,k);mats.push(k)}m.material=k}});return c};
  const gp=(par,x,y,z)=>{const o=new THREE.Group();o.position.set(x,y,z);par.add(o);return o};
