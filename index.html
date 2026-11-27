@@ -98,7 +98,17 @@ button:disabled{cursor:not-allowed}
  box-shadow:inset 0 1px 0 rgba(255,255,255,.45);animation:smFizz 1.2s linear infinite}
 @keyframes smFizz{to{background-position:0 -16px,3px -16px,0 0}}
 .style.r6 .smbar{border-color:#fff;box-shadow:0 0 10px rgba(255,40,50,.9),inset 0 0 6px rgba(0,0,0,.9)}
-#rankName{font:400 13px/1 "Russo One",Arial,sans-serif;letter-spacing:.08em;color:var(--rc)!important;text-shadow:0 1px 0 #000,0 0 8px color-mix(in srgb,var(--rc) 50%,transparent);padding-right:12px;margin-top:1px}
+#rankName{align-self:flex-end;position:relative;margin:3px 10px 0 0;padding:3px 14px 3px 18px;transform:skewX(-20deg);
+ font:700 16px/1 Oswald,"Russo One",Arial,sans-serif;letter-spacing:.14em;color:#fff!important;
+ text-shadow:0 1px 0 rgba(0,0,0,.9),0 0 6px rgba(0,0,0,.6);
+ background:linear-gradient(90deg,transparent 0,color-mix(in srgb,var(--rc) 55%,transparent) 22%,color-mix(in srgb,var(--rc) 85%,#000) 100%);
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -2px 0 rgba(0,0,0,.35);overflow:hidden}
+#rankName::before{content:"";position:absolute;right:4px;top:3px;bottom:3px;width:3px;background:#fff;opacity:.85;box-shadow:-5px 0 0 rgba(255,255,255,.5),-10px 0 0 rgba(255,255,255,.25)}
+#rankName::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.55) 45%,transparent 60%);transform:translateX(-120%)}
+.style.up #rankName::after{animation:smShine .6s ease-out}
+.style.r5 #rankName::after,.style.r6 #rankName::after{animation:smShine 1.6s ease-in-out infinite}
+@keyframes smShine{to{transform:translateX(120%)}}
+#rankName{padding-right:22px}
 #feed{margin-top:6px;font:400 14px/1.45 "Russo One",Arial,sans-serif;font-style:italic;text-shadow:0 1px 2px #000;padding-right:10px}
 #feed div{display:inline-block;clear:both;float:right;padding:1px 10px 1px 14px;margin-top:2px;background:linear-gradient(90deg,transparent,rgba(30,6,8,.72) 22%);border-right:3px solid #e0242e;color:#f6eee2}
 @media (prefers-reduced-motion:reduce){.smb *,.smbar b,.style .smb svg,#rank{animation:none!important}}
