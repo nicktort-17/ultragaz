@@ -28,25 +28,29 @@ argument-hint: <описание модели: кто/что, роль в игр
 2. Создай `pipeline/<slug>/notes.md`: задача пользователя дословно, роль в игре, бюджет треугольников, список частей (персонаж, оружие, отдельные пропсы), уровень/фазы.
 3. Если запрос размытый (неясно, кто это, какого размера, какие части) — задай 1–3 коротких вопроса, потом продолжай.
 
-## Этап 1. Общий лист в ChatGPT → **СТОП**
-Открой chatgpt.com (вход — пользователь), новый чат. Пришли промпт по шаблону (английский — точнее для генератора; подставь детали из задачи). Образец оформления — `sheet_example.webp` рядом с этим файлом (лист ALT-010 «False Idol»): тёмный фон, рамки-панели, моноширинные подписи, красный акцент.
+## Этап 1. Концепт и общий лист в ChatGPT → **СТОП**
+**Дизайн придумывает ChatGPT, а не ты.** Ты пишешь только бриф: кто это, роль в игре, факты из игры (механики, атаки, фазы, мир, имеющийся образ — как «что о нём известно», не как готовый дизайн), ограничения. Детали образа, фишки, оружие, эмоции, фазовые изменения — пусть придумает ChatGPT. Так пользователь делал вручную, пример его запроса: «придумай дизайн босса девочки Альтушки 10/10. Её образ должен выглядеть интересно, но не гипертрофированно вычурно. Стилистика босса должна быть как в ULTRAKILL. Сначала придумай сам концепт».
+
+Открой chatgpt.com (вход — пользователь), новый чат.
+1. **Концепт текстом.** Пиши по-русски, в духе примера: «Придумай дизайн <кто> для моего шутера в стиле ULTRAKILL (low-poly, плоские грани, чёткие текстуры, читаемый силуэт). Что известно: <факты из игры>. Образ должен быть интересным, но не гипертрофированно вычурным. Ограничения: вымышленные бренды, без реальных людей, взрослый персонаж, без откровенного. Сначала придумай сам концепт — образ, детали, оружие, фазы, эмоции, палитру». Сохрани ответ ChatGPT в `notes.md` (раздел «Концепт ChatGPT»).
+2. **Лист.** В том же чате попроси нарисовать лист по его концепту (английский — точнее для генератора). Образец оформления — `sheet_example.webp` рядом с этим файлом (лист ALT-010 «False Idol»): тёмный фон, рамки-панели, моноширинные подписи, красный акцент. Шаблон:
 
 ```
-Create a single character design reference sheet, landscape 3:2.
-Subject: <кто/что, характер, роль: boss/enemy/weapon/prop, ключевые детали из задачи>.
+Now draw the concept you designed as a single character design reference sheet, landscape 3:2.
+Subject: <кто/что одной строкой, роль: boss/enemy/weapon/prop — без навязывания деталей>.
 Style (most important): stylized LOW-POLY 3D render in the spirit of retro boomer-shooters —
 clean faceted polygons, flat shading, chunky readable shapes, crisp hand-painted textures,
 limited palette, no blur, no photorealism, no soft plastic look. Adult character.
 Layout like a game studio model sheet on a dark background with thin panel borders and
 monospace labels: header with name/code and short stats; full-body turnaround in a neutral
-standing pose — FRONT, 3/4 FRONT, SIDE, 3/4 BACK, BACK; panel "WEAPON" (<оружие>, two views);
-panel "PHASES" (<фазы/состояния, если есть>); panel "PORTRAITS / EMOTIONS" (4 heads);
+standing pose — FRONT, 3/4 FRONT, SIDE, 3/4 BACK, BACK; panel "WEAPON" (two views);
+panel "PHASES" (if the concept has phases); panel "PORTRAITS / EMOTIONS" (4 heads);
 panel "DETAILS" (close-ups of key parts); panel "PALETTE" (5 swatches); panel "SILHOUETTE".
 No real people, no real brand logos.
 ```
 Для не-персонажа (оружие, моб-механизм, проп) — убери портреты/фазы, оставь turnaround, детали, палитру, силуэт.
 
-Сохрани результат в `pipeline/<slug>/ref/sheet-01.png` (следующие итерации — `sheet-02.png`…), покажи пользователю (SendUserFile, render) с кратким описанием. Правки — в том же чате ChatGPT («keep everything, change …»). Одобренный лист скопируй в `ref/approved.png`, запиши в notes.md итоговый промпт.
+Сохрани результат в `pipeline/<slug>/ref/sheet-01.png` (следующие итерации — `sheet-02.png`…), покажи пользователю (SendUserFile, render) вместе с кратким пересказом концепта ChatGPT. Правки — в том же чате ChatGPT («keep everything, change …»). Одобренный лист скопируй в `ref/approved.png`, запиши в notes.md итоговый промпт.
 
 ## Этап 2. Виды по частям → **СТОП** на каждую часть
 По одобренному листу (прикрепи его в ChatGPT или продолжай тот же чат) для **каждой части** из notes.md генерируй 4 отдельные картинки — это вход для Tripo, поэтому требования строгие:
