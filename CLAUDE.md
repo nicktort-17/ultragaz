@@ -20,7 +20,7 @@
 
 ## Пути и тестовое окружение
 Все пути — в `dev/ugenv.py` (скрипты подключают его первой строкой; переопределяются переменными `UG_INDEX`, `UG_OUT`, `UG_CHROME`, `UG_PORT`, `UG_THREE`…):
-`INDEX` = `index.html` в корне, `PARTS`/`TOOLS` = `dev/parts`/`dev/tools`, `MODELS` = `models/`, `SRV` = `dev/.srv` (тестовая копия), `OUT` = `dev/out` (скриншоты, листы `pt/`, `tour/`; в .gitignore), `CHROME` — установленный Chrome, `TMP` — системный temp (вывод Blender-скриптов).
+`INDEX` = `index.html` в корне, `PARTS`/`TOOLS` = `dev/parts`/`dev/tools`, `MODELS` = `models/`, `SRV` = `dev/.srv` (тестовая копия), `OUT` = `dev/out` (скриншоты, листы `pt/`, `tour/`; в .gitignore), `CHROME` — установленный Chrome, `BLENDER` — blender.exe (сейчас Steam-версия 5.3 на D:), `TMP` — системный temp (вывод Blender-скриптов).
 `ugenv` также ставит `open()` по умолчанию в UTF-8 без перевода строк (на Windows иначе cp1251 и `\r\n`). `.gitattributes` держит LF в рабочей копии — патчи ищут якоря с `\n`.
 Нужно: Python 3.12 + `pip install playwright` (браузер не качать — берётся установленный Chrome). three.js по умолчанию грузится с CDN (нужен интернет); для офлайна — `npm i three@0.128.0` в `dev/tools` (подхватится сам).
 `UG_GPU=1` — рендер на видеокарте вместо swiftshader, `UG_HEADED=1` — видимое окно браузера.

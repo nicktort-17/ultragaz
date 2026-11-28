@@ -36,6 +36,16 @@ def _find_chrome():
     return shutil.which('chrome') or shutil.which('google-chrome') or shutil.which('chromium')
 CHROME = _env('CHROME', _find_chrome())
 
+# Blender (скрипты blender/*.py: blender -b -P script.py -- <папка вывода>)
+def _find_blender():
+    c = [r'D:\001.Data\steam\steamapps\common\Blender\blender.exe',
+         r'C:\Program Files (x86)\Steam\steamapps\common\Blender\blender.exe']
+    c += sorted(__import__('glob').glob(r'C:\Program Files\Blender Foundation\Blender*\blender.exe'), reverse=True)
+    for p in c:
+        if os.path.exists(p): return p
+    return shutil.which('blender')
+BLENDER = _env('BLENDER', _find_blender())
+
 # шрифт для подписей на листах скриншотов (tour.py и т.п.)
 FONTS = [r'C:\Windows\Fonts\arialbd.ttf', r'C:\Windows\Fonts\arial.ttf', r'C:\Windows\Fonts\segoeuib.ttf',
          '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf']
