@@ -23,6 +23,7 @@ with sync_playwright() as p:
         E(pg,"(()=>{for(const e of enemies){if(e.type!=='boss'&&!e.inv)__ug.damage(e,e.maxHp+50,99,'x')}})()")
     shots=[]
     def snap(n):E(pg,AIM);F(pg,1);f=os.path.join(OD,'fin_%s.png'%n);pg.screenshot(path=f);shots.append((n,f));print(n,E(pg,ST))
+    E(pg,"(()=>{window.__nb0=boxes.length})()")
     E(pg,"(()=>{const e=enemies.find(e=>e.type==='boss');e.hp=1;__ug.damage(e,50,10,'shot')})()")
     F(pg,30);snap('1_full_gauge')
     parried=False;t=0;got_hit=False
@@ -46,6 +47,12 @@ with sync_playwright() as p:
         F(pg,90);snap('7_debris')
         F(pg,180);snap('8_aftermath')
         bad=E(pg,"JSON.stringify(DIR_DEB.concat(...DIR_DEAD.map(D=>D.parts.concat(D.caps))).filter(p=>p.o.parent).map(p=>p.o.getWorldPosition(new V3())).filter(q=>inBox(q)||q.x<mapB.x0||q.x>mapB.x1||q.z<mapB.z0||q.z>mapB.z1).map(q=>q.toArray().map(v=>+v.toFixed(1))))")
+        print('boxes removed:',E(pg,"__nb0-boxes.length"))
+        res=[]
+        for dx,dz in((0,0),(0,1),(0,-1),(1,0),(-1,0),(0,4),(4,0),(-6,3),(7,-5)):
+            E(pg,"(()=>{for(const o of enemies.slice()){scene.remove(o.g);enemies.splice(enemies.indexOf(o),1)}toSpawn=[];P.iT=1e9;P.hp=100;P.pos.set(carousel.x+%f,1.5,carousel.z+%f);P.vel.set(0,0,0)})()"%(dx,dz))
+            F(pg,90);res.append((dx,dz,E(pg,"+P.pos.y.toFixed(2)")))
+        print('floor check (x,z,y):',res,'FELL' if any(y<.2 for _,_,y in res) else 'ok')
         print('debris pieces:',E(pg,"DIR_DEB.length+DIR_DEAD.reduce((a,D)=>a+D.parts.length+D.caps.length,0)"),'stuck/out:',bad)
     print('errors:',[e for e in errs if 'ReadPixels' not in e and 'ERR_FAILED' not in e and 'CONNECTION_REFUSED' not in e][:6])
     b.close()

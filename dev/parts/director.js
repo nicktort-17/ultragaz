@@ -228,7 +228,7 @@ function dirCrashUpd(e,dt){const B=e.g.userData.boss;e.crashT+=dt;e.vel.set(e.cr
  const C=e.crashTgt?carousel:null,near=C&&Math.hypot(C.x-e.pos.x,C.z-e.pos.z)<2.8+e.r+1.2;
  if(near||(e.crashT>.25&&moved<8)||e.crashT>2.4){if(C)dirSmashCarousel(C,true);e.inv=false;e.crash=1;kill(e,'parry')}}
 function dirSmashCarousel(C,host){if(!C||C.broken)return;C.broken=true;const hub=C.liq.parent,hp=hub.position.clone(),mid=hp.clone().setY(5);
- for(let i=boxes.length-1;i>=0;i--){const b=boxes[i],cx=(b.min.x+b.max.x)/2,cz=(b.min.z+b.max.z)/2;if(Math.abs(cx-hp.x)<.3&&Math.abs(cz-hp.z)<.3&&b.max.x-b.min.x>5)boxes.splice(i,1)}
+ for(let i=boxes.length-1;i>=0;i--){const b=boxes[i],cx=(b.min.x+b.max.x)/2,cz=(b.min.z+b.max.z)/2;if(Math.abs(cx-hp.x)<.3&&Math.abs(cz-hp.z)<.3&&b.max.x-b.min.x>5&&b.max.z-b.min.z>5&&b.max.y-b.min.y>10)boxes.splice(i,1)}  // только бак (16 м); полосы пола-диска (h .5) не трогаем
  const unlevel=o=>o.traverse(m=>{const i=level.indexOf(m);if(i>=0)level.splice(i,1)});
  for(const m of hub.children.slice()){if(m===C.liq||(m.material&&m.material.transparent)){m.visible=false;unlevel(m)}else dirDebris(m,new V3(rnd(-6,6),rnd(4,12),rnd(-6,6)),new V3(rnd(-3,3),rnd(-3,3),rnd(-3,3)),.4)}
  for(const k of C.cols){k.box.min.set(0,-99,0);k.box.max.set(0,-98,0)}
