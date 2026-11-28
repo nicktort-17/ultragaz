@@ -1,0 +1,88 @@
+---
+name: gen-model
+description: Конвейер новой 3D-модели для ULTRAGAS — общий лист персонажа/объекта в ChatGPT пользователя → одобрение → отдельные виды по частям (персонаж, оружие…) → Tripo «Multiview to 3D» HD в браузере → проверка и чистка в Blender → импорт в models/. Запускать, когда пользователь вызывает /gen-model с описанием модели или просит сгенерировать сложную модель через ChatGPT/Tripo.
+argument-hint: <описание модели: кто/что, роль в игре, фазы, оружие, особенности>
+---
+
+# /gen-model — новая модель через ChatGPT → Tripo → Blender
+
+Задача пользователя: $ARGUMENTS
+
+Общайся по-русски. Каждый этап, где написано **СТОП**, — показать результат и ждать явного «да»/правок. Не перескакивай этапы.
+
+## Жёсткие правила (проверяй каждый промпт)
+- **Стиль ULTRAKILL — определяющий**: качественный low-poly, плоские грани (faceted, flat shading), крупные читаемые формы и силуэт, ограниченная палитра, чёткие рисованные текстуры. Никакой мыльности, размытых текстур, «пластилина», фотореализма, дыр в мешах.
+- Никаких логотипов Coca-Cola/Pepsi и маскота Pepsi; бренды вымышленные; Пепсштейн и всё «корпоративное» — сатира на вымышленную корпорацию газировки.
+- Никаких реальных людей и их фото. Все персонажи — явно взрослые, без откровенного контента (одежда остаётся одеждой; кровь/жуть — можно в меру, как в образце).
+- Бюджет треугольников: моб 5–15k, босс 30–60k, оружие от 1-го лица 15–50k, оружие в руках NPC 2–8k, декор 0.3–2k; ≤ 30 мешей/материалов на модель.
+- Файлы цикла — только в `pipeline/<slug>/` (см. `pipeline/README.md`). Код игры на `pipeline/` не ссылается никогда; итог копируется в `models/`. Сохранять файлы туда пользователь разрешил заранее; любые другие скачивания — спрашивать.
+- Пароли/входы — делает пользователь сам. Если сайт просит вход, капчу или оплату — остановись и попроси пользователя.
+
+## Браузер
+- Предпочтительно **Claude in Chrome** (`mcp__claude-in-chrome__*`): там есть `file_upload` для загрузки видов в Tripo. Загрузи инструменты одним ToolSearch (tabs_context_mcp, navigate, computer, read_page, find, tabs_create_mcp, file_upload, get_page_text), работай в новой вкладке.
+- Если пользователь выбрал встроенный браузер (`mcp__Claude_Browser__*`) — загрузку файлов в Tripo делает пользователь (перетаскивает 4 файла из `pipeline/<slug>/views/`), остальное — ты.
+- Картинки ChatGPT сохраняй через кнопку скачивания в ChatGPT, затем перенеси из папки «Загрузки» в `pipeline/<slug>/…` (PowerShell `Move-Item`), переименовав по схеме ниже.
+
+## Этап 0. Заготовка
+1. Придумай `slug` (латиница, kebab-case, напр. `alt-010`, `cola-golem`).
+2. Создай `pipeline/<slug>/notes.md`: задача пользователя дословно, роль в игре, бюджет треугольников, список частей (персонаж, оружие, отдельные пропсы), уровень/фазы.
+3. Если запрос размытый (неясно, кто это, какого размера, какие части) — задай 1–3 коротких вопроса, потом продолжай.
+
+## Этап 1. Общий лист в ChatGPT → **СТОП**
+Открой chatgpt.com (вход — пользователь), новый чат. Пришли промпт по шаблону (английский — точнее для генератора; подставь детали из задачи). Образец оформления — `sheet_example.webp` рядом с этим файлом (лист ALT-010 «False Idol»): тёмный фон, рамки-панели, моноширинные подписи, красный акцент.
+
+```
+Create a single character design reference sheet, landscape 3:2.
+Subject: <кто/что, характер, роль: boss/enemy/weapon/prop, ключевые детали из задачи>.
+Style (most important): stylized LOW-POLY 3D render in the spirit of retro boomer-shooters —
+clean faceted polygons, flat shading, chunky readable shapes, crisp hand-painted textures,
+limited palette, no blur, no photorealism, no soft plastic look. Adult character.
+Layout like a game studio model sheet on a dark background with thin panel borders and
+monospace labels: header with name/code and short stats; full-body turnaround in a neutral
+standing pose — FRONT, 3/4 FRONT, SIDE, 3/4 BACK, BACK; panel "WEAPON" (<оружие>, two views);
+panel "PHASES" (<фазы/состояния, если есть>); panel "PORTRAITS / EMOTIONS" (4 heads);
+panel "DETAILS" (close-ups of key parts); panel "PALETTE" (5 swatches); panel "SILHOUETTE".
+No real people, no real brand logos.
+```
+Для не-персонажа (оружие, моб-механизм, проп) — убери портреты/фазы, оставь turnaround, детали, палитру, силуэт.
+
+Сохрани результат в `pipeline/<slug>/ref/sheet-01.png` (следующие итерации — `sheet-02.png`…), покажи пользователю (SendUserFile, render) с кратким описанием. Правки — в том же чате ChatGPT («keep everything, change …»). Одобренный лист скопируй в `ref/approved.png`, запиши в notes.md итоговый промпт.
+
+## Этап 2. Виды по частям → **СТОП** на каждую часть
+По одобренному листу (прикрепи его в ChatGPT или продолжай тот же чат) для **каждой части** из notes.md генерируй 4 отдельные картинки — это вход для Tripo, поэтому требования строгие:
+
+```
+Using the approved sheet as the exact design reference, render ONLY <часть: the character body without weapon / the scissors weapon / …>
+as a single image: <FRONT | LEFT side | BACK | RIGHT side> orthographic-style view, whole object fully in frame and centered,
+<для персонажа: neutral A-pose, arms ~30° away from the body, legs slightly apart, fingers open, face neutral, hair not covering the body>,
+plain flat light-gray background (#d0d0d0), even soft studio light, no cast shadows, no text, no labels, no props, no ground,
+same scale and same design as the sheet, square 1:1. Same low-poly faceted style, crisp textures.
+```
+- Порядок: сначала FRONT (обязателен для Tripo), потом LEFT, BACK, RIGHT. Следи, чтобы все 4 вида были одним и тем же объектом (цвета, детали, пропорции); несовпадение — перегенерируй этот вид.
+- Сохрани в `pipeline/<slug>/views/<часть>/front.png`, `left.png`, `back.png`, `right.png`.
+- Покажи пользователю 4 вида части листом (можно склеить PIL в `views/<часть>/sheet.png`) → жди одобрения.
+- Персонаж и оружие — **разные** модели (оружие потом крепится к кости руки). Фазы, которые меняют силуэт (крылья, ракета…), — отдельные части.
+
+## Этап 3. Tripo → **СТОП**
+1. tripo3d.ai (вход — пользователь). Режим генерации из изображений → **Multiview** (несколько ракурсов) → качество/модель **HD**.
+2. Загрузи 4 вида в слоты строго по подписям слотов (front / left / back / right).
+3. Настройки — по типу объекта, запиши выбранные в notes.md:
+   - персонаж/босс: целевое число полигонов по бюджету (если есть ползунок/«Low Poly»/«Smart Low Poly» — включай; quad-сетка — по возможности, для риггинга удобнее), текстура HD, PBR — только если есть металл;
+   - оружие от 1-го лица: детализация выше, текстура HD, PBR вкл. для металла;
+   - декор/мелочь: минимальные полигоны, текстура стандартная.
+   - Не включай стили, которые «размывают» (cartoon/clay и т.п.), если они делают мыло.
+4. Дождись генерации, осмотри в превью Tripo с 4 сторон (скриншоты), убедись: нет дыр, слипшихся рук/ног, мыльной текстуры, мусора по краям.
+5. Дай пользователю **ссылку на модель** (кнопка Share/копия URL страницы модели) + скриншоты. Правки: повтор с другими настройками или перегенерация конкретного вида на этапе 2.
+
+## Этап 4. Импорт (после одобрения модели)
+1. Скачай из Tripo **GLB** в `pipeline/<slug>/tripo/<часть>.glb` (папка в .gitignore).
+2. Проверка и чистка в Blender (путь — `ugenv.BLENDER`):
+   ```
+   python dev/tools/glb_check.py pipeline/<slug>/tripo/<часть>.glb                # отчёт
+   python dev/tools/glb_check.py pipeline/<slug>/tripo/<часть>.glb --tris 40000 --out pipeline/<slug>/tripo/<часть>_clean.glb
+   ```
+   Отчёт: треугольники, меши, материалы, размеры текстур, дыры (non-manifold рёбра), отдельные куски, габариты. Чистка: слияние вершин, удаление мусорных мелких кусков, пересчёт нормалей, децимация до бюджета, текстуры ≥ 1024 без даунскейла (мыло недопустимо).
+   Показать пользователю рендер-лист 4 ракурсов (`--render pipeline/<slug>/tripo/<часть>_views.png`).
+3. Импорт в игру: `python dev/tools/glb_import.py pipeline/<slug>/tripo/<часть>_clean.glb <имя_в_models>` → `models/<имя>.json` + `models/js/<имя>.js`.
+4. Риг/анимации и подключение в `index.html` (через `ugModel('models/<имя>.json', …)`) — отдельной задачей по согласованию с пользователем; правки кода — по правилам CLAUDE.md (dev/parts → patch_*.py → тесты → коммит+push).
+5. Итог записать в notes.md (ссылка Tripo, настройки, число треугольников до/после).
