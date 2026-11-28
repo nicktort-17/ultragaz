@@ -94,7 +94,7 @@ if RDIR:
     cam_d = bpy.data.cameras.new('cam'); cam_d.type = 'ORTHO'; cam_d.ortho_scale = ext * 1.15
     cam = bpy.data.objects.new('cam', cam_d); sc.collection.objects.link(cam); sc.camera = cam
     # glTF: +Y вверх → в Blender +Z вверх, «перед» модели смотрит в -Y
-    for name, ang in (('front', 0), ('left', -90), ('back', 180), ('right', 90)):
+    for name, ang in (('front', 0), ('left', 90), ('back', 180), ('right', -90)):  # left = камера с левого бока модели (+X)
         a = math.radians(ang); d = Vector((math.sin(a), -math.cos(a), 0)) * ext * 3
         cam.location = ctr + d
         cam.rotation_euler = (ctr - cam.location).to_track_quat('-Z', 'Y').to_euler()

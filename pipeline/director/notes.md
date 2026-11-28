@@ -64,3 +64,8 @@ ChatGPT прочитал «Газ-Ада» как имя «Ада» — в ли�
 - Tripo: те же настройки, но Количество полигонов 130000 и Текстура 8K (пробная ×1, генерация 0 кредитов).
 - Результат: 123 366 треуг. Задача: https://studio.tripo3d.ai/ru/workspace/generate/e3ecf509-202b-4f04-b9c3-627777f556d4
 - Превью: tripo/preview-02.png. В игру — децимация до бюджета босса в Blender с сохранением текстуры.
+
+## Импорт в игру (одобрено пользователем)
+- Экспорт Tripo: GLB, 8K → tripo/body.glb (16 МБ, 123 366 треуг., цельный меш без дыр).
+- blender/director_prep.py --tris 70000 → tripo/director.glb (8.5 МБ: тело 41k, голова 5k, пушка 13.5k, открывашка 10.4k) → models/director.json.
+- Код: dev/parts/director.js (patch_director.py). Скриншоты: dev/out/director/ (dirshot.py, dirfight.py).

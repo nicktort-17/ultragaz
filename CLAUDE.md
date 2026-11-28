@@ -13,11 +13,13 @@
 - `dev/parts/` — исходники крупных подсистем и патч-скрипты, которыми они вклеиваются в `index.html`:
   - `story.js` — двери/шлюзы, ход уровней; `island.js`, `isle_terrain.js`, `isle_veg.js`, `isle_props.js` — остров L4; `pep.js` — босс Пепсштейн; `beer_*.js` — L3 и т.д.
   - `patch_isle.py`, `patch_story.py`, `patch_pep.py`, … — вырезают регион-маркер в `index.html` и вставляют свежий код из соответствующих `.js`. Они идемпотентны.
+  - `director.js` + `patch_director.py` — модель Генерального директора из Tripo (визор-лицо, двигатели, нимб, анимации, бурлящий резервуар по HP); модель готовит `blender/director_prep.py`.
   - `patch_style.py` (метр стиля «бутылка»), `patch_capdial.py` (циферблат крышечек на Шипучке), `patch_blue.py` (синие враги острова) — правят `index.html` напрямую.
   - `NOTES.md` — журнал изменений и устройство систем. Читать перед крупной правкой.
 - `dev/tools/` — тесты и утилиты на Playwright (Chrome + swiftshader):
   - `prep2.py` — делает тестовую копию игры с хуками (`window.__eval`, `__ug`, `__dt`, `__norender`) в `dev/.srv`; `srv.py` — поднимает её на порту 8765 (`--stop` — остановить, `--fg` — в текущем окне).
   - `base.py` — открыть страницу; `tour.py views.json out.jpg` — скриншоты карты (`[имя,x,y,z,yaw°,pitch°]`, y ≥ 100 → высота от рельефа);
+  - `dirshot.py` (состояния Директора и резервуар крупно), `dirfight.py` (живой бой с Директором);
   - регрессии: `l4flow.py`, `flowexit.py`, `pepsim.py`, `pep9.py`, `coop3.py`, `bluechk.py`, `smshot.py`, `cdshot.py`, `fountchk.py`, `audit.py` и др.
 
 ## Пути и тестовое окружение
