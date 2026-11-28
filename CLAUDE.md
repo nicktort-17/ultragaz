@@ -8,6 +8,7 @@
 - `models/js/*.js` — копии моделей в виде скриптов для запуска игры двойным кликом по `index.html` (file://: Chrome блокирует XHR к `.json`). Грузит их `ugModel()` в `index.html` — все модели загружать только через неё. После любого изменения `models/*.json` запускать `python dev/tools/models_js.py` (`--check` — проверка свежести; `pep2json.py` вызывает его сам).
 - `blender/*.py` — скрипты Blender, которые генерируют модели; экспорт в `models/` (см. `dev/tools/pep2json.py`).
 - `art/` — исходные картинки.
+- `pipeline/<модель>/` — рабочие файлы конвейера моделей (референсы ChatGPT, 4 вида, сырые модели Tripo, заметки). Код на эту папку НЕ ссылается и не должен: итог копируется в `models/`. Сырые модели (*.glb и т.п.) — в .gitignore. См. `pipeline/README.md`.
 - `dev/parts/` — исходники крупных подсистем и патч-скрипты, которыми они вклеиваются в `index.html`:
   - `story.js` — двери/шлюзы, ход уровней; `island.js`, `isle_terrain.js`, `isle_veg.js`, `isle_props.js` — остров L4; `pep.js` — босс Пепсштейн; `beer_*.js` — L3 и т.д.
   - `patch_isle.py`, `patch_story.py`, `patch_pep.py`, … — вырезают регион-маркер в `index.html` и вставляют свежий код из соответствующих `.js`. Они идемпотентны.
