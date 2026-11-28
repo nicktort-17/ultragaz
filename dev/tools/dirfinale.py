@@ -27,8 +27,8 @@ with sync_playwright() as p:
     E(pg,"(()=>{const e=enemies.find(e=>e.type==='boss');e.hp=1;__ug.damage(e,50,10,'shot')})()")
     F(pg,30);snap('1_full_gauge')
     parried=False;t=0;got_hit=False
-    for k in range(400):
-        F(pg,2);t+=2
+    for k in range(800):
+        F(pg,1);t+=1
         E(pg,"(()=>{for(const o of enemies.slice())if(o.type!=='boss'){scene.remove(o.g);enemies.splice(enemies.indexOf(o),1)}toSpawn=[];P.iT=0;P.hp=Math.max(P.hp,60)})()")
         E(pg,AIM);s=json.loads(E(pg,ST)) if False else None
         st=E(pg,ST);import json as _j;s=_j.loads(st)
@@ -37,7 +37,7 @@ with sync_playwright() as p:
             if s.get('php',100)<99 and not got_hit:got_hit=True;snap('3_hit_player')
             if got_hit and s.get('fin')=='rest':snap('4_head_back');break
             continue
-        if s.get('cork') and s.get('hd') is not None and s.get('hd')<4.0 and not parried:
+        if s.get('cork') and s.get('hd') is not None and s.get('hd')<4.4 and not parried:
             E(pg,"punch()");parried=True;F(pg,3);snap('3_parried')
         if s.get('fin')=='crash' and not any(n=='4_crash' for n,_ in shots):F(pg,6);snap('4_crash')
         if s.get('dead',True):break
@@ -46,7 +46,10 @@ with sync_playwright() as p:
         F(pg,40);snap('6_boom')
         F(pg,90);snap('7_debris')
         F(pg,180);snap('8_aftermath')
-        bad=E(pg,"JSON.stringify(DIR_DEB.concat(...DIR_DEAD.map(D=>D.parts.concat(D.caps))).filter(p=>p.o.parent).map(p=>p.o.getWorldPosition(new V3())).filter(q=>inBox(q)||q.x<mapB.x0||q.x>mapB.x1||q.z<mapB.z0||q.z>mapB.z1).map(q=>q.toArray().map(v=>+v.toFixed(1))))")
+        E(pg,"(()=>{P.pos.set(carousel.x+14,0.6,carousel.z+14);P.vel.set(0,0,0)})()");F(pg,30);E(pg,"(()=>{const o=camera.position;const dx=carousel.x-o.x,dz=carousel.z-o.z;P.yaw=Math.atan2(-dx,-dz);P.pitch=-.25})()");F(pg,2)
+        f=os.path.join(OD,'fin_9_wreck.png');pg.screenshot(path=f);shots.append(('9_wreck',f))
+        bad=E(pg,"JSON.stringify(DIR_DEB.concat(...DIR_DEAD.map(D=>D.parts.concat(D.caps))).filter(p=>p.o.parent).map(p=>{const q=p.o.getWorldPosition(new V3());const own=new Set([].concat(...DIR_DEB.concat(...DIR_DEAD.map(D=>D.parts)).map(x=>x.boxes||[])));const hit=boxes.some(b=>!own.has(b)&&q.x>b.min.x&&q.x<b.max.x&&q.y>b.min.y&&q.y<b.max.y&&q.z>b.min.z&&q.z<b.max.z);return(hit||q.x<mapB.x0||q.x>mapB.x1||q.z<mapB.z0||q.z>mapB.z1)?q.toArray().map(v=>+v.toFixed(1)):null}).filter(Boolean))")
+        print('debris with collision:',E(pg,"DIR_DEB.filter(p=>p.boxes&&p.boxes.length).length+'/'+DIR_DEB.length"),'boxes added:',E(pg,"DIR_DEB.reduce((a,p)=>a+(p.boxes?p.boxes.length:0),0)"),'pending:',E(pg,"DIR_PEND.length"),'resting:',E(pg,"DIR_DEB.filter(p=>p.rest>1).length"))
         print('boxes removed:',E(pg,"__nb0-boxes.length"))
         res=[]
         for dx,dz in((0,0),(0,1),(0,-1),(1,0),(-1,0),(0,4),(4,0),(-6,3),(7,-5)):

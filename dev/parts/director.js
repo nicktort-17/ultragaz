@@ -22,10 +22,11 @@ function dirMeasure(s){const P={};s.traverse(o=>{if(/^CEO_/.test(o.name))P[o.nam
  for(let i=0;i<p.count;i++)if(p.getY(i)<y0+.035){tip.x+=p.getX(i);tip.y+=p.getY(i);tip.z+=p.getZ(i);n++}
  U.muzzle=n?tip.divideScalar(n):new V3(.2,-.42,.05)}
 
-const DIR_FLAME=(()=>{let m=null;return()=>m||(m={core:new THREE.MeshBasicMaterial({color:0xfff6e8,transparent:true,opacity:.85,blending:THREE.AdditiveBlending,depthWrite:false}),
- out:new THREE.MeshBasicMaterial({color:0xff7a4a,transparent:true,opacity:.55,blending:THREE.AdditiveBlending,depthWrite:false}),
- gc:new THREE.ConeGeometry(.032,.16,10,1,true).rotateX(Math.PI).translate(0,-.08,0),go:new THREE.ConeGeometry(.05,.24,12,1,true).rotateX(Math.PI).translate(0,-.12,0)})})();
-
+// пенная тяга (как в концепте): из сопел вываливаются клубы пузырей пены; бурлят и вытягиваются с тягой
+const DIR_FOAM=(()=>{let m=null;return()=>m||(m={geo:new THREE.IcosahedronGeometry(1,0),
+ mat:new THREE.MeshStandardMaterial({color:0xf8f4ec,roughness:.35,metalness:0,flatShading:true,emissive:0x2a2622}),
+ matR:new THREE.MeshStandardMaterial({color:0xffc2bb,roughness:.35,metalness:0,flatShading:true,emissive:0x3a1210})})})();
+const DIR_BUB=[[0,-0.015,0,0.0527],[-0.0308,-0.0375,0.0168,0.0372],[0.0308,-0.0425,-0.014,0.0403],[0.0056,-0.0625,0.028,0.0341],[-0.0168,-0.08,-0.0196,0.031],[0.0224,-0.0975,0.0084,0.02635],[-0.0056,-0.1175,0,0.0217],[0.014,-0.1375,-0.0168,0.01705],[-.026,-.02,-.02,.03],[.028,-.016,.018,.028]];
 function dirBuild(g,mats){if(!DIR_T||DIR_T==='load')return null;const U=DIR_T.userData;
  const hold=new THREE.Group();hold.scale.setScalar(DIR_S);hold.position.y=DIR_Y;g.add(hold);
  const m=DIR_T.clone(true);hold.add(m);const P={};
@@ -41,8 +42,9 @@ function dirBuild(g,mats){if(!DIR_T||DIR_T==='load')return null;const U=DIR_T.us
   vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:DIR_CORE_FS});
  const cr=new THREE.Mesh(new THREE.PlaneGeometry(.152,.15),B.core);cr.position.copy(U.chest);cr.renderOrder=2;B.body.add(cr);
  // двигатели: сопла внизу корпуса (модельные координаты ±.11, .035)
- const F=DIR_FLAME();for(const s of[-1,1]){const n=new THREE.Group();n.position.set(s*.108,.036,0);B.body.add(n);
-  const o=new THREE.Mesh(F.go,F.out.clone()),c=new THREE.Mesh(F.gc,F.core);n.add(o);n.add(c);B.fl.push({n,o,c});B.eng.push(n)}
+ const F=DIR_FOAM();for(const s of[-1,1]){const n=new THREE.Group();n.position.set(s*.108,.036,0);B.body.add(n);const bub=[];
+  for(const [x,y,z,r] of DIR_BUB){const b=new THREE.Mesh(F.geo,F.mat);b.position.set(x,y,z);b.scale.setScalar(r);b.userData.b=[x,y,z,r,Math.random()*6.28];n.add(b);bub.push(b)}
+  B.fl.push({n,bub});B.eng.push(n)}
  // нимб «Совет акционеров»: 12 крышек на кольце за головой (в мировых метрах, вне масштаба модели)
  const gold=new THREE.MeshStandardMaterial({color:0xf2b84b,metalness:.9,roughness:.2,envMap:ENV,side:THREE.DoubleSide}),red=new THREE.MeshStandardMaterial({color:0xc8102e,metalness:.5,roughness:.26,envMap:ENV,side:THREE.DoubleSide});
  B.halo=new THREE.Group();B.halo.position.set(0,DIR_Y+.80*DIR_S,-.17*DIR_S);g.add(B.halo);
@@ -114,8 +116,9 @@ function dirAnim(e,dt){const B=e.g.userData.boss;if(!B)return false;
  B.vz.scale.setScalar(ph2?1+.08*Math.sin(T*18):1);
  // двигатели: длина пламени от скорости, рывок — форсаж; в ярости пламя краснее
  const thr=1+spd*.06+(dash?2.2:0)+(slamUp?1:0);
- for(const f of B.fl){const fl=1+Math.sin(T*40+f.n.position.x*30)*.12+Math.random()*.1;f.o.scale.set(1,thr*fl,1);f.c.scale.set(1,thr*.8*fl,1);f.o.material.color.setHex(ph2?0xff3a2a:0xff8a4a)}
- if(Math.random()<dt*(10+spd*1.2+(dash?30:0)))for(const n of B.eng){const w=n.getWorldPosition(new V3());w.y-=.4;puff(w,1,ph2&&Math.random()<.5?0xff9a90:0xf6eee2,2.5,.45,9)}
+ const F=DIR_FOAM(),stretch=Math.min(3.2,.7+thr*.35);
+ for(const f of B.fl)for(const b of f.bub){const [x,y,z,r,ph]=b.userData.b,w=1+Math.sin(T*(11+r*90)+ph)*.22;b.position.set(x*(1+stretch*.15),y*stretch,z);b.scale.setScalar(r*w*(1+(stretch-1)*.25));b.material=ph2&&r<.036?F.matR:F.mat}
+ if(Math.random()<dt*(10+spd*1.2+(dash?30:0)))for(const n of B.eng){const w=n.getWorldPosition(new V3());w.y-=.5+Math.random()*.4;puff(w,2,ph2&&Math.random()<.4?0xffb8b0:0xf8f4ec,2.2,.7,7)}
  // резервуар кипит сильнее при малом HP; при низком — пена вырывается наружу
  B.core.uniforms.uT.value=T;B.core.uniforms.uK.value=kk;
  if(kk>.35&&Math.random()<dt*(kk-.35)*60){const w=B.body.localToWorld(_dirV.set(rnd(-.06,.06),.53,.13));puff(w,1+Math.round(kk*3),Math.random()<.5?0xffd0c8:0xff6a5a,2+kk*4,.5,4)}
@@ -155,7 +158,7 @@ function dirBoom(D){const B=D.B,w=D.w,c=B.body.localToWorld(new V3(0,.45,.1));D.
  for(const f of B.fl)f.n.visible=false;B.core.uniforms.uK.value=1;
  // крышки нимба веером
  for(const cp of B.caps){const p=cp.m.getWorldPosition(new V3()),dir=p.clone().sub(c).setY(0).normalize();w.parent.add(cp.m);cp.m.position.copy(p);cp.m.scale.setScalar(1);
-  D.caps.push({o:cp.m,v:dir.multiplyScalar(rnd(10,18)).add(new V3(0,rnd(8,15),0)),spin:new V3(rnd(-12,12),rnd(-12,12),rnd(-12,12)),rest:0})}
+  D.caps.push({o:cp.m,v:dir.multiplyScalar(rnd(10,18)).add(new V3(0,rnd(8,15),0)),spin:new V3(rnd(-12,12),rnd(-12,12),rnd(-12,12)),rest:0,nocol:1})}
  w.remove(B.halo);
  // отброс игрока волной
  const d=P.pos.clone().sub(c).setY(0),L=d.length();if(L<16){P.vel.addScaledVector(d.normalize(),(16-L)*1.4).setY(Math.max(P.vel.y,9))}
@@ -164,7 +167,7 @@ function dirDeathUpd(dt){dirDebUpd(dt);for(const D of DIR_DEAD){D.t+=dt;const B=
   if(!D.boom){const k=Math.min(1,D.t/1.8),a=.03+k*k*.35;
    B.hold.position.set((Math.random()-.5)*a,DIR_Y+(Math.random()-.5)*a*.6,(Math.random()-.5)*a);B.hold.rotation.set((Math.random()-.5)*a*.5,(Math.random()-.5)*a*.4,(Math.random()-.5)*a*.5);
    B.core.uniforms.uT.value=T;B.core.uniforms.uK.value=1+k;dirFace(B,Math.sin(T*(30+k*40))>0?'hurt':'rage');B.vz.scale.setScalar(1+k*.6);
-   for(const f of B.fl){const on=Math.random()<.6-k*.4;f.o.visible=f.c.visible=on;f.o.scale.y=f.c.scale.y=rnd(.5,2.5)}
+   for(const f of B.fl){const on=Math.random()<.6-k*.4;f.n.visible=on;f.n.scale.set(1,rnd(.5,2.5),1)}
    B.halo.rotation.z+=dt*(3+k*12);for(const cp of B.caps){const r=1.6+k*1.8;cp.m.position.set(Math.cos(cp.a+T*k*4)*r,Math.sin(cp.a+T*k*4)*r,Math.sin(T*9+cp.ph)*k)}
    if(Math.random()<dt*(20+k*80)){const p=B.body.localToWorld(_dirV.set(rnd(-.25,.25),rnd(.1,.7),rnd(-.12,.16)));puff(p,3,Math.random()<.6?0xf6eee2:0xff6a5a,4+k*6,.5,4)}
    if(Math.random()<dt*6)puff(B.head.localToWorld(_dirV.set(0,.2,0)),4,0xf6eee2,6,.5,-3);
@@ -175,7 +178,7 @@ function dirDeathUpd(dt){dirDebUpd(dt);for(const D of DIR_DEAD){D.t+=dt;const B=
    if(p.trail===1&&p.v.y>0)puff(p.o.position.clone(),3,0xf6eee2,2,.9,-1);
    if(p.trail===2&&Math.random()<dt*30)puff(p.o.position.clone().setY(p.o.position.y+1),2,0x5a1f0e,3,.8,-2)}
   if(tb>2&&tb<20&&Math.random()<dt*7){const b=B.body.getWorldPosition(new V3());puff(b.setY(b.y+1.2),2,Math.random()<.5?0x3a3438:0x5a1f0e,1.5,1.6,-3)}
-  if(tb>20){const all=D.parts.concat(D.caps);for(const p of all)p.o.parent&&p.o.parent.remove(p.o);D.w.parent&&D.w.parent.remove(D.w);D.done=1}}
+  if(tb>20){const all=D.parts.concat(D.caps);for(const p of all){dirUnbox(p);p.o.parent&&p.o.parent.remove(p.o)}D.w.parent&&D.w.parent.remove(D.w);D.done=1}}
  for(let i=DIR_DEAD.length-1;i>=0;i--)if(DIR_DEAD[i].done)DIR_DEAD.splice(i,1)}
 
 /* --- ФИНАЛ «ПРОБКА»: шкала на груди полна (HP ≤ 0) — Директор не умирает, а выстреливает головой в игрока.
@@ -230,11 +233,19 @@ function dirCrashUpd(e,dt){const B=e.g.userData.boss;e.crashT+=dt;e.vel.set(e.cr
 function dirSmashCarousel(C,host){if(!C||C.broken)return;C.broken=true;const hub=C.liq.parent,hp=hub.position.clone(),mid=hp.clone().setY(5);
  for(let i=boxes.length-1;i>=0;i--){const b=boxes[i],cx=(b.min.x+b.max.x)/2,cz=(b.min.z+b.max.z)/2;if(Math.abs(cx-hp.x)<.3&&Math.abs(cz-hp.z)<.3&&b.max.x-b.min.x>5&&b.max.z-b.min.z>5&&b.max.y-b.min.y>10)boxes.splice(i,1)}  // только бак (16 м); полосы пола-диска (h .5) не трогаем
  const unlevel=o=>o.traverse(m=>{const i=level.indexOf(m);if(i>=0)level.splice(i,1)});
- for(const m of hub.children.slice()){if(m===C.liq||(m.material&&m.material.transparent)){m.visible=false;unlevel(m)}else dirDebris(m,new V3(rnd(-6,6),rnd(4,12),rnd(-6,6)),new V3(rnd(-3,3),rnd(-3,3),rnd(-3,3)),.4)}
+ const out=(w,k)=>w.clone().sub(hp).setY(0).normalize().multiplyScalar(k);
+ // бак: стекло и кола исчезают (осколки и волна), железо — на куски
+ for(const m of hub.children.slice()){unlevel(m);if(m===C.liq||(m.material&&m.material.transparent)){m.visible=false;continue}
+  for(const s of dirShatter(m)){const w=s.position;dirDebris(s,out(w,rnd(5,10)).setY(rnd(5,12)),new V3(rnd(-3,3),rnd(-3,3),rnd(-3,3)),s.userData.rest)}}
+ // колонны-дозаторы: корпус пополам, пояс, верхушка, бутылка — каждая часть отдельно
  for(const k of C.cols){k.box.min.set(0,-99,0);k.box.max.set(0,-98,0)}
- for(const cg of C.rot.children.slice()){if(!cg.isGroup)continue;unlevel(cg);const wp=cg.getWorldPosition(new V3()),out=wp.clone().sub(hp).setY(0).normalize();
-  dirDebris(cg,out.multiplyScalar(rnd(9,15)).setY(rnd(5,10)),new V3(rnd(-4,4),rnd(-2,2),rnd(-4,4)),.6)}
- for(const n of C.noz)n.st.visible=false;dirDebris(C.ring,new V3(0,1,0),new V3(rnd(-.4,.4),.15,rnd(-.4,.4)),.4,true);
+ for(const cg of C.rot.children.slice()){if(!cg.isGroup)continue;unlevel(cg);const wp=cg.getWorldPosition(new V3());
+  for(const s of dirShatter(cg)){dirDebris(s,out(wp,rnd(8,15)).add(new V3(rnd(-3,3),rnd(5,11),rnd(-3,3))),new V3(rnd(-6,6),rnd(-3,3),rnd(-6,6)),s.userData.rest)}
+  cg.parent&&cg.parent.remove(cg)}
+ // кольцо форсунок (на 10 м): тор — 8 дуг, балки — куски по ~7 м, форсунки отдельно
+ for(const n of C.noz)n.st.visible=false;
+ for(const s of dirShatter(C.ring)){dirDebris(s,out(s.position,rnd(1,4)).setY(rnd(0,3)),new V3(rnd(-.6,.6),rnd(-.4,.4),rnd(-.6,.6)),s.userData.rest)}
+ C.ring.parent&&C.ring.parent.remove(C.ring);
  blast(mid,11,0xff3a2a);blast(mid,7,0xffffff);ring(hp.clone().setY(.6),18,0x5a1a06);ring(hp.clone().setY(.6),11,0xd8f4ff);
  puff(mid,420,0x5a1a06,18,1.6,7);puff(mid,160,0xd8f4ff,15,1,9);puff(mid,120,0xf6eee2,12,1.2,5);
  for(let i=0;i<10;i++)setTimeout(()=>puff(new V3(hp.x+rnd(-1,1),2+i*1.4,hp.z+rnd(-1,1)),30,i%2?0x5a1a06:0xf6eee2,8,1.2,4),i*50);
@@ -242,19 +253,62 @@ function dirSmashCarousel(C,host){if(!C||C.broken)return;C.broken=true;const hub
  sfx('crack',1);sfx('boom',1);sfx('gloop',1);sfx('frag',.9);shake=Math.max(shake,1);
  if(host&&mp())pushFx(['X',0,1])}
 function dirFx(n){if(n[0]===1&&typeof carousel!=='undefined'&&carousel)dirSmashCarousel(carousel,false)}
-// обломки (части Директора, крышки, карусель): гравитация, пол, стены — по осям с отскоком; сквозь коллизии не пролетают
-const DIR_DEB=[];const _dirW=new V3();
-function dirDebris(o,v,spin,gOff,flat){const p=o.getWorldPosition(new V3()),q=o.getWorldQuaternion(new THREE.Quaternion()),s=o.getWorldScale(new V3());
- const par=typeof mapGroup!=='undefined'&&mapGroup?mapGroup:scene;par.add(o);o.position.copy(p);o.quaternion.copy(q);o.scale.copy(s);DIR_DEB.push({o,v,spin,gOff,flat,rest:0})}
+
+// раскол объекта на куски по типу геометрии: высокий цилиндр — секции по высоте, широкое кольцо — четвертинки,
+// тор — 8 дуг, длинный брус — куски ~7 м, мелочь — целиком. Возвращает новые меши в мировых координатах (userData.rest: как лечь)
+const _dM=new THREE.Matrix4(),_dM2=new THREE.Matrix4();
+function dirShatter(obj){obj.updateMatrixWorld(true);const res=[];
+ const put=(geo,mat,local,rest,src)=>{geo=geo.clone();geo.computeBoundingBox();const c=geo.boundingBox.getCenter(new V3());geo.translate(-c.x,-c.y,-c.z);  // центр куска — в его геометрии, а не в центре карусели
+  const m=new THREE.Mesh(geo,mat);_dM.copy(src.matrixWorld).multiply(local).multiply(new THREE.Matrix4().makeTranslation(c.x,c.y,c.z));_dM.decompose(m.position,m.quaternion,m.scale);m.castShadow=true;m.userData.rest=rest;res.push(m)};
+ obj.traverse(src=>{if(!src.isMesh||!src.visible)return;const g=src.geometry,pa=g.parameters||{},mat=src.material;
+  if(g.type==='CylinderGeometry'){const rt=pa.radiusTop,rb=pa.radiusBottom,h=pa.height,rs=pa.radialSegments||12,R=Math.max(rt,rb);
+   const nq=R>2.4?4:1,nh=Math.max(1,Math.round(h/2.2));
+   for(let j=0;j<nh;j++){const y0=-h/2+j*h/nh,y1=y0+h/nh,r0=rb+(rt-rb)*(y0+h/2)/h,r1=rb+(rt-rb)*(y1+h/2)/h;
+    for(let q=0;q<nq;q++)put(new THREE.CylinderGeometry(r1,r0,h/nh,Math.max(6,Math.round(rs/nq)),1,pa.openEnded,q*Math.PI*2/nq,Math.PI*2/nq),mat,_dM2.makeTranslation(0,(y0+y1)/2,0),R>2.4?'flat':'lie',src)}}
+  else if(g.type==='TorusGeometry'&&(pa.arc||Math.PI*2)>Math.PI&&pa.radius>3){for(let q=0;q<8;q++)put(new THREE.TorusGeometry(pa.radius,pa.tube,6,10,Math.PI/4),mat,_dM2.makeRotationZ(q*Math.PI/4),'flat',src)}
+  else if(g.type==='BoxGeometry'){const d=[pa.width,pa.height,pa.depth],ax=d.indexOf(Math.max(...d)),L=d[ax];
+   if(L>8){const n=Math.ceil(L/7);for(let j=0;j<n;j++){const dd=d.slice();dd[ax]=L/n;const off=[0,0,0];off[ax]=-L/2+(j+.5)*L/n;
+     put(new THREE.BoxGeometry(dd[0],dd[1],dd[2]),mat,_dM2.makeTranslation(off[0],off[1],off[2]),'flat',src)}}
+   else put(g,mat,_dM2.identity(),null,src)}
+  else put(g,mat,_dM2.identity(),null,src)});
+ return res}
+
+// обломки: гравитация, пол (с учётом уже лёгших обломков), стены по осям с отскоком; улёгшись — получают коллизию
+const DIR_DEB=[],DIR_PEND=[];const _dirW=new V3(),_dB=new THREE.Box3();
+function dirDebris(o,v,spin,rest){const p=o.getWorldPosition(new V3()),q=o.getWorldQuaternion(new THREE.Quaternion()),s=o.getWorldScale(new V3());
+ const par=typeof mapGroup!=='undefined'&&mapGroup?mapGroup:scene;par.add(o);o.position.copy(p);o.quaternion.copy(q);o.scale.copy(s);
+ const e={o,v,spin,rest:0,lay:rest||null};DIR_DEB.push(e);return e}
 function dirOut(p){return typeof mapB!=='undefined'&&mapB&&(p.x<mapB.x0||p.x>mapB.x1||p.z<mapB.z0||p.z>mapB.z1)}
-function dirDebStep(p,dt,gOff){const o=p.o,pos=o.position;p.v.y-=25*dt;
+function dirDebStep(p,dt,gOff){const o=p.o,pos=o.position;p.v.y-=25*dt;gOff=gOff||.2;
  _dirW.set(pos.x+p.v.x*dt,pos.y,pos.z);if(inBox(_dirW)||dirOut(_dirW))p.v.x*=-.35;else pos.x=_dirW.x;
  _dirW.set(pos.x,pos.y,pos.z+p.v.z*dt);if(inBox(_dirW)||dirOut(_dirW))p.v.z*=-.35;else pos.z=_dirW.z;
  const ny=pos.y+p.v.y*dt,gy=groundAt(pos.x,pos.z,pos.y+.5)+gOff;_dirW.set(pos.x,ny,pos.z);
  if(p.v.y>0&&inBox(_dirW))p.v.y*=-.3;
- else if(ny<gy){pos.y=Math.max(gy,Math.min(pos.y,gy+.5));if(Math.abs(p.v.y)>3){p.v.y*=-.32;p.v.x*=.6;p.v.z*=.6;p.spin.multiplyScalar(.5);puff(pos.clone(),8,0xf6eee2,5,.5,8);sfx('slam',Math.max(.15,sndV(pos.x,pos.y,pos.z)*.6))}else{p.v.set(0,0,0);p.spin.set(0,0,0);p.rest=2}}
+ else if(ny<gy){pos.y=Math.max(gy,Math.min(pos.y,gy+.5));if(Math.abs(p.v.y)>3){p.v.y*=-.32;p.v.x*=.6;p.v.z*=.6;p.spin.multiplyScalar(.5);puff(pos.clone(),8,0xf6eee2,5,.5,8);sfx('slam',Math.max(.15,sndV(pos.x,pos.y,pos.z)*.6))}
+  else{p.v.set(0,0,0);p.spin.set(0,0,0);p.rest=2;dirSettle(p)}}
  else pos.y=ny;
  o.rotation.x+=p.spin.x*dt;o.rotation.y+=p.spin.y*dt;o.rotation.z+=p.spin.z*dt}
-function dirDebUpd(dt){for(const p of DIR_DEB){if(p.rest>1)continue;dirDebStep(p,dt,p.gOff);if(p.flat&&p.rest>1){shake=Math.max(shake,.5);puff(p.o.position.clone(),80,0xd8cfc0,10,1,6);sfx('slam',1)}}}
-function dirDeathClear(){for(const D of DIR_DEAD){for(const p of D.parts.concat(D.caps))p.o.parent&&p.o.parent.remove(p.o);D.w.parent&&D.w.parent.remove(D.w)}DIR_DEAD.length=0}
+// улёгся: цилиндр — набок, дуга/брус — плашмя; ровно на пол; коллизия (короткий — один бокс, длинный — цепочка вдоль)
+function dirSettle(p){const o=p.o;
+ if(p.lay==='lie')o.rotation.set(Math.PI/2,rnd(0,6.28),0,'YXZ');
+ else if(p.lay==='flat'){const e=new THREE.Euler().setFromQuaternion(o.quaternion,'YXZ');const up=new V3(0,1,0).applyQuaternion(o.quaternion);
+  // плоскость дуги/бруса — горизонтально: оставляем только поворот вокруг вертикали
+  o.quaternion.setFromEuler(new THREE.Euler(Math.abs(up.y)<.5?Math.PI/2:0,e.y,0,'YXZ'))}
+ o.updateMatrixWorld(true);_dB.setFromObject(o);const gy=groundAt(o.position.x,o.position.z,_dB.max.y);o.position.y+=gy-_dB.min.y;o.updateMatrixWorld(true);
+ if(p.nocol)return;_dB.setFromObject(o);const sz=_dB.getSize(new V3());if(sz.y<.08)return;
+ const bx=[];
+ if(Math.max(sz.x,sz.z)<=3.2)bx.push([_dB.min.clone(),_dB.max.clone()]);
+ else{const m=o.isMesh?o:null,g=m&&m.geometry;if(!g){bx.push([_dB.min.clone(),_dB.max.clone()])}else{g.computeBoundingBox();const lb=g.boundingBox,ls=lb.getSize(new V3()).toArray(),ax=ls.indexOf(Math.max(...ls));
+   const a0=new V3().copy(lb.min),a1=new V3().copy(lb.max);const c=lb.getCenter(new V3());const pa=c.clone(),pb=c.clone();pa.setComponent(ax,a0.getComponent(ax));pb.setComponent(ax,a1.getComponent(ax));
+   const wa=o.localToWorld(pa.clone()),wb=o.localToWorld(pb.clone()),L=wa.distanceTo(wb),n=Math.max(2,Math.ceil(L/2.2));
+   const sc=o.getWorldScale(new V3()),th=Math.min(2.2,Math.max(.5,[ls[0]*sc.x,ls[1]*sc.y,ls[2]*sc.z].sort((a,b)=>b-a)[1]));
+   for(let i=0;i<n;i++){const q=wa.clone().lerp(wb,(i+.5)/n);bx.push([new V3(q.x-th/2,_dB.min.y,q.z-th/2),new V3(q.x+th/2,_dB.max.y,q.z+th/2)])}}}
+ p.boxes=[];for(const [mn,mx] of bx)DIR_PEND.push({p,mn,mx})}
+// коллизия встаёт, только когда игрок не внутри (иначе запрёт)
+function dirPendUpd(){for(let i=DIR_PEND.length-1;i>=0;i--){const b=DIR_PEND[i],pp=P.pos;
+  if(pp.x>b.mn.x-.45&&pp.x<b.mx.x+.45&&pp.z>b.mn.z-.45&&pp.z<b.mx.z+.45&&pp.y<b.mx.y&&pp.y+1.8>b.mn.y)continue;
+  const box={min:b.mn,max:b.mx};boxes.push(box);b.p.boxes&&b.p.boxes.push(box);DIR_PEND.splice(i,1)}}
+function dirUnbox(p){if(!p.boxes)return;for(const b of p.boxes){const i=boxes.indexOf(b);if(i>=0)boxes.splice(i,1)}p.boxes=null;for(let i=DIR_PEND.length-1;i>=0;i--)if(DIR_PEND[i].p===p)DIR_PEND.splice(i,1)}
+function dirDebUpd(dt){dirPendUpd();for(const p of DIR_DEB){if(p.rest>1)continue;dirDebStep(p,dt,.05)}}
+function dirDeathClear(){for(const D of DIR_DEAD){for(const p of D.parts.concat(D.caps)){dirUnbox(p);p.o.parent&&p.o.parent.remove(p.o)}D.w.parent&&D.w.parent.remove(D.w)}DIR_DEAD.length=0}
 /*DIR-END*/
