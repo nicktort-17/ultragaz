@@ -22,4 +22,11 @@ rep("function bossAnim(e,dt){const B=e.g.userData.boss;if(!B)return;",
     "function bossAnim(e,dt){/*DIR2*/if(typeof dirAnim==='function'&&dirAnim(e,dt))return;const B=e.g.userData.boss;if(!B)return;")
 rep("function begin(m,lv){initAudio();",
     "function begin(m,lv){/*DIR3*/if(typeof dirLoad==='function')dirLoad();initAudio();")
+# «Ликвидация»: смерть Директора с моделью — своя сцена взрыва вместо стандартной вспышки
+rep("function kill(e,src,quiet){if(gzKillGuard(e))return;",
+    "function kill(e,src,quiet){if(gzKillGuard(e))return;/*DIR4*/if(e.type==='boss'&&src!=='x'&&src!=='self'&&typeof dirDeath==='function')dirDeath(e);")
+rep("banner('ДИРЕКТОР УВОЛЕН!');for(let i=0;i<12;i++)orbs.push(makeOrb(c));blast(c,9,0xffe066);puff(c,160,0xf6eee2,16,1.4);",
+    "banner('ДИРЕКТОР УВОЛЕН!');for(let i=0;i<12;i++)orbs.push(makeOrb(c));/*DIR5*/if(!e.dirDeath){blast(c,9,0xffe066);puff(c,160,0xf6eee2,16,1.4)}")
+rep("if(mode==='solo'||(mode==='coop'&&isHost)){updEnemies(dt);if(story)updStoryHost(dt);else updWaves(dt)}else if(mode==='coop')clientEnemyAnim(dt);",
+    "if(mode==='solo'||(mode==='coop'&&isHost)){updEnemies(dt);if(story)updStoryHost(dt);else updWaves(dt)}else if(mode==='coop')clientEnemyAnim(dt);/*DIR6*/if(typeof dirDeathUpd==='function')dirDeathUpd(dt);")
 open(INDEX,'w').write(s);print('director ok')

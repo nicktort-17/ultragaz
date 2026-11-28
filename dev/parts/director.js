@@ -65,27 +65,28 @@ const DIR_CORE_FS=`varying vec2 vUv;uniform float uT,uK;
 float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 void main(){vec2 uv=vUv;float k=uK;
  vec2 q=abs(uv-.5)-vec2(.42);float rr=length(max(q,0.))-.08;float mask=1.-smoothstep(-.012,0.,rr);
- float lvl=.6+.28*k+(.025+.06*k)*sin(uT*(2.+6.*k)+uv.x*9.)+.025*k*sin(uT*14.+uv.x*27.);
+ float kc=min(k,1.),ov=clamp(k-1.,0.,1.);
+ float lvl=.55+.47*kc+(.02+.07*kc)*sin(uT*(2.+9.*kc)+uv.x*9.)+.04*kc*kc*sin(uT*17.+uv.x*31.);
  vec3 col;float a=mask;
  if(uv.y>lvl){col=vec3(.07,.03,.04);float st=smoothstep(.06,0.,abs(uv.x-.22))*.35+smoothstep(.03,0.,abs(uv.x-.3))*.2;col+=vec3(st);a*=.92;}
  else{vec3 deep=vec3(.36,.01,.04),hot=vec3(1.,.15,.1);col=mix(deep,hot,clamp(uv.y/lvl,0.,1.)*.75+.25*k);
-  float b=0.;for(int L=0;L<3;L++){float fl=float(L),sc=6.+fl*4.,sp=(.1+.55*k)*(1.+fl*.35);vec2 gg=vec2(uv.x*sc,uv.y*sc*1.2-uT*sp*sc);vec2 id=floor(gg),f=fract(gg)-.5;
-   if(h(id+fl*7.)<.22+.6*k){vec2 o=vec2(h(id+3.)-.5,h(id+5.)-.5)*.45;float r=.1+.17*h(id+9.),d=length(f-o);b=max(b,smoothstep(r,r-.05,d)-smoothstep(r-.06,r-.12,d)*.55);}}
+  float b=0.;for(int L=0;L<3;L++){float fl=float(L),sc=6.+fl*4.,sp=(.08+.95*kc+ov)*(1.+fl*.35);vec2 gg=vec2(uv.x*sc,uv.y*sc*1.2-uT*sp*sc);vec2 id=floor(gg),f=fract(gg)-.5;
+   if(h(id+fl*7.)<.15+.85*kc){vec2 o=vec2(h(id+3.)-.5,h(id+5.)-.5)*.45;float r=.1+.17*h(id+9.),d=length(f-o);b=max(b,smoothstep(r,r-.05,d)-smoothstep(r-.06,r-.12,d)*.55);}}
   col=mix(col,vec3(1.,.78,.74),b*.85);
-  float fm=smoothstep(lvl-.035-.08*k,lvl,uv.y);float n=h(floor(vec2(uv.x*36.,uT*9.)));col=mix(col,vec3(1.,.94,.9),fm*(.55+.45*n));
-  col*=1.+(.25+1.2*k)*(.55+.45*sin(uT*(3.+10.*k)));}
+  float fm=smoothstep(lvl-.03-.14*kc,lvl,uv.y);float n=h(floor(vec2(uv.x*36.,uT*(9.+12.*kc))));col=mix(col,vec3(1.,.94,.9),fm*(.55+.45*n));
+  col*=1.+(.2+1.7*kc+2.*ov)*(.55+.45*sin(uT*(2.+15.*kc+20.*ov)));col=mix(col,vec3(1.,.97,.92),ov*.85);}
  gl_FragColor=vec4(col,a);}`;
 
 function dirAnim(e,dt){const B=e.g.userData.boss;if(!B)return false;
  if(!B.dir){if(DIR_T&&DIR_T!=='load'){dirSwap(e);return true}return false}
  const ph2=e.ph2||e.hp<(e.maxHp||1)*.5,k=Math.max(0,Math.min(1,1-e.hp/(e.maxHp||1))),L=x=>Math.min(1,dt*x),yaw=e.g.rotation.y;
- B.sm+=(k-B.sm)*L(2);const kk=B.sm;
+ B.sm+=(k-B.sm)*L(4);const kk=B.sm;
  const fwd=e.vel.x*Math.sin(yaw)+e.vel.z*Math.cos(yaw),side=e.vel.x*Math.cos(yaw)-e.vel.z*Math.sin(yaw),spd=Math.hypot(e.vel.x,e.vel.z);
  const wind=e.dashW>0,dash=e.dashT>0,slamUp=e.slamS===1||e.slamS===2,slamDn=e.slamS===3||e.slamS===4,lz=e.lzT>0;
  // корпус: парение, наклон по ходу, замах назад перед рывком, дрожь от кипения
  let lean=Math.max(-.22,Math.min(.3,fwd*.012));if(wind)lean=-.16;if(dash)lean=.42;if(slamDn)lean=.25;
  B.lean+=(lean-B.lean)*L(6);B.roll+=(Math.max(-.2,Math.min(.2,-side*.011))-B.roll)*L(4);
- const jit=kk>.55?(kk-.55)*.05:0,nerv=ph2?.012:0;
+ const jit=kk>.45?Math.pow((kk-.45)/.55,1.5)*.09:0,nerv=ph2?.012:0;
  B.hold.rotation.set(B.lean+(Math.random()-.5)*jit,0,B.roll+Math.sin(T*1.1)*.03+(Math.random()-.5)*(jit+nerv));
  B.hold.position.set((Math.random()-.5)*jit*.6,DIR_Y+Math.sin(T*2.2)*.07,0);
  if(e.stagger>0)e.g.rotation.x=Math.sin(e.stagger*8)*.15;else e.g.rotation.x*=.9;
@@ -105,7 +106,7 @@ function dirAnim(e,dt){const B=e.g.userData.boss;if(!B)return false;
  B.armL.rotation.x+=(lx-B.armL.rotation.x)*L(B.kickT>0?25:9);B.armL.rotation.z+=(lzr-B.armL.rotation.z)*L(8);
  B.armR.rotation.x+=(rx-B.armR.rotation.x)*L(dash?22:9);B.armR.rotation.z+=(rzr-B.armR.rotation.z)*L(8);
  // визор
- const atk=wind||dash||slamUp||lz||e.cd<.35;dirFace(B,e.flash>0?'hurt':ph2?(atk||Math.sin(T*7)>.6?'rage':'atk'):atk?'atk':kk>.3?'irk':'calm');
+ const atk=wind||dash||slamUp||lz||e.cd<.35;dirFace(B,e.flash>0||(kk>.88&&Math.sin(T*31)>.75)?'hurt':ph2?(atk||Math.sin(T*7)>.6?'rage':'atk'):atk?'atk':kk>.3?'irk':'calm');
  B.vz.scale.setScalar(ph2?1+.08*Math.sin(T*18):1);
  // двигатели: длина пламени от скорости, рывок — форсаж; в ярости пламя краснее
  const thr=1+spd*.06+(dash?2.2:0)+(slamUp?1:0);
@@ -113,7 +114,8 @@ function dirAnim(e,dt){const B=e.g.userData.boss;if(!B)return false;
  if(Math.random()<dt*(10+spd*1.2+(dash?30:0)))for(const n of B.eng){const w=n.getWorldPosition(new V3());w.y-=.4;puff(w,1,ph2&&Math.random()<.5?0xff9a90:0xf6eee2,2.5,.45,9)}
  // резервуар кипит сильнее при малом HP; при низком — пена вырывается наружу
  B.core.uniforms.uT.value=T;B.core.uniforms.uK.value=kk;
- if(kk>.5&&Math.random()<dt*(kk-.5)*24){const w=B.body.localToWorld(_dirV.set(0,.53,.12));puff(w,2,Math.random()<.5?0xffd0c8:0xff6a5a,3,.5,4)}
+ if(kk>.35&&Math.random()<dt*(kk-.35)*60){const w=B.body.localToWorld(_dirV.set(rnd(-.06,.06),.53,.13));puff(w,1+Math.round(kk*3),Math.random()<.5?0xffd0c8:0xff6a5a,2+kk*4,.5,4)}
+ if(kk>.8&&Math.random()<dt*(kk-.8)*30){const w=B.body.localToWorld(_dirV.set(rnd(-.2,.2),rnd(.2,.6),rnd(-.1,.15)));puff(w,4,0xf6eee2,5,.4,6)}
  // нимб: спокойно вращается; в ярости кольцо гаснет, 12 крышек летают поодиночке
  B.halo.position.y=DIR_Y+.80*DIR_S+Math.sin(T*2)*.08;
  if(!ph2){B.halo.rotation.z+=dt*.6;B.ring.scale.setScalar(1);for(const c of B.caps){c.m.position.set(Math.cos(c.a)*1.38,Math.sin(c.a)*1.38,0)}}
@@ -121,4 +123,58 @@ function dirAnim(e,dt){const B=e.g.userData.boss;if(!B)return false;
   for(const c of B.caps){const r=1.6+.45*Math.sin(T*1.3+c.ph),a=c.a+Math.sin(T*.7+c.ph)*.25;c.m.position.set(Math.cos(a)*r,Math.sin(a)*r,Math.sin(T*2+c.ph)*.45);c.m.rotation.z+=dt*(2+c.ph)}}
  return true}
 const _dirV=new V3();
+
+/* --- «ЛИКВИДАЦИЯ»: смерть Директора. 1.8 с перегрузки (ядро белеет, тряска, пена из швов) → взрыв газировки:
+   вспышки, ударные волны, гейзер; голова вылетает пробкой, руки/корпус разлетаются и падают, крышки нимба веером,
+   дождь колы; корпус дымится на полу ещё ~20 с. Чисто визуально (урона нет, только отброс игрока). --- */
+const DIR_DEAD=[];
+function dirDeath(e){const B=e.g.userData.boss;if(!B||!B.dir||e.dirDeath)return false;e.dirDeath=1;
+ const w=new THREE.Group();w.position.copy(e.g.position);w.quaternion.copy(e.g.quaternion);(typeof mapGroup!=='undefined'&&mapGroup?mapGroup:scene).add(w);
+ for(const c of e.g.children.slice())w.add(c);
+ DIR_DEAD.push({w,B,t:0,boom:false,parts:[],caps:[],y0:e.pos.y,ph2:true});banner('ЛИКВИДАЦИЯ АКТИВОВ…');sfx('charge',1);sfx('siren',.5);return true}
+function dirBoom(D){const B=D.B,w=D.w,c=B.body.localToWorld(new V3(0,.45,.1));D.boom=true;
+ freeze=Math.max(freeze||0,.12);shake=Math.max(shake,1.3);sfx('boom',1);sfx('frag',1);sfx('slam',.9);setTimeout(()=>sfx('boom',.7),140);setTimeout(()=>sfx('gloop',.8),380);
+ blast(c,15,0xffffff);blast(c,10,0xff3a2a);blast(c.clone().setY(c.y+2),7,0xffe066);
+ const g0=new V3(c.x,Math.max(D.y0-2.5,c.y-4),c.z);ring(g0,16,0xffe066);ring(g0,10,0xc8102e);ring(g0,6,0xffffff);
+ puff(c,320,0x5a1f0e,18,1.6,6);puff(c,260,0xf6eee2,22,1.4,5);puff(c,90,0xff3a2a,14,1,8);puff(c,60,0xf2b84b,16,1.2,10);
+ // гейзер пены вверх
+ for(let i=0;i<8;i++)setTimeout(()=>puff(new V3(c.x+rnd(-.6,.6),c.y+1+i*.8,c.z+rnd(-.6,.6)),26,i%2?0xf6eee2:0xffd0c8,7,1.3,-2),i*45);
+ // части модели — в мир с физикой
+ const fling=(o,v,spin,trail)=>{const p=o.getWorldPosition(new V3()),q=o.getWorldQuaternion(new THREE.Quaternion()),s=o.getWorldScale(new V3());
+  w.parent.add(o);o.position.copy(p);o.quaternion.copy(q);o.scale.copy(s);D.parts.push({o,v,spin,trail,rest:0})};
+ const yaw=new V3(0,0,1).applyQuaternion(w.quaternion),side=new V3(yaw.z,0,-yaw.x);
+ fling(B.head,new V3(rnd(-2,2),26,rnd(-2,2)).addScaledVector(yaw,-3),new V3(rnd(-6,6),rnd(-9,9),rnd(-6,6)),1);
+ fling(B.armL,side.clone().multiplyScalar(-15).add(new V3(0,11,0)).addScaledVector(yaw,rnd(-3,3)),new V3(rnd(-8,8),rnd(-6,6),rnd(-8,8)),0);
+ fling(B.armR,side.clone().multiplyScalar(15).add(new V3(0,12,0)).addScaledVector(yaw,rnd(-3,3)),new V3(rnd(-8,8),rnd(-6,6),rnd(-8,8)),0);
+ fling(B.body,new V3(0,6,0).addScaledVector(yaw,-4),new V3(rnd(-2,2),rnd(-3,3),rnd(-2,2)),2);
+ for(const f of B.fl)f.n.visible=false;B.core.uniforms.uK.value=1;
+ // крышки нимба веером
+ for(const cp of B.caps){const p=cp.m.getWorldPosition(new V3()),dir=p.clone().sub(c).setY(0).normalize();w.parent.add(cp.m);cp.m.position.copy(p);cp.m.scale.setScalar(1);
+  D.caps.push({o:cp.m,v:dir.multiplyScalar(rnd(10,18)).add(new V3(0,rnd(8,15),0)),spin:new V3(rnd(-12,12),rnd(-12,12),rnd(-12,12)),rest:0})}
+ w.remove(B.halo);
+ // отброс игрока волной
+ const d=P.pos.clone().sub(c).setY(0),L=d.length();if(L<16){P.vel.addScaledVector(d.normalize(),(16-L)*1.4).setY(Math.max(P.vel.y,9))}
+ addStyle('ЛИКВИДАЦИЯ',150)}
+function dirDeathUpd(dt){for(const D of DIR_DEAD){D.t+=dt;const B=D.B;
+  if(!D.boom){const k=Math.min(1,D.t/1.8),a=.03+k*k*.35;
+   B.hold.position.set((Math.random()-.5)*a,DIR_Y+(Math.random()-.5)*a*.6,(Math.random()-.5)*a);B.hold.rotation.set((Math.random()-.5)*a*.5,(Math.random()-.5)*a*.4,(Math.random()-.5)*a*.5);
+   B.core.uniforms.uT.value=T;B.core.uniforms.uK.value=1+k;dirFace(B,Math.sin(T*(30+k*40))>0?'hurt':'rage');B.vz.scale.setScalar(1+k*.6);
+   for(const f of B.fl){const on=Math.random()<.6-k*.4;f.o.visible=f.c.visible=on;f.o.scale.y=f.c.scale.y=rnd(.5,2.5)}
+   B.halo.rotation.z+=dt*(3+k*12);for(const cp of B.caps){const r=1.6+k*1.8;cp.m.position.set(Math.cos(cp.a+T*k*4)*r,Math.sin(cp.a+T*k*4)*r,Math.sin(T*9+cp.ph)*k)}
+   if(Math.random()<dt*(20+k*80)){const p=B.body.localToWorld(_dirV.set(rnd(-.25,.25),rnd(.1,.7),rnd(-.12,.16)));puff(p,3,Math.random()<.6?0xf6eee2:0xff6a5a,4+k*6,.5,4)}
+   if(Math.random()<dt*6)puff(B.head.localToWorld(_dirV.set(0,.2,0)),4,0xf6eee2,6,.5,-3);
+   shake=Math.max(shake,k*.35);if(D.t>=1.8)dirBoom(D);continue}
+  const tb=D.t-1.8;
+  if(tb>1.5&&tb<2.6&&Math.random()<dt*40){const r=rnd(0,9),a=rnd(0,6.28);puff(new V3(D.w.position.x+Math.cos(a)*r,D.y0+9,D.w.position.z+Math.sin(a)*r),2,0x6b2a12,1,1.4,22)}
+  for(const p of D.parts.concat(D.caps)){if(p.rest>1)continue;p.v.y-=25*dt;p.o.position.addScaledVector(p.v,dt);
+   p.o.rotation.x+=p.spin.x*dt;p.o.rotation.y+=p.spin.y*dt;p.o.rotation.z+=p.spin.z*dt;
+   if(p.trail===1&&p.v.y>0)puff(p.o.position.clone(),3,0xf6eee2,2,.9,-1);
+   if(p.trail===2&&Math.random()<dt*30)puff(p.o.position.clone().setY(p.o.position.y+1),2,0x5a1f0e,3,.8,-2);
+   const gy=groundAt(p.o.position.x,p.o.position.z,p.o.position.y+1)+(p.trail===2?.35:.15);
+   if(p.o.position.y<gy){p.o.position.y=gy;if(Math.abs(p.v.y)>3){p.v.y*=-.32;p.v.x*=.6;p.v.z*=.6;p.spin.multiplyScalar(.5);puff(p.o.position.clone(),8,0xf6eee2,5,.5,8);sfx('slam',Math.max(.15,sndV(p.o.position.x,p.o.position.y,p.o.position.z)*.6))}
+    else{p.v.set(0,0,0);p.spin.set(0,0,0);p.rest=2}}}
+  if(tb>2&&tb<20&&Math.random()<dt*7){const b=B.body.getWorldPosition(new V3());puff(b.setY(b.y+1.2),2,Math.random()<.5?0x3a3438:0x5a1f0e,1.5,1.6,-3)}
+  if(tb>20){const all=D.parts.concat(D.caps);for(const p of all)p.o.parent&&p.o.parent.remove(p.o);D.w.parent&&D.w.parent.remove(D.w);D.done=1}}
+ for(let i=DIR_DEAD.length-1;i>=0;i--)if(DIR_DEAD[i].done)DIR_DEAD.splice(i,1)}
+function dirDeathClear(){for(const D of DIR_DEAD){for(const p of D.parts.concat(D.caps))p.o.parent&&p.o.parent.remove(p.o);D.w.parent&&D.w.parent.remove(D.w)}DIR_DEAD.length=0}
 /*DIR-END*/

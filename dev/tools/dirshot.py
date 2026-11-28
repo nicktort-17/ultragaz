@@ -35,7 +35,7 @@ with sync_playwright() as p:
         f=os.path.join(OD,name+'.png');pg.screenshot(path=f);shots.append((name,f))
     # резервуар крупно при разном HP
     core=[]
-    for hp in (1,.6,.3,.08):
+    for hp in (1,.5,.2,.02):
         E(pg,"(()=>{const e=__B;e.hp=e.maxHp*%f;e.ph2=%s;e.lzT=0;e.flash=0;e.cd=99;e.g.userData.boss.sm=%f;e.pos.set(0,__Y0,-4.2);e.tgt.copy(e.pos)})()"%(hp,'true' if hp<.5 else 'false',1-hp))
         F(pg,30);E(pg,CLEAN+"P.pos.set(0,__Y0+1.2,0);P.vel.set(0,0,0);P.yaw=0;P.pitch=-.02})()");F(pg,2)
         f=os.path.join(OD,'core_%d.png'%int(hp*100));pg.screenshot(path=f);core.append(('HP %d%%'%int(hp*100),f))
