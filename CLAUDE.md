@@ -19,7 +19,7 @@
 - `dev/tools/` — тесты и утилиты на Playwright (Chrome + swiftshader):
   - `prep2.py` — делает тестовую копию игры с хуками (`window.__eval`, `__ug`, `__dt`, `__norender`) в `dev/.srv`; `srv.py` — поднимает её на порту 8765 (`--stop` — остановить, `--fg` — в текущем окне).
   - `base.py` — открыть страницу; `tour.py views.json out.jpg` — скриншоты карты (`[имя,x,y,z,yaw°,pitch°]`, y ≥ 100 → высота от рельефа);
-  - `dirshot.py` (состояния Директора и резервуар крупно), `dirfight.py` (живой бой с Директором);
+  - `dirshot.py` (состояния Директора и резервуар крупно), `dirfight.py` (живой бой с Директором), `dirdeath.py` (взрыв «Ликвидация»), `dirfinale.py [noparry]` (финал: голова-пробка, парирование, крушение в карусель, обломки не в стенах);
   - регрессии: `l4flow.py`, `flowexit.py`, `pepsim.py`, `pep9.py`, `coop3.py`, `bluechk.py`, `smshot.py`, `cdshot.py`, `fountchk.py`, `audit.py` и др.
 
 ## Пути и тестовое окружение

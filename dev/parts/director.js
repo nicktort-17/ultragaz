@@ -87,13 +87,15 @@ function dirAnim(e,dt){const B=e.g.userData.boss;if(!B)return false;
  let lean=Math.max(-.22,Math.min(.3,fwd*.012));if(wind)lean=-.16;if(dash)lean=.42;if(slamDn)lean=.25;
  B.lean+=(lean-B.lean)*L(6);B.roll+=(Math.max(-.2,Math.min(.2,-side*.011))-B.roll)*L(4);
  const jit=kk>.45?Math.pow((kk-.45)/.55,1.5)*.09:0,nerv=ph2?.012:0;
- B.hold.rotation.set(B.lean+(Math.random()-.5)*jit,0,B.roll+Math.sin(T*1.1)*.03+(Math.random()-.5)*(jit+nerv));
+ if(e.fin==='crash')B.spinA=(B.spinA||0)+dt*10;
+ B.hold.rotation.set(B.lean+(Math.random()-.5)*jit,e.fin==='crash'?B.spinA:0,B.roll+Math.sin(T*1.1)*.03+(Math.random()-.5)*(jit+nerv));
  B.hold.position.set((Math.random()-.5)*jit*.6,DIR_Y+Math.sin(T*2.2)*.07,0);
  if(e.stagger>0)e.g.rotation.x=Math.sin(e.stagger*8)*.15;else e.g.rotation.x*=.9;
  // голова: спокойно осматривается сверху вниз; в ярости — резкие рывки
- if(ph2){B.tw-=dt;if(B.tw<=0){B.tw=rnd(.25,.9);B.twA=rnd(-.45,.45)}B.head.rotation.y+=(B.twA-B.head.rotation.y)*L(18)}
+ if(B.cork){}else if(e.fin==='wind'){B.head.rotation.set(rnd(-.12,.12),rnd(-.2,.2),rnd(-.12,.12))}
+ else if(ph2){B.tw-=dt;if(B.tw<=0){B.tw=rnd(.25,.9);B.twA=rnd(-.45,.45)}B.head.rotation.y+=(B.twA-B.head.rotation.y)*L(18)}
  else B.head.rotation.y+=(Math.sin(T*.9)*.18-B.head.rotation.y)*L(4);
- B.head.rotation.x+=((e.flash>0?-.22:wind||dash?.12:-.05)-B.head.rotation.x)*L(10);B.head.rotation.z=ph2?Math.sin(T*23)*.03*kk:0;
+ if(!B.cork&&e.fin!=='wind'){B.head.rotation.x+=((e.flash>0?-.22:wind||dash?.12:-.05)-B.head.rotation.x)*L(10);B.head.rotation.z=ph2?Math.sin(T*23)*.03*kk:0}
  // левая рука-пушка: поднимается перед залпом, отдача; правая-открывашка: замах и выпад
  B.kickT=Math.max(0,(B.kickT||0)-dt);
  let lx=-.08,lzr=0,rx=-.12,rzr=0;
@@ -103,6 +105,8 @@ function dirAnim(e,dt){const B=e.g.userData.boss;if(!B)return false;
  if(slamUp){lx=rx=-2.7}if(slamDn){lx=rx=-.5}
  if(lz){lzr=.95;rzr=-.95;lx=rx=-.35}
  if(e.stagger>0){rx=Math.sin(e.stagger*11)*.6;lx=Math.cos(e.stagger*9)*.5}
+ if(e.fin==='wind'||e.fin==='away'||e.fin==='rest'){lx=rx=-.45;lzr=.35;rzr=-.35}
+ if(e.fin==='crash'){lx=Math.sin(T*17)*1.6;rx=Math.cos(T*15)*1.6;lzr=.8;rzr=-.8}
  B.armL.rotation.x+=(lx-B.armL.rotation.x)*L(B.kickT>0?25:9);B.armL.rotation.z+=(lzr-B.armL.rotation.z)*L(8);
  B.armR.rotation.x+=(rx-B.armR.rotation.x)*L(dash?22:9);B.armR.rotation.z+=(rzr-B.armR.rotation.z)*L(8);
  // визор
@@ -131,7 +135,8 @@ const DIR_DEAD=[];
 function dirDeath(e){const B=e.g.userData.boss;if(!B||!B.dir||e.dirDeath)return false;e.dirDeath=1;
  const w=new THREE.Group();w.position.copy(e.g.position);w.quaternion.copy(e.g.quaternion);(typeof mapGroup!=='undefined'&&mapGroup?mapGroup:scene).add(w);
  for(const c of e.g.children.slice())w.add(c);
- DIR_DEAD.push({w,B,t:0,boom:false,parts:[],caps:[],y0:e.pos.y,ph2:true});banner('ЛИКВИДАЦИЯ АКТИВОВ…');sfx('charge',1);sfx('siren',.5);return true}
+ const D={w,B,t:0,boom:false,parts:[],caps:[],y0:e.pos.y,ph2:true};DIR_DEAD.push(D);
+ if(e.crash){D.t=1.8;dirBoom(D)}else{banner('ЛИКВИДАЦИЯ АКТИВОВ…');sfx('charge',1);sfx('siren',.5)}return true}
 function dirBoom(D){const B=D.B,w=D.w,c=B.body.localToWorld(new V3(0,.45,.1));D.boom=true;
  freeze=Math.max(freeze||0,.12);shake=Math.max(shake,1.3);sfx('boom',1);sfx('frag',1);sfx('slam',.9);setTimeout(()=>sfx('boom',.7),140);setTimeout(()=>sfx('gloop',.8),380);
  blast(c,15,0xffffff);blast(c,10,0xff3a2a);blast(c.clone().setY(c.y+2),7,0xffe066);
@@ -155,7 +160,7 @@ function dirBoom(D){const B=D.B,w=D.w,c=B.body.localToWorld(new V3(0,.45,.1));D.
  // отброс игрока волной
  const d=P.pos.clone().sub(c).setY(0),L=d.length();if(L<16){P.vel.addScaledVector(d.normalize(),(16-L)*1.4).setY(Math.max(P.vel.y,9))}
  addStyle('ЛИКВИДАЦИЯ',150)}
-function dirDeathUpd(dt){for(const D of DIR_DEAD){D.t+=dt;const B=D.B;
+function dirDeathUpd(dt){dirDebUpd(dt);for(const D of DIR_DEAD){D.t+=dt;const B=D.B;
   if(!D.boom){const k=Math.min(1,D.t/1.8),a=.03+k*k*.35;
    B.hold.position.set((Math.random()-.5)*a,DIR_Y+(Math.random()-.5)*a*.6,(Math.random()-.5)*a);B.hold.rotation.set((Math.random()-.5)*a*.5,(Math.random()-.5)*a*.4,(Math.random()-.5)*a*.5);
    B.core.uniforms.uT.value=T;B.core.uniforms.uK.value=1+k;dirFace(B,Math.sin(T*(30+k*40))>0?'hurt':'rage');B.vz.scale.setScalar(1+k*.6);
@@ -166,15 +171,90 @@ function dirDeathUpd(dt){for(const D of DIR_DEAD){D.t+=dt;const B=D.B;
    shake=Math.max(shake,k*.35);if(D.t>=1.8)dirBoom(D);continue}
   const tb=D.t-1.8;
   if(tb>1.5&&tb<2.6&&Math.random()<dt*40){const r=rnd(0,9),a=rnd(0,6.28);puff(new V3(D.w.position.x+Math.cos(a)*r,D.y0+9,D.w.position.z+Math.sin(a)*r),2,0x6b2a12,1,1.4,22)}
-  for(const p of D.parts.concat(D.caps)){if(p.rest>1)continue;p.v.y-=25*dt;p.o.position.addScaledVector(p.v,dt);
-   p.o.rotation.x+=p.spin.x*dt;p.o.rotation.y+=p.spin.y*dt;p.o.rotation.z+=p.spin.z*dt;
+  for(const p of D.parts.concat(D.caps)){if(p.rest>1)continue;dirDebStep(p,dt,p.trail===2?.35:.15);
    if(p.trail===1&&p.v.y>0)puff(p.o.position.clone(),3,0xf6eee2,2,.9,-1);
-   if(p.trail===2&&Math.random()<dt*30)puff(p.o.position.clone().setY(p.o.position.y+1),2,0x5a1f0e,3,.8,-2);
-   const gy=groundAt(p.o.position.x,p.o.position.z,p.o.position.y+1)+(p.trail===2?.35:.15);
-   if(p.o.position.y<gy){p.o.position.y=gy;if(Math.abs(p.v.y)>3){p.v.y*=-.32;p.v.x*=.6;p.v.z*=.6;p.spin.multiplyScalar(.5);puff(p.o.position.clone(),8,0xf6eee2,5,.5,8);sfx('slam',Math.max(.15,sndV(p.o.position.x,p.o.position.y,p.o.position.z)*.6))}
-    else{p.v.set(0,0,0);p.spin.set(0,0,0);p.rest=2}}}
+   if(p.trail===2&&Math.random()<dt*30)puff(p.o.position.clone().setY(p.o.position.y+1),2,0x5a1f0e,3,.8,-2)}
   if(tb>2&&tb<20&&Math.random()<dt*7){const b=B.body.getWorldPosition(new V3());puff(b.setY(b.y+1.2),2,Math.random()<.5?0x3a3438:0x5a1f0e,1.5,1.6,-3)}
   if(tb>20){const all=D.parts.concat(D.caps);for(const p of all)p.o.parent&&p.o.parent.remove(p.o);D.w.parent&&D.w.parent.remove(D.w);D.done=1}}
  for(let i=DIR_DEAD.length-1;i>=0;i--)if(DIR_DEAD[i].done)DIR_DEAD.splice(i,1)}
+
+/* --- ФИНАЛ «ПРОБКА»: шкала на груди полна (HP ≤ 0) — Директор не умирает, а выстреливает головой в игрока.
+   Добить можно только парированием [F]: отбитая голова летит в его же корпус → его швыряет в карусель розлива,
+   бак лопается, карусель рушится, затем «Ликвидация». Не отбил — голова бьёт игрока и возвращается на шею.
+   В коопе (синхрон пробки сложен) при нуле HP — сразу крушение в карусель. --- */
+function dirKillGuard(e){const B=e.g.userData.boss;if(!B||!B.dir||e.finDone)return false;
+ if(!e.fin){e.fin='wind';e.finT=1.6;e.inv=true;e.hp=Math.max(.01,e.maxHp*.001);e.dashW=e.dashT=0;e.slamS=0;e.lzT=0;e.stagger=0;
+  if(typeof bossRing!=='undefined'&&bossRing){scene.remove(bossRing);bossRing=null}if(typeof DL!=='undefined')DL.lz=null;
+  banner('ШКАЛА ПОЛНА! ОТБЕЙ ЕГО ГОЛОВУ ОБРАТНО В НЕГО — [F]');sfx('siren',.8);sfx('charge',1);
+  if(mode!=='solo')dirFinish(e,null)}
+ return true}
+function dirFinalAI(e,t,to,dist,dt){const B=e.g.userData.boss;if(e.fin==='crash'){dirCrashUpd(e,dt);return}
+ e.vel.x*=1-Math.min(1,dt*3);e.vel.z*=1-Math.min(1,dt*3);e.vel.y=((e.hy??e.pos.y)+3.2-e.pos.y)*2.5;
+ if(e.fin==='wind'){e.finT-=dt;if(Math.random()<dt*30)puff(B.body.localToWorld(_dirV.set(rnd(-.04,.04),.72,0)),3,0xf6eee2,5,.4,-3);if(e.finT<=0)dirCork(e,t)}
+ else if(e.fin==='away'){if(Math.random()<dt*45)puff(B.body.localToWorld(_dirV.set(0,.72,0)),3,Math.random()<.5?0xf6eee2:0xff6a5a,7,.6,-5)}
+ else if(e.fin==='rest'){e.finT-=dt;if(e.finT<=0){e.fin='wind';e.finT=1.2}}}
+function dirCork(e,t){const B=e.g.userData.boss,h=B.head,p=h.getWorldPosition(new V3()),q=h.getWorldQuaternion(new THREE.Quaternion()),sc=h.getWorldScale(new V3());
+ B.headHome={pos:h.position.clone(),q:h.quaternion.clone()};scene.add(h);h.position.copy(p);h.quaternion.copy(q);h.scale.copy(sc);
+ const v=new V3(t.pos.x,t.pos.y+1.2,t.pos.z).sub(p).normalize().multiplyScalar(19);
+ const pr={m:h,vel:v,owner:'enemy',kind:'orb',dmg:30,r:1.1,t:7,dhead:1,e};proj.push(pr);B.cork=pr;e.fin='away';e.corkN=(e.corkN||0)+1;
+ sfx('boom',.7);sfx('jet',.9);puff(p,60,0xf6eee2,12,.8,4);ring(p,3,0xffe066);shake=Math.max(shake,.3)}
+function dirHeadBack(p){p.ret=1;p.owner='enemy'}
+function dirHeadAttach(e){const B=e.g.userData.boss,h=B.head;B.body.add(h);h.position.copy(B.headHome.pos);h.quaternion.copy(B.headHome.q);h.scale.setScalar(1);if(h.material&&h.material.color)h.material.color.set(0xffffff);
+ B.cork=null;e.fin='rest';e.finT=2.4;puff(B.body.localToWorld(_dirV.set(0,.75,0)),30,0xf6eee2,6,.5);sfx('slam',.5)}
+function dirHeadUpd(p,dt){const e=p.e,B=e&&e.g.userData.boss,pos=p.m.position;
+ if(!B||e.dead||e.fin==='crash'){p.dead=true;return}
+ p.m.rotation.x+=dt*9;p.m.rotation.z+=dt*5;
+ if(p.owner==='player'){if(!p.par){p.par=1;p.ret=0;p.t=4;if(p.m.material&&p.m.material.color)p.m.material.color.set(0xffffff);
+   const to=center(e,new V3()).sub(pos).normalize();if(to.dot(_dirV.copy(p.vel).normalize())>.55)p.vel.copy(to).multiplyScalar(55);banner('ПРЯМО В ПРАВЛЕНИЕ!')}
+  pos.addScaledVector(p.vel,dt);puff(pos,2,0xf2b84b,3,.5,-1);
+  if(pos.distanceTo(center(e,new V3()))<e.r+1.8){p.dead=true;dirFinish(e,p);return}
+  if(inBox(pos)||p.t<=0){p.par=0;dirHeadBack(p)}return}
+ if(p.ret){const home=B.body.localToWorld(new V3(0,.715,0)),d=home.sub(pos),L=d.length();if(L<.8){p.dead=true;dirHeadAttach(e);return}
+  pos.addScaledVector(d.normalize(),Math.min(L,26*dt));puff(pos,1,0xf6eee2,2,.4,-1);return}
+ const pc=new V3(P.pos.x,P.pos.y+1.2,P.pos.z);p.vel.lerp(pc.clone().sub(pos).normalize().multiplyScalar(20),Math.min(1,dt*2.2));pos.addScaledVector(p.vel,dt);puff(pos,1,0xf6eee2,2,.5,-1);
+ if(P.alive&&pos.distanceTo(pc)<p.r+1){if(P.iT<=0){hurt(p.dmg);P.vel.addScaledVector(p.vel.clone().normalize(),14).setY(7);shake=Math.max(shake,.4)}else addStyle('УВОРОТ',20);dirHeadBack(p);return}
+ if(inBox(pos)||p.t<=0)dirHeadBack(p)}
+function dirFinish(e,p){const B=e.g.userData.boss;e.finDone=true;e.fin='crash';e.inv=true;e.crashT=0;
+ if(B.cork||p){const h=B.head;if(h.parent!==B.body){B.body.add(h);h.position.copy(B.headHome?B.headHome.pos:new V3(0,.715,0));h.quaternion.copy(B.headHome?B.headHome.q:new THREE.Quaternion())}
+  h.scale.setScalar(1);h.rotation.set(.5,.3,-.4);if(h.material&&h.material.color)h.material.color.set(0xffffff);B.cork=null}
+ const c=center(e,new V3());if(p){freeze=Math.max(freeze||0,.16);shake=Math.max(shake,.7);blast(c,6,0xffe066);puff(c,90,0xf6eee2,14,.8,4);sfx('parry',1);sfx('boom',.8);addStyle('ПРОБКОЙ В ЛОБ',250);banner('ДИРЕКТОРА ШВЫРНУЛО В КАРУСЕЛЬ!')}
+ const C=typeof carousel!=='undefined'?carousel:null;let tgt=null;
+ if(C&&!C.broken&&Math.hypot(C.x-e.pos.x,C.z-e.pos.z)<70)tgt=new V3(C.x,e.pos.y,C.z);
+ const dir=tgt?tgt.clone().sub(e.pos).setY(0).normalize():new V3(e.pos.x-P.pos.x,0,e.pos.z-P.pos.z).normalize();
+ e.crashTgt=tgt;e.crashV=dir.multiplyScalar(34);e.crashLast=e.pos.clone()}
+function dirCrashUpd(e,dt){const B=e.g.userData.boss;e.crashT+=dt;e.vel.set(e.crashV.x,(e.crashTgt?Math.max(2,e.crashTgt.y)-e.pos.y:0)*1.5,e.crashV.z);
+ if(Math.random()<dt*50)puff(B.body.localToWorld(_dirV.set(rnd(-.1,.1),rnd(.2,.7),.1)),3,Math.random()<.5?0xf6eee2:0xff6a5a,6,.5,2);
+ const moved=e.pos.distanceTo(e.crashLast)/Math.max(dt,1e-3);e.crashLast.copy(e.pos);
+ const C=e.crashTgt?carousel:null,near=C&&Math.hypot(C.x-e.pos.x,C.z-e.pos.z)<2.8+e.r+1.2;
+ if(near||(e.crashT>.25&&moved<8)||e.crashT>2.4){if(C)dirSmashCarousel(C,true);e.inv=false;e.crash=1;kill(e,'parry')}}
+function dirSmashCarousel(C,host){if(!C||C.broken)return;C.broken=true;const hub=C.liq.parent,hp=hub.position.clone(),mid=hp.clone().setY(5);
+ for(let i=boxes.length-1;i>=0;i--){const b=boxes[i],cx=(b.min.x+b.max.x)/2,cz=(b.min.z+b.max.z)/2;if(Math.abs(cx-hp.x)<.3&&Math.abs(cz-hp.z)<.3&&b.max.x-b.min.x>5)boxes.splice(i,1)}
+ const unlevel=o=>o.traverse(m=>{const i=level.indexOf(m);if(i>=0)level.splice(i,1)});
+ for(const m of hub.children.slice()){if(m===C.liq||(m.material&&m.material.transparent)){m.visible=false;unlevel(m)}else dirDebris(m,new V3(rnd(-6,6),rnd(4,12),rnd(-6,6)),new V3(rnd(-3,3),rnd(-3,3),rnd(-3,3)),.4)}
+ for(const k of C.cols){k.box.min.set(0,-99,0);k.box.max.set(0,-98,0)}
+ for(const cg of C.rot.children.slice()){if(!cg.isGroup)continue;unlevel(cg);const wp=cg.getWorldPosition(new V3()),out=wp.clone().sub(hp).setY(0).normalize();
+  dirDebris(cg,out.multiplyScalar(rnd(9,15)).setY(rnd(5,10)),new V3(rnd(-4,4),rnd(-2,2),rnd(-4,4)),.6)}
+ for(const n of C.noz)n.st.visible=false;dirDebris(C.ring,new V3(0,1,0),new V3(rnd(-.4,.4),.15,rnd(-.4,.4)),.4,true);
+ blast(mid,11,0xff3a2a);blast(mid,7,0xffffff);ring(hp.clone().setY(.6),18,0x5a1a06);ring(hp.clone().setY(.6),11,0xd8f4ff);
+ puff(mid,420,0x5a1a06,18,1.6,7);puff(mid,160,0xd8f4ff,15,1,9);puff(mid,120,0xf6eee2,12,1.2,5);
+ for(let i=0;i<10;i++)setTimeout(()=>puff(new V3(hp.x+rnd(-1,1),2+i*1.4,hp.z+rnd(-1,1)),30,i%2?0x5a1a06:0xf6eee2,8,1.2,4),i*50);
+ addPuddle(hp.x,.5,hp.z,8,45);for(let i=0;i<8;i++){const a=i/8*6.28;addPuddle(hp.x+Math.cos(a)*8,.5,hp.z+Math.sin(a)*8,3.5,40)}
+ sfx('crack',1);sfx('boom',1);sfx('gloop',1);sfx('frag',.9);shake=Math.max(shake,1);
+ if(host&&mp())pushFx(['X',0,1])}
+function dirFx(n){if(n[0]===1&&typeof carousel!=='undefined'&&carousel)dirSmashCarousel(carousel,false)}
+// обломки (части Директора, крышки, карусель): гравитация, пол, стены — по осям с отскоком; сквозь коллизии не пролетают
+const DIR_DEB=[];const _dirW=new V3();
+function dirDebris(o,v,spin,gOff,flat){const p=o.getWorldPosition(new V3()),q=o.getWorldQuaternion(new THREE.Quaternion()),s=o.getWorldScale(new V3());
+ const par=typeof mapGroup!=='undefined'&&mapGroup?mapGroup:scene;par.add(o);o.position.copy(p);o.quaternion.copy(q);o.scale.copy(s);DIR_DEB.push({o,v,spin,gOff,flat,rest:0})}
+function dirOut(p){return typeof mapB!=='undefined'&&mapB&&(p.x<mapB.x0||p.x>mapB.x1||p.z<mapB.z0||p.z>mapB.z1)}
+function dirDebStep(p,dt,gOff){const o=p.o,pos=o.position;p.v.y-=25*dt;
+ _dirW.set(pos.x+p.v.x*dt,pos.y,pos.z);if(inBox(_dirW)||dirOut(_dirW))p.v.x*=-.35;else pos.x=_dirW.x;
+ _dirW.set(pos.x,pos.y,pos.z+p.v.z*dt);if(inBox(_dirW)||dirOut(_dirW))p.v.z*=-.35;else pos.z=_dirW.z;
+ const ny=pos.y+p.v.y*dt,gy=groundAt(pos.x,pos.z,pos.y+.5)+gOff;_dirW.set(pos.x,ny,pos.z);
+ if(p.v.y>0&&inBox(_dirW))p.v.y*=-.3;
+ else if(ny<gy){pos.y=Math.max(gy,Math.min(pos.y,gy+.5));if(Math.abs(p.v.y)>3){p.v.y*=-.32;p.v.x*=.6;p.v.z*=.6;p.spin.multiplyScalar(.5);puff(pos.clone(),8,0xf6eee2,5,.5,8);sfx('slam',Math.max(.15,sndV(pos.x,pos.y,pos.z)*.6))}else{p.v.set(0,0,0);p.spin.set(0,0,0);p.rest=2}}
+ else pos.y=ny;
+ o.rotation.x+=p.spin.x*dt;o.rotation.y+=p.spin.y*dt;o.rotation.z+=p.spin.z*dt}
+function dirDebUpd(dt){for(const p of DIR_DEB){if(p.rest>1)continue;dirDebStep(p,dt,p.gOff);if(p.flat&&p.rest>1){shake=Math.max(shake,.5);puff(p.o.position.clone(),80,0xd8cfc0,10,1,6);sfx('slam',1)}}}
 function dirDeathClear(){for(const D of DIR_DEAD){for(const p of D.parts.concat(D.caps))p.o.parent&&p.o.parent.remove(p.o);D.w.parent&&D.w.parent.remove(D.w)}DIR_DEAD.length=0}
 /*DIR-END*/

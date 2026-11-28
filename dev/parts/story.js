@@ -266,7 +266,7 @@ function buildCarousel(cx,cz,R){const m=SM;discSolid(cx,cz,R,0,.5,1.1);
   const st=new THREE.Mesh(new THREE.CylinderGeometry(.14,.3,9.6,10,1,true),new THREE.MeshBasicMaterial({color:0x5a1a06,transparent:true,opacity:.8}));st.position.set(lx,-6.3,lz);st.visible=false;ring.add(st);
   noz.push({lx,lz,st,ph:k*1.1,on:false})}
  carousel={x:cx,z:cz,R,top:.5,w:.32,rot,ring,cols,noz,liq}}
-function updCarousel(dt){const C=carousel;if(!C)return;const th=lvT*C.w,c=Math.cos(th),s=Math.sin(th);C.rot.rotation.y=th;C.ring.rotation.y=th;
+function updCarousel(dt){const C=carousel;if(!C||C.broken)return;const th=lvT*C.w,c=Math.cos(th),s=Math.sin(th);C.rot.rotation.y=th;C.ring.rotation.y=th;
  for(const k of C.cols){const x=C.x+k.lx*c+k.lz*s,z=C.z-k.lx*s+k.lz*c;k.box.min.set(x-.7,.5,z-.7);k.box.max.set(x+.7,5,z+.7)}
  for(const n of C.noz){const ph=((lvT+n.ph)%6.6+6.6)%6.6,on=ph<.9;n.st.visible=on;
   if(on&&!n.on){const x=C.x+n.lx*c+n.lz*s,z=C.z-n.lx*s+n.lz*c;addPuddle(x,0,z,1.8,9);const v=sndV(x,1,z);if(v>.05)sfx('spray',v*2)}
@@ -275,7 +275,7 @@ function updCarousel(dt){const C=carousel;if(!C)return;const th=lvT*C.w,c=Math.c
 const _cv=new V3();
 function carryBody(p,r,h,dt){
  for(const b of belts)if(p.x>b.min.x&&p.x<b.max.x&&p.z>b.min.z&&p.z<b.max.z&&Math.abs(p.y-b.max.y)<.08){_cv.set(b.vx,0,b.vz);moveBody(p,_cv,r,h,dt,true);return 0}
- const C=carousel;if(C){const dx=p.x-C.x,dz=p.z-C.z;if(dx*dx+dz*dz<C.R*C.R&&Math.abs(p.y-C.top)<.08){const a=C.w*dt,ca=Math.cos(a),sa=Math.sin(a),nx=dx*ca+dz*sa,nz=-dx*sa+dz*ca;
+ const C=carousel;if(C&&!C.broken){const dx=p.x-C.x,dz=p.z-C.z;if(dx*dx+dz*dz<C.R*C.R&&Math.abs(p.y-C.top)<.08){const a=C.w*dt,ca=Math.cos(a),sa=Math.sin(a),nx=dx*ca+dz*sa,nz=-dx*sa+dz*ca;
   _cv.set((nx-dx)/dt,0,(nz-dz)/dt);moveBody(p,_cv,r,h,dt,true);return a}}return 0}
 
 /* ---------- сироп: прилив и вентили ---------- */

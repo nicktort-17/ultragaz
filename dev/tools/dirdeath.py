@@ -12,7 +12,7 @@ with sync_playwright() as p:
     for i in range(60):
         if E(pg,"!!(DIR_T&&DIR_T!=='load')"):break
         pg.wait_for_timeout(500)
-    E(pg,"(()=>{gunScene.visible=false;window.__dt=1/60;window.__Y0=P.pos.y;story.phase='clear';for(const e of enemies.slice())scene.remove(e.g);enemies.length=0;const e=makeEnemy('boss',new V3(0,P.pos.y,-3),'tb1');enemies.push(e);e.cd=99;e.cdD=99;e.cdS=99;e.hp=e.maxHp*.03;window.__B=e})()")
+    E(pg,"(()=>{gunScene.visible=false;window.__dt=1/60;window.__Y0=P.pos.y;story.phase='clear';for(const e of enemies.slice())scene.remove(e.g);enemies.length=0;const e=makeEnemy('boss',new V3(0,P.pos.y,-3),'tb1');enemies.push(e);e.cd=99;e.cdD=99;e.cdS=99;e.hp=e.maxHp*.03;e.finDone=true;window.__B=e})()")
     for i in range(40):F(pg,3);E(pg,CAM+";__B.pos.set(0,__Y0+3,-3);__B.vel.set(0,0,0);__B.cd=99;__B.cdD=99;__B.cdS=99;__B.cdL=99;__B.cdR=99")
     shots=[]
     def snap(n):E(pg,CAM);F(pg,1);f=os.path.join(OD,'death_%s.png'%n);pg.screenshot(path=f);shots.append((n,f))

@@ -23,8 +23,17 @@ rep("function bossAnim(e,dt){const B=e.g.userData.boss;if(!B)return;",
 rep("function begin(m,lv){initAudio();",
     "function begin(m,lv){/*DIR3*/if(typeof dirLoad==='function')dirLoad();initAudio();")
 # «Ликвидация»: смерть Директора с моделью — своя сцена взрыва вместо стандартной вспышки
-rep("function kill(e,src,quiet){if(gzKillGuard(e))return;",
-    "function kill(e,src,quiet){if(gzKillGuard(e))return;/*DIR4*/if(e.type==='boss'&&src!=='x'&&src!=='self'&&typeof dirDeath==='function')dirDeath(e);")
+K_OLD="function kill(e,src,quiet){if(gzKillGuard(e))return;/*DIR4*/if(e.type==='boss'&&src!=='x'&&src!=='self'&&typeof dirDeath==='function')dirDeath(e);"
+K_NEW=("function kill(e,src,quiet){if(gzKillGuard(e))return;/*DIR8*/if(e.type==='boss'&&src!=='x'&&src!=='self'&&typeof dirKillGuard==='function'&&dirKillGuard(e))return;"
+       "/*DIR4*/if(e.type==='boss'&&src!=='x'&&src!=='self'&&typeof dirDeath==='function')dirDeath(e);")
+if K_OLD in s and K_NEW not in s: s=s.replace(K_OLD,K_NEW,1)
+rep("function kill(e,src,quiet){if(gzKillGuard(e))return;",K_NEW)
+# финал «пробка»: своё поведение босса, голова-снаряд, событие разрушения карусели для коопа
+rep("function bossAI(e,t,to,dist,dt,tg){const B=e.g.userData.boss,ph2=e.hp<e.maxHp*.5;",
+    "function bossAI(e,t,to,dist,dt,tg){/*DIR10*/if(e.fin&&typeof dirFinalAI==='function'){dirFinalAI(e,t,to,dist,dt);return}const B=e.g.userData.boss,ph2=e.hp<e.maxHp*.5;")
+rep(" for(const p of proj){if(p.dead)continue;p.t-=dt;const pos=p.m.position;",
+    " for(const p of proj){if(p.dead)continue;p.t-=dt;const pos=p.m.position;/*DIR11*/if(p.dhead){dirHeadUpd(p,dt);continue}")
+rep(" else if(k==='D')dlFx(n);"," else if(k==='X'){if(typeof dirFx==='function')dirFx(n)}/*DIR9*/else if(k==='D')dlFx(n);")
 rep("banner('ДИРЕКТОР УВОЛЕН!');for(let i=0;i<12;i++)orbs.push(makeOrb(c));blast(c,9,0xffe066);puff(c,160,0xf6eee2,16,1.4);",
     "banner('ДИРЕКТОР УВОЛЕН!');for(let i=0;i<12;i++)orbs.push(makeOrb(c));/*DIR5*/if(!e.dirDeath){blast(c,9,0xffe066);puff(c,160,0xf6eee2,16,1.4)}")
 rep("if(mode==='solo'||(mode==='coop'&&isHost)){updEnemies(dt);if(story)updStoryHost(dt);else updWaves(dt)}else if(mode==='coop')clientEnemyAnim(dt);",
